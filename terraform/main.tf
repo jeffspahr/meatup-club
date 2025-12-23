@@ -27,7 +27,7 @@ resource "cloudflare_pages_project" "meatup_club" {
 
   build_config {
     build_command   = "cd app && npm install && npm run build"
-    destination_dir = "app/out"
+    destination_dir = "app/.vercel/output/static"
   }
 
   source {
