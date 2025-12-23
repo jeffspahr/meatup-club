@@ -4,8 +4,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/app"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
     open-pull-requests-limit: 10
     # Group dependency updates to reduce PR noise
@@ -29,8 +28,7 @@ updates:
   - package-ecosystem: "terraform"
     directory: "/terraform"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
     open-pull-requests-limit: 5
     labels:
@@ -42,8 +40,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:00"
     labels:
       - "dependencies"
