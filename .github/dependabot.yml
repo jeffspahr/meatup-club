@@ -7,6 +7,10 @@ updates:
       interval: "daily"
       time: "09:00"
     open-pull-requests-limit: 10
+    # Ignore major version updates - handle manually
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     # Group dependency updates to reduce PR noise
     groups:
       production-dependencies:
