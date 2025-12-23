@@ -1,4 +1,4 @@
-export { default } from 'next-auth/middleware';
+export { auth as middleware } from '@/auth';
 
 // Protect all routes under /dashboard
 export const config = {
