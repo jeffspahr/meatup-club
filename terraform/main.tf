@@ -44,6 +44,8 @@ resource "cloudflare_pages_project" "meatup_club" {
 
   deployment_configs {
     production {
+      compatibility_flags = ["nodejs_compat"]
+
       environment_variables = {
         NEXTAUTH_URL = "https://${var.domain}"
         NODE_VERSION = "20"
@@ -61,6 +63,8 @@ resource "cloudflare_pages_project" "meatup_club" {
     }
 
     preview {
+      compatibility_flags = ["nodejs_compat"]
+
       environment_variables = {
         NODE_VERSION = "20"
       }
