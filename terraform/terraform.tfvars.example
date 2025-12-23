@@ -1,0 +1,25 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is gitignored for security
+
+# Cloudflare API token with permissions for:
+# - D1:Edit
+# - Pages:Edit
+# - DNS:Edit
+# Get it from: https://dash.cloudflare.com/profile/api-tokens
+cloudflare_api_token = "your-cloudflare-api-token"
+
+# Cloudflare account ID
+# Find it in: https://dash.cloudflare.com/ (right sidebar)
+cloudflare_account_id = "your-account-id"
+
+# GitHub repository owner (username or organization)
+github_owner = "jeffspahr"
+
+# Google OAuth credentials
+# Create at: https://console.cloud.google.com/apis/credentials
+# Authorized redirect URI: https://meatup.club/api/auth/callback/google
+google_client_id     = "your-google-client-id"
+google_client_secret = "your-google-client-secret"
+
+# NextAuth secret (generate with: openssl rand -base64 32)
+nextauth_secret = "your-nextauth-secret"
