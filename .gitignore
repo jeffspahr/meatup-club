@@ -52,3 +52,6 @@ coverage/
 
 # Local D1 database
 *.db
+
+# Hugo resources
+resources/

@@ -1,0 +1,18 @@
+<svg
+  viewBox="321.86 391.22 166.32 35.77"
+  version="1.1"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Single text element with two tspan elements -->
+  <text
+    text-anchor="middle"
+    font-family="Arial, sans-serif"
+    font-size="28"
+    fill="#000000"
+    x="404"    
+    y="400"
+  >
+    <tspan x="404" dy="1em">Raleigh</tspan>
+        <tspan x="404" dy="1.2em">Meatup</tspan>
+  </text>
+</svg>
