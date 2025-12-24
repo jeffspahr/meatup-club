@@ -7,6 +7,7 @@ node_modules/
 app/.next/
 app/out/
 app/build/
+.vercel/
 
 # Production
 dist/
