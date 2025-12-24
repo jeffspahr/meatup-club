@@ -26,14 +26,16 @@ jobs:
           cd app
           npm ci
 
-      - name: Build Next.js application
+      - name: Build React Router application
         run: |
           cd app
-          npm run pages:build
+          npm run build
+        env:
+          NODE_ENV: production
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy app/.vercel/output/static --project-name=meatup-club
+          command: pages deploy app/build/client --project-name=meatup-club
