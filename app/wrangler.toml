@@ -1,5 +1,5 @@
 name = "meatup-club"
-main = "./build/server/default/index.js"
+main = "./workers/app.ts"
 compatibility_date = "2025-12-24"
 compatibility_flags = ["nodejs_compat"]
 
