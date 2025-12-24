@@ -30,8 +30,8 @@ resource "cloudflare_pages_project" "meatup_club" {
   production_branch = "main"
 
   build_config = {
-    build_command   = "cd remix-temp && npm install && npm run build"
-    destination_dir = "remix-temp/build/client"
+    build_command   = "cd app && npm install && npm run build"
+    destination_dir = "app/build/client"
   }
 
   lifecycle {

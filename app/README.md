@@ -32,7 +32,7 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 1. **Clone the repository**
    ```bash
    git clone https://github.com/[your-username]/meatup-club.git
-   cd meatup-club/remix-temp
+   cd meatup-club/app
    ```
 
 2. **Install dependencies**
@@ -120,7 +120,7 @@ Make sure these secrets are configured in your GitHub repository:
 ## Project Structure
 
 ```
-remix-temp/
+app/
 ├── app/
 │   ├── components/          # Reusable React components
 │   │   └── DashboardNav.tsx # Main navigation
