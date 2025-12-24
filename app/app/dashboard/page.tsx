@@ -94,7 +94,7 @@ export default async function DashboardPage() {
               <p className="text-white/90 mb-4">
                 Let us know if you'll be joining the next meetup
               </p>
-              <span className="text-white/80 text-sm">Coming soon →</span>
+              <span className="text-white font-semibold">View & RSVP →</span>
             </div>
           </Link>
 
@@ -129,10 +129,10 @@ export default async function DashboardPage() {
 
         {/* Welcome Message for New Features */}
         <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h4 className="font-bold text-blue-900 mb-2">🚀 Just Getting Started!</h4>
+          <h4 className="font-bold text-blue-900 mb-2">🎉 RSVP Feature Now Live!</h4>
           <p className="text-blue-800">
-            Authentication is now working! You're signed in and ready to go.
-            The RSVP, voting, and other features will be added in the next iteration.
+            You can now RSVP to upcoming events! Click the "RSVP to Events" card above to get started.
+            Restaurant and date voting features coming soon.
           </p>
         </div>
       </main>
