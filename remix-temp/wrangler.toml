@@ -1,0 +1,14 @@
+name = "meatup-club"
+compatibility_date = "2025-12-24"
+pages_build_output_dir = "./build/client"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "meatup-club-db"
+database_id = "3a6fb3b4-0322-4ab0-b8df-09b5d19af1c1"
+
+[vars]
+NODE_VERSION = "20"
+# GOOGLE_CLIENT_ID = "your-client-id"
+# GOOGLE_CLIENT_SECRET = "your-client-secret"
+# SESSION_SECRET = "your-session-secret"
