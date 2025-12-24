@@ -1,5 +1,4 @@
-import { createRequestHandler } from "@react-router/cloudflare";
-import * as build from "../build/server/default/index.js";
+import { createRequestHandler } from "react-router";
 
 declare global {
   interface CloudflareEnvironment extends Env {}
@@ -10,32 +9,17 @@ type Env = {
   ASSETS: Fetcher;
 };
 
+const requestHandler = createRequestHandler(
+  // @ts-expect-error - virtual module provided by React Router
+  () => import("virtual:react-router/server-build"),
+  import.meta.env.MODE
+);
+
 export default {
   async fetch(request, env, ctx) {
     try {
-      // Handle asset requests
-      const url = new URL(request.url);
-      if (url.pathname.startsWith("/assets/")) {
-        return env.ASSETS.fetch(request);
-      }
-
-      // Create request handler for each request
-      const handler = createRequestHandler({
-        build,
-        mode: "production",
-        getLoadContext: () => ({ cloudflare: { env, ctx } }),
-      });
-
-      // Call handler with EventContext for Pages Functions
-      return handler({
-        request,
-        env,
-        params: {},
-        data: {},
-        next: async () => new Response("Not found", { status: 404 }),
-        functionPath: url.pathname,
-        waitUntil: ctx.waitUntil.bind(ctx),
-        passThroughOnException: ctx.passThroughOnException.bind(ctx),
+      return requestHandler(request, {
+        cloudflare: { env, ctx },
       });
     } catch (error) {
       console.error("Worker error:", error);
