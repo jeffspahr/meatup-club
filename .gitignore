@@ -56,3 +56,7 @@ coverage/
 
 # Hugo resources
 resources/
+
+# Terraform plan files
+*.tfplan
+tfplan
