@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardNav from '@/components/DashboardNav';
 
 export const runtime = 'edge';
 
@@ -135,15 +136,20 @@ export default function DatesPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-8">Date Voting</h1>
-        <p className="text-gray-600">Loading suggestions...</p>
+      <div className="min-h-screen bg-gray-50">
+        <DashboardNav />
+        <div className="max-w-6xl mx-auto p-8">
+          <h1 className="text-3xl font-bold mb-8">Date Voting</h1>
+          <p className="text-gray-600">Loading suggestions...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
+    <div className="min-h-screen bg-gray-50">
+      <DashboardNav />
+      <div className="max-w-6xl mx-auto p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Date Voting</h1>
         <button
@@ -272,6 +278,7 @@ export default function DatesPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
