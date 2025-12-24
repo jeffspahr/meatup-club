@@ -10,12 +10,25 @@ type Env = {
   ASSETS: Fetcher;
 };
 
-const requestHandler = createRequestHandler(build, "production");
+const requestHandler = createRequestHandler({
+  build,
+  mode: "production",
+});
 
 export default {
   async fetch(request, env, ctx) {
-    return requestHandler(request, {
-      cloudflare: { env, ctx },
-    });
+    // Create a Pages Function compatible context
+    const context = {
+      request,
+      env,
+      params: {},
+      data: {},
+      next: async () => new Response("Not found", { status: 404 }),
+      functionPath: "",
+      waitUntil: ctx.waitUntil.bind(ctx),
+      passThroughOnException: ctx.passThroughOnException.bind(ctx),
+    };
+
+    return requestHandler(context);
   },
 } satisfies ExportedHandler<CloudflareEnvironment>;
