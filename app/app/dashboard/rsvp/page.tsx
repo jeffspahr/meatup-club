@@ -19,7 +19,7 @@ interface RSVP {
   event_id: number;
   user_id: number;
   status: 'yes' | 'no' | 'maybe';
-  dietary_restrictions: string | null;
+  comments: string | null;
   created_at: string;
   name?: string;
   email?: string;
@@ -41,7 +41,7 @@ export default function RSVPPage() {
 
   // Form state for each event
   const [formData, setFormData] = useState<
-    Record<number, { status: string; dietary_restrictions: string }>
+    Record<number, { status: string; comments: string }>
   >({});
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function RSVPPage() {
       const rsvpDataMap: Record<number, RSVPData> = {};
       const formDataMap: Record<
         number,
-        { status: string; dietary_restrictions: string }
+        { status: string; comments: string }
       > = {};
 
       (data.events || []).forEach((event: Event, index: number) => {
@@ -84,7 +84,7 @@ export default function RSVPPage() {
         const userRsvp = rsvpResults[index].userRsvp;
         formDataMap[event.id] = {
           status: userRsvp?.status || '',
-          dietary_restrictions: userRsvp?.dietary_restrictions || '',
+          comments: userRsvp?.comments || '',
         };
       });
 
@@ -114,7 +114,7 @@ export default function RSVPPage() {
         body: JSON.stringify({
           event_id: eventId,
           status: data.status,
-          dietary_restrictions: data.dietary_restrictions || null,
+          comments: data.comments || null,
         }),
       });
 
@@ -135,7 +135,7 @@ export default function RSVPPage() {
 
   function updateFormData(
     eventId: number,
-    field: 'status' | 'dietary_restrictions',
+    field: 'status' | 'comments',
     value: string
   ) {
     setFormData((prev) => ({
@@ -226,23 +226,23 @@ export default function RSVPPage() {
 
                   <div>
                     <label
-                      htmlFor={`dietary-${event.id}`}
+                      htmlFor={`comments-${event.id}`}
                       className="block text-sm font-medium text-gray-700 mb-2"
                     >
-                      Dietary Restrictions (Optional)
+                      Comments (Optional)
                     </label>
-                    <input
-                      id={`dietary-${event.id}`}
-                      type="text"
-                      value={formData[event.id]?.dietary_restrictions || ''}
+                    <textarea
+                      id={`comments-${event.id}`}
+                      value={formData[event.id]?.comments || ''}
                       onChange={(e) =>
                         updateFormData(
                           event.id,
-                          'dietary_restrictions',
+                          'comments',
                           e.target.value
                         )
                       }
-                      placeholder="e.g., Vegetarian, No shellfish"
+                      placeholder="Any comments or notes about your attendance"
+                      rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -282,9 +282,9 @@ export default function RSVPPage() {
                           )}
                           <div className="flex-1">
                             <p className="font-medium">{rsvp.name || rsvp.email}</p>
-                            {rsvp.dietary_restrictions && (
+                            {rsvp.comments && (
                               <p className="text-sm text-gray-600">
-                                Dietary: {rsvp.dietary_restrictions}
+                                {rsvp.comments}
                               </p>
                             )}
                           </div>
