@@ -11,6 +11,9 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Pin Next.js to <= 15.5.2 until @cloudflare/next-on-pages adds support
+      - dependency-name: "next"
+        versions: ["> 15.5.2"]
     # Group dependency updates to reduce PR noise
     groups:
       production-dependencies:
