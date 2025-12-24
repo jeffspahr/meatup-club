@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getDb, getUserByEmail, ensureUser } from '@/lib/db';
+import { getDb, getUserByEmail, ensureUser, isUserActive } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
@@ -12,10 +12,16 @@ export const GET = auth(async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
+
+    // Check if user is active
+    if (!await isUserActive(db, session.user.email)) {
+      return NextResponse.json({ error: 'Account not activated' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('event_id');
 
-    const db = getDb();
     const user = await getUserByEmail(db, session.user.email);
 
     if (!user) {
@@ -72,8 +78,15 @@ export const POST = auth(async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
+
+    // Check if user is active
+    if (!await isUserActive(db, session.user.email)) {
+      return NextResponse.json({ error: 'Account not activated' }, { status: 403 });
+    }
+
     const body = await request.json();
-    const { event_id, name, address, cuisine, url } = body;
+    const { event_id, name, address, cuisine, url} = body;
 
     if (!name) {
       return NextResponse.json(
@@ -81,8 +94,6 @@ export const POST = auth(async function POST(request) {
         { status: 400 }
       );
     }
-
-    const db = getDb();
 
     // Ensure user exists in database
     const userId = await ensureUser(

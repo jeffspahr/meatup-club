@@ -13,15 +13,22 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Get member count
+  // Get member count and check user status
   const db = getDb();
   const memberCountResult = await db
-    .prepare('SELECT COUNT(*) as count FROM users')
+    .prepare('SELECT COUNT(*) as count FROM users WHERE status = ?')
+    .bind('active')
     .first();
   const memberCount = (memberCountResult as any)?.count || 0;
 
-  // Check if current user is admin
+  // Check if current user is active and admin
   const currentUser = await getUserByEmail(db, session.user?.email!);
+
+  // Redirect invited users to accept page
+  if (currentUser?.status === 'invited') {
+    redirect('/accept-invite');
+  }
+
   const isAdmin = currentUser?.is_admin === 1;
 
   return (
