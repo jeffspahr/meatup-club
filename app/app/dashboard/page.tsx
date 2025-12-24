@@ -114,7 +114,7 @@ export default async function DashboardPage() {
               <p className="text-white/90 mb-4">
                 Propose and vote on the best date for the next gathering
               </p>
-              <span className="text-white/80 text-sm">Coming soon →</span>
+              <span className="text-white font-semibold">Suggest & Vote →</span>
             </div>
           </Link>
 
@@ -128,12 +128,12 @@ export default async function DashboardPage() {
         </div>
 
         {/* Welcome Message for New Features */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h4 className="font-bold text-blue-900 mb-2">🎉 New Features Available!</h4>
-          <p className="text-blue-800">
-            <strong>RSVP to Events:</strong> Let everyone know if you're coming and share dietary restrictions.<br/>
-            <strong>Restaurant Voting:</strong> Suggest and vote on the next steakhouse destination!<br/>
-            Date voting coming soon.
+        <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+          <h4 className="font-bold text-green-900 mb-2">🎉 All Core Features Complete!</h4>
+          <p className="text-green-800">
+            <strong>✓ RSVP to Events:</strong> Let everyone know if you're coming and share dietary restrictions.<br/>
+            <strong>✓ Restaurant Voting:</strong> Suggest and vote on the next steakhouse destination!<br/>
+            <strong>✓ Date Voting:</strong> Propose and vote on dates for upcoming meetups.
           </p>
         </div>
       </main>
