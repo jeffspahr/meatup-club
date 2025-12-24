@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import DashboardNav from '@/components/DashboardNav';
 
 export const runtime = 'edge';
 
@@ -149,16 +150,21 @@ export default function RSVPPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-8">
-        <h1 className="text-3xl font-bold mb-8">RSVP to Events</h1>
-        <p className="text-gray-600">Loading events...</p>
+      <div className="min-h-screen bg-gray-50">
+        <DashboardNav />
+        <div className="max-w-6xl mx-auto p-8">
+          <h1 className="text-3xl font-bold mb-8">RSVP to Events</h1>
+          <p className="text-gray-600">Loading events...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">RSVP to Events</h1>
+    <div className="min-h-screen bg-gray-50">
+      <DashboardNav />
+      <div className="max-w-6xl mx-auto p-8">
+        <h1 className="text-3xl font-bold mb-8">RSVP to Events</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
@@ -326,6 +332,7 @@ export default function RSVPPage() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

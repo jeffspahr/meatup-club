@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import Link from 'next/link';
+import DashboardNav from '@/components/DashboardNav';
 
 export const runtime = 'edge';
 
@@ -13,34 +14,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-meat-red">🥩 Meatup.Club</h1>
-            </div>
-            <div className="flex items-center gap-6">
-              <span className="text-gray-700">
-                {session.user?.name || session.user?.email}
-              </span>
-              {session.user?.image && (
-                <img
-                  src={session.user.image}
-                  alt="Profile"
-                  className="w-10 h-10 rounded-full"
-                />
-              )}
-              <a
-                href="/api/auth/signout"
-                className="text-meat-red hover:text-meat-brown transition"
-              >
-                Sign out
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <DashboardNav />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -127,15 +101,6 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* Welcome Message for New Features */}
-        <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h4 className="font-bold text-green-900 mb-2">🎉 All Core Features Complete!</h4>
-          <p className="text-green-800">
-            <strong>✓ RSVP to Events:</strong> Let everyone know if you're coming and share dietary restrictions.<br/>
-            <strong>✓ Restaurant Voting:</strong> Suggest and vote on the next steakhouse destination!<br/>
-            <strong>✓ Date Voting:</strong> Propose and vote on dates for upcoming meetups.
-          </p>
-        </div>
       </main>
     </div>
   );
