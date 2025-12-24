@@ -23,81 +23,21 @@ resource "cloudflare_d1_database" "meatup_db" {
   }
 }
 
-# Cloudflare Pages Project
-resource "cloudflare_pages_project" "meatup_club" {
-  account_id        = var.cloudflare_account_id
-  name              = "meatup-club"
-  production_branch = "main"
+# NOTE: Cloudflare Worker is deployed via wrangler CLI in GitHub Actions
+# Worker configuration (D1 bindings, secrets, etc.) is managed in app/wrangler.toml
+# Secrets are set via: wrangler secret put <NAME>
 
-  build_config = {
-    build_command   = "cd app && npm install && npm run build"
-    destination_dir = "app/build/client"
-  }
+# Worker Route - Maps custom domain to the Worker
+resource "cloudflare_worker_route" "meatup_club" {
+  zone_id     = data.cloudflare_zone.domain.id
+  pattern     = "${var.domain}/*"
+  script_name = "meatup-club"
+}
 
-  lifecycle {
-    ignore_changes = [
-      source,
-      build_config["build_caching"],
-      build_config["root_dir"],
-      build_config["web_analytics_tag"],
-      build_config["web_analytics_token"],
-      deployment_configs["preview"]["placement"],
-      deployment_configs["production"]["placement"]
-    ]
-  }
-
-  # Note: source block is read-only in v5 - must be configured via Cloudflare dashboard
-  # GitHub integration is already configured for this project
-
-  deployment_configs = {
-    production = {
-      compatibility_flags = ["nodejs_compat"]
-      compatibility_date  = "2025-12-24"
-
-      env_vars = {
-        NODE_VERSION = {
-          type  = "plain_text"
-          value = "20"
-        }
-        GOOGLE_CLIENT_ID = {
-          type  = "secret_text"
-          value = sensitive(var.google_client_id)
-        }
-        GOOGLE_CLIENT_SECRET = {
-          type  = "secret_text"
-          value = sensitive(var.google_client_secret)
-        }
-        SESSION_SECRET = {
-          type  = "secret_text"
-          value = sensitive(var.nextauth_secret)
-        }
-      }
-
-      d1_databases = {
-        DB = {
-          id = cloudflare_d1_database.meatup_db.id
-        }
-      }
-    }
-
-    preview = {
-      compatibility_flags = ["nodejs_compat"]
-      compatibility_date  = "2025-12-24"
-
-      env_vars = {
-        NODE_VERSION = {
-          type  = "plain_text"
-          value = "20"
-        }
-      }
-
-      d1_databases = {
-        DB = {
-          id = cloudflare_d1_database.meatup_db.id
-        }
-      }
-    }
-  }
+resource "cloudflare_worker_route" "meatup_club_www" {
+  zone_id     = data.cloudflare_zone.domain.id
+  pattern     = "www.${var.domain}/*"
+  script_name = "meatup-club"
 }
 
 # Get the Cloudflare zone for the domain
@@ -108,28 +48,22 @@ data "cloudflare_zone" "domain" {
 }
 
 # DNS record for the root domain
+# Proxied through Cloudflare - Worker routes will handle the requests
 resource "cloudflare_dns_record" "root" {
   zone_id = data.cloudflare_zone.domain.id
   name    = "@"
-  content = cloudflare_pages_project.meatup_club.subdomain
+  content = var.domain
   type    = "CNAME"
   proxied = true
-  ttl     = 1
+  comment = "Proxied through Cloudflare Workers"
 }
 
 # DNS record for www subdomain
 resource "cloudflare_dns_record" "www" {
   zone_id = data.cloudflare_zone.domain.id
   name    = "www"
-  content = cloudflare_pages_project.meatup_club.subdomain
+  content = var.domain
   type    = "CNAME"
   proxied = true
-  ttl     = 1
-}
-
-# Custom domain for Pages project
-resource "cloudflare_pages_domain" "meatup_club" {
-  account_id   = var.cloudflare_account_id
-  project_name = cloudflare_pages_project.meatup_club.name
-  name         = var.domain
+  comment = "Proxied through Cloudflare Workers"
 }
