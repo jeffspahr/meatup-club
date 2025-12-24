@@ -26,7 +26,7 @@ export const GET = auth(async function GET(request) {
 
     // Get all members
     const members = await db
-      .prepare('SELECT id, email, name, picture, is_admin, created_at FROM users ORDER BY created_at DESC')
+      .prepare('SELECT id, email, name, picture, is_admin, status, created_at FROM users ORDER BY created_at DESC')
       .all();
 
     return NextResponse.json({ members: members.results || [] });
@@ -82,10 +82,10 @@ export const POST = auth(async function POST(request) {
       );
     }
 
-    // Add new member
+    // Add new member with 'invited' status
     const result = await db
-      .prepare('INSERT INTO users (email, name, is_admin) VALUES (?, ?, 0)')
-      .bind(email, name || null)
+      .prepare('INSERT INTO users (email, name, is_admin, status) VALUES (?, ?, 0, ?)')
+      .bind(email, name || null, 'invited')
       .run();
 
     if (!result.success) {
@@ -93,7 +93,7 @@ export const POST = auth(async function POST(request) {
     }
 
     const newMember = await db
-      .prepare('SELECT id, email, name, picture, is_admin, created_at FROM users WHERE id = ?')
+      .prepare('SELECT id, email, name, picture, is_admin, status, created_at FROM users WHERE id = ?')
       .bind(result.meta.last_row_id)
       .first();
 

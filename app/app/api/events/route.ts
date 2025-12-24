@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getDb } from '@/lib/db';
+import { getDb, isUserActive } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
@@ -13,6 +13,11 @@ export const GET = auth(async function GET(request) {
     }
 
     const db = getDb();
+
+    // Check if user is active
+    if (!await isUserActive(db, session.user.email)) {
+      return NextResponse.json({ error: 'Account not activated' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // upcoming, completed, cancelled, or all
 

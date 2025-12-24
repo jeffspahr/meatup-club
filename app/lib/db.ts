@@ -37,3 +37,9 @@ export async function getUserByEmail(db: D1Database, email: string) {
     .bind(email)
     .first();
 }
+
+// Helper function to check if user is active
+export async function isUserActive(db: D1Database, email: string): Promise<boolean> {
+  const user = await getUserByEmail(db, email);
+  return user?.status === 'active';
+}

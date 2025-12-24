@@ -12,6 +12,7 @@ interface Member {
   name: string | null;
   picture: string | null;
   is_admin: number;
+  status: string;
   created_at: string;
 }
 
@@ -240,6 +241,9 @@ export default function MembersPage() {
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -279,6 +283,17 @@ export default function MembersPage() {
                     ) : (
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">
                         Member
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {member.status === 'active' ? (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        Invited
                       </span>
                     )}
                   </td>

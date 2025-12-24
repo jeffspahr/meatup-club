@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
-import { ensureUser, getDb } from '@/lib/db';
+import { getUserByEmail, getDb } from '@/lib/db';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -12,13 +12,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
-        // Store user in D1 database on sign-in
         const db = getDb();
-        await ensureUser(db, user.email!, user.name || undefined, user.image || undefined);
+
+        // Only allow users who have been invited (exist in database)
+        const existingUser = await getUserByEmail(db, user.email!);
+
+        if (!existingUser) {
+          return false; // Reject users who haven't been invited
+        }
+
+        // Update user info (name, picture) on each sign-in
+        await db
+          .prepare('UPDATE users SET name = ?, picture = ? WHERE email = ?')
+          .bind(user.name || null, user.image || null, user.email)
+          .run();
+
         return true;
       } catch (error) {
-        console.error('Error storing user in database:', error);
-        return true; // Allow sign-in even if DB fails
+        console.error('Error during sign-in:', error);
+        return false;
       }
     },
   },
