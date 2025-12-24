@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getDb, isUserActive } from '@/lib/db';
+import { getDb, isUserActive, getUserByEmail } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
@@ -44,12 +44,25 @@ export const GET = auth(async function GET(request) {
   }
 });
 
-// POST /api/events - Create a new event
+// POST /api/events - Create a new event (admin only)
 export const POST = auth(async function POST(request) {
   try {
     const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const db = getDb();
+
+    // Check if user is active
+    if (!await isUserActive(db, session.user.email)) {
+      return NextResponse.json({ error: 'Account not activated' }, { status: 403 });
+    }
+
+    // Check if user is admin
+    const user = await getUserByEmail(db, session.user.email);
+    if (!user?.is_admin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -62,7 +75,6 @@ export const POST = auth(async function POST(request) {
       );
     }
 
-    const db = getDb();
     const result = await db
       .prepare(
         'INSERT INTO events (restaurant_name, restaurant_address, event_date, status) VALUES (?, ?, ?, ?)'

@@ -74,16 +74,28 @@ export default function DashboardNav() {
                 Dates
               </Link>
               {isAdmin && (
-                <Link
-                  href="/dashboard/members"
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                    isActive('/dashboard/members')
-                      ? 'bg-meat-red text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  Members
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/events"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                      isActive('/dashboard/events')
+                        ? 'bg-meat-red text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Events
+                  </Link>
+                  <Link
+                    href="/dashboard/members"
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                      isActive('/dashboard/members')
+                        ? 'bg-meat-red text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Members
+                  </Link>
+                </>
               )}
             </div>
           </div>
