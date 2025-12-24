@@ -49,7 +49,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(user.id)
     .all();
 
-  return { suggestions: suggestionsResult.results || [] };
+  return {
+    suggestions: suggestionsResult.results || [],
+    currentUser: {
+      id: user.id,
+      isAdmin: user.is_admin === 1,
+    }
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
@@ -138,11 +144,41 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/dashboard/restaurants');
   }
 
+  if (action === 'delete') {
+    const suggestionId = formData.get('suggestion_id');
+
+    if (!suggestionId) {
+      return { error: 'Suggestion ID is required' };
+    }
+
+    // Check if user owns this suggestion or is admin
+    const suggestion = await db
+      .prepare('SELECT user_id FROM restaurant_suggestions WHERE id = ?')
+      .bind(suggestionId)
+      .first();
+
+    if (!suggestion) {
+      return { error: 'Suggestion not found' };
+    }
+
+    // Allow deletion if user is admin or owns the suggestion
+    if (user.is_admin || suggestion.user_id === user.id) {
+      await db
+        .prepare('DELETE FROM restaurant_suggestions WHERE id = ?')
+        .bind(suggestionId)
+        .run();
+    } else {
+      return { error: 'You do not have permission to delete this suggestion' };
+    }
+
+    return redirect('/dashboard/restaurants');
+  }
+
   return { error: 'Invalid action' };
 }
 
 export default function RestaurantsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { suggestions } = loaderData;
+  const { suggestions, currentUser } = loaderData;
   const [showForm, setShowForm] = useState(false);
   const submit = useSubmit();
   const [restaurantName, setRestaurantName] = useState("");
@@ -154,6 +190,15 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
     formData.append('suggestion_id', suggestionId.toString());
     formData.append('remove', currentlyVoted.toString());
     submit(formData, { method: 'post' });
+  }
+
+  function handleDelete(suggestionId: number, restaurantName: string) {
+    if (confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
+      const formData = new FormData();
+      formData.append('_action', 'delete');
+      formData.append('suggestion_id', suggestionId.toString());
+      submit(formData, { method: 'post' });
+    }
   }
 
   return (
@@ -395,6 +440,17 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                             {suggestion.vote_count === 1 ? 'vote' : 'votes'}
                           </p>
                         </div>
+
+                        {/* Delete button - shown if user owns or is admin */}
+                        {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
+                          <button
+                            onClick={() => handleDelete(suggestion.id, suggestion.name)}
+                            className="mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                            title="Delete suggestion"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
