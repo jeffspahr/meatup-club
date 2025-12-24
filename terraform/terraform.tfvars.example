@@ -17,9 +17,6 @@ github_owner = "jeffspahr"
 
 # Google OAuth credentials
 # Create at: https://console.cloud.google.com/apis/credentials
-# Authorized redirect URI: https://meatup.club/api/auth/callback/google
+# Authorized redirect URI: https://meatup.club/auth/google/callback
 google_client_id     = "your-google-client-id"
 google_client_secret = "your-google-client-secret"
-
-# NextAuth secret (generate with: openssl rand -base64 32)
-nextauth_secret = "your-nextauth-secret"
