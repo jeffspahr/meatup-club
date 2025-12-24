@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import Link from 'next/link';
 import DashboardNav from '@/components/DashboardNav';
+import { getDb, getUserByEmail } from '@/lib/db';
 
 export const runtime = 'edge';
 
@@ -11,6 +12,17 @@ export default async function DashboardPage() {
   if (!session) {
     redirect('/login');
   }
+
+  // Get member count
+  const db = getDb();
+  const memberCountResult = await db
+    .prepare('SELECT COUNT(*) as count FROM users')
+    .first();
+  const memberCount = (memberCountResult as any)?.count || 0;
+
+  // Check if current user is admin
+  const currentUser = await getUserByEmail(db, session.user?.email!);
+  const isAdmin = currentUser?.is_admin === 1;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -49,15 +61,29 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Members</p>
-                <p className="text-2xl font-bold text-gray-900">12</p>
+          {isAdmin ? (
+            <Link href="/dashboard/members">
+              <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Members</p>
+                    <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
+                  </div>
+                  <div className="text-4xl">👥</div>
+                </div>
               </div>
-              <div className="text-4xl">👥</div>
+            </Link>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Members</p>
+                  <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
+                </div>
+                <div className="text-4xl">👥</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Action Cards */}
