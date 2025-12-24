@@ -1,14 +1,10 @@
-import { redirect } from "react-router";
 import type { Route } from "./+types/auth.google.callback";
-import { getSession, commitSession } from "../lib/session.server";
-import {
-  getGoogleTokens,
-  getGoogleUserInfo,
-  createUserSession,
-} from "../lib/auth.server";
-import { ensureUser, isUserActive } from "../lib/db.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
+  // Import server-only modules inside loader to prevent client bundling
+  const { getSession } = await import("../lib/session.server");
+  const { getGoogleTokens, getGoogleUserInfo, createUserSession } = await import("../lib/auth.server");
+  const { ensureUser, isUserActive } = await import("../lib/db.server");
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
