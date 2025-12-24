@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 // GET /api/events - List all events (upcoming and past)
-export async function GET(request: NextRequest) {
+export const GET = auth(async function GET(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -37,12 +37,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST /api/events - Create a new event
-export async function POST(request: NextRequest) {
+export const POST = auth(async function POST(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -82,4 +82,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

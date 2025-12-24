@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 // POST /api/restaurants/vote - Vote for a restaurant (or remove vote)
-export async function POST(request: NextRequest) {
+export const POST = auth(async function POST(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // DELETE /api/restaurants/vote?suggestion_id=123 - Remove vote
-export async function DELETE(request: NextRequest) {
+export const DELETE = auth(async function DELETE(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -136,4 +136,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
