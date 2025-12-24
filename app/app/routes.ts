@@ -14,10 +14,8 @@ export default [
     route("restaurants", "routes/dashboard.restaurants.tsx"),
     route("dates", "routes/dashboard.dates.tsx"),
     route("members", "routes/dashboard.members.tsx"),
-    layout("admin", [
-      index("routes/dashboard.admin._index.tsx"),
-      route("events", "routes/dashboard.admin.events.tsx"),
-      route("members", "routes/dashboard.admin.members.tsx"),
-    ]),
+    route("admin", "routes/dashboard.admin._index.tsx"),
+    route("admin/events", "routes/dashboard.admin.events.tsx"),
+    route("admin/members", "routes/dashboard.admin.members.tsx"),
   ]),
 ] satisfies RouteConfig;
