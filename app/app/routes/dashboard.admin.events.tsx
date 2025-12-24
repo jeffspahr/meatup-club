@@ -54,7 +54,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         ds.suggested_date,
         COUNT(dv.id) as vote_count
       FROM date_suggestions ds
-      LEFT JOIN date_votes dv ON ds.id = dv.suggestion_id
+      LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
       GROUP BY ds.id
       ORDER BY vote_count DESC
       LIMIT 1
