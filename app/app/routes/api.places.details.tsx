@@ -12,7 +12,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   try {
     // Use Google Places API (New) - Place Details
     const response = await fetch(
-      `https://places.googleapis.com/v1/${placeId}`,
+      `https://places.googleapis.com/v1/places/${placeId}`,
       {
         headers: {
           "X-Goog-Api-Key": apiKey,
