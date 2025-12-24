@@ -1,4 +1,4 @@
-import { type RouteConfig, index, route, layout } from "@react-router/dev/routes";
+import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
 export default [
   index("routes/_index.tsx"),
@@ -7,7 +7,7 @@ export default [
   route("pending", "routes/pending.tsx"),
   route("accept-invite", "routes/accept-invite.tsx"),
   route("auth/google/callback", "routes/auth.google.callback.tsx"),
-  layout("routes/dashboard.tsx", [
+  route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),
     route("events", "routes/dashboard.events.tsx"),
     route("rsvp", "routes/dashboard.rsvp.tsx"),
