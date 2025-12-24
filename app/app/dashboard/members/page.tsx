@@ -161,7 +161,7 @@ export default function MembersPage() {
             onClick={() => setShowAddForm(!showAddForm)}
             className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
           >
-            {showAddForm ? 'Cancel' : '+ Add Member'}
+            {showAddForm ? 'Cancel' : '+ Invite User'}
           </button>
         </div>
 
@@ -171,10 +171,10 @@ export default function MembersPage() {
           </div>
         )}
 
-        {/* Add Member Form */}
+        {/* Invite User Form */}
         {showAddForm && (
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Add New Member</h2>
+            <h2 className="text-xl font-semibold mb-4">Invite New User</h2>
             <form onSubmit={handleAddMember} className="space-y-4">
               <div>
                 <label
@@ -220,7 +220,7 @@ export default function MembersPage() {
                 disabled={adding}
                 className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {adding ? 'Adding...' : 'Add Member'}
+                {adding ? 'Sending Invite...' : 'Send Invite'}
               </button>
             </form>
           </div>
