@@ -69,7 +69,7 @@ export const POST = auth(async function POST(request) {
     }
 
     const body = await request.json();
-    const { event_id, status, dietary_restrictions } = body;
+    const { event_id, status, comments } = body;
 
     if (!event_id || !status) {
       return NextResponse.json(
@@ -106,17 +106,17 @@ export const POST = auth(async function POST(request) {
       // Update existing RSVP
       result = await db
         .prepare(
-          'UPDATE rsvps SET status = ?, dietary_restrictions = ? WHERE id = ?'
+          'UPDATE rsvps SET status = ?, comments = ? WHERE id = ?'
         )
-        .bind(status, dietary_restrictions || null, existing.id)
+        .bind(status, comments || null, existing.id)
         .run();
     } else {
       // Create new RSVP
       result = await db
         .prepare(
-          'INSERT INTO rsvps (event_id, user_id, status, dietary_restrictions) VALUES (?, ?, ?, ?)'
+          'INSERT INTO rsvps (event_id, user_id, status, comments) VALUES (?, ?, ?, ?)'
         )
-        .bind(event_id, userId, status, dietary_restrictions || null)
+        .bind(event_id, userId, status, comments || null)
         .run();
     }
 
