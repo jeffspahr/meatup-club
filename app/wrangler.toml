@@ -1,5 +1,5 @@
 name = "meatup-club"
-main = "./build/server/index.js"
+main = "./build/server/default/index.js"
 compatibility_date = "2025-12-24"
 compatibility_flags = ["nodejs_compat"]
 

@@ -28,17 +28,18 @@ resource "cloudflare_d1_database" "meatup_db" {
 # Secrets are set via: wrangler secret put <NAME>
 
 # Worker Route - Maps custom domain to the Worker
-resource "cloudflare_worker_route" "meatup_club" {
-  zone_id     = data.cloudflare_zone.domain.id
-  pattern     = "${var.domain}/*"
-  script_name = "meatup-club"
-}
-
-resource "cloudflare_worker_route" "meatup_club_www" {
-  zone_id     = data.cloudflare_zone.domain.id
-  pattern     = "www.${var.domain}/*"
-  script_name = "meatup-club"
-}
+# NOTE: Commented out until Worker is deployed. Uncomment after first deployment.
+# resource "cloudflare_workers_route" "meatup_club" {
+#   zone_id = data.cloudflare_zone.domain.id
+#   pattern = "${var.domain}/*"
+#   script  = "meatup-club"
+# }
+#
+# resource "cloudflare_workers_route" "meatup_club_www" {
+#   zone_id = data.cloudflare_zone.domain.id
+#   pattern = "www.${var.domain}/*"
+#   script  = "meatup-club"
+# }
 
 # Get the Cloudflare zone for the domain
 data "cloudflare_zone" "domain" {
@@ -48,22 +49,25 @@ data "cloudflare_zone" "domain" {
 }
 
 # DNS record for the root domain
-# Proxied through Cloudflare - Worker routes will handle the requests
+# Uses placeholder IPv6 address for Workers routing
 resource "cloudflare_dns_record" "root" {
   zone_id = data.cloudflare_zone.domain.id
   name    = "@"
-  content = var.domain
-  type    = "CNAME"
+  content = "100::"
+  type    = "AAAA"
+  ttl     = 1
   proxied = true
-  comment = "Proxied through Cloudflare Workers"
+  comment = "Placeholder for Cloudflare Workers routing"
 }
 
 # DNS record for www subdomain
+# Uses placeholder IPv6 address for Workers routing
 resource "cloudflare_dns_record" "www" {
   zone_id = data.cloudflare_zone.domain.id
   name    = "www"
-  content = var.domain
-  type    = "CNAME"
+  content = "100::"
+  type    = "AAAA"
+  ttl     = 1
   proxied = true
-  comment = "Proxied through Cloudflare Workers"
+  comment = "Placeholder for Cloudflare Workers routing"
 }
