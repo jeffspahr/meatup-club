@@ -1,4 +1,5 @@
 import { createRequestHandler } from "@react-router/cloudflare";
+import * as build from "../build/server/default/index.js";
 
 declare global {
   interface CloudflareEnvironment extends Env {}
@@ -9,10 +10,7 @@ type Env = {
   ASSETS: Fetcher;
 };
 
-const requestHandler = createRequestHandler(
-  () => import("virtual:react-router/server-build"),
-  import.meta.env.MODE
-);
+const requestHandler = createRequestHandler(build, "production");
 
 export default {
   async fetch(request, env, ctx) {
