@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 // GET /api/restaurants?event_id=123 - List restaurant suggestions with vote counts
-export async function GET(request: NextRequest) {
+export const GET = auth(async function GET(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -62,12 +62,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST /api/restaurants - Create a new restaurant suggestion
-export async function POST(request: NextRequest) {
+export const POST = auth(async function POST(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -143,4 +143,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

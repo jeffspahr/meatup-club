@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 // GET /api/rsvp?event_id=123 - Get user's RSVP for an event and list of all RSVPs
-export async function GET(request: NextRequest) {
+export const GET = auth(async function GET(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -58,12 +58,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // POST /api/rsvp - Create or update RSVP
-export async function POST(request: NextRequest) {
+export const POST = auth(async function POST(request) {
   try {
-    const session = await auth();
+    const session = request.auth;
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -139,4 +139,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
