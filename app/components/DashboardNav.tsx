@@ -2,9 +2,25 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function DashboardNav() {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user is admin
+    fetch('/api/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.is_admin) {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {
+        // Ignore errors
+      });
+  }, []);
 
   const isActive = (path: string) => pathname === path;
 
@@ -57,6 +73,18 @@ export default function DashboardNav() {
               >
                 Dates
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/dashboard/members"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                    isActive('/dashboard/members')
+                      ? 'bg-meat-red text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Members
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4">
