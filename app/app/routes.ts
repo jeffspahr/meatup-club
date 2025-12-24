@@ -7,6 +7,8 @@ export default [
   route("pending", "routes/pending.tsx"),
   route("accept-invite", "routes/accept-invite.tsx"),
   route("auth/google/callback", "routes/auth.google.callback.tsx"),
+  route("api/places/search", "routes/api.places.search.tsx"),
+  route("api/places/details", "routes/api.places.details.tsx"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),
     route("events", "routes/dashboard.events.tsx"),

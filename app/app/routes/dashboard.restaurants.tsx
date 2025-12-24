@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.restaurants";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
+import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
 
 interface Suggestion {
   id: number;
@@ -17,6 +18,15 @@ interface Suggestion {
   suggested_by_email: string;
   vote_count: number;
   user_has_voted: number;
+  google_place_id: string | null;
+  google_rating: number | null;
+  rating_count: number | null;
+  price_level: number | null;
+  phone_number: string | null;
+  reservation_url: string | null;
+  menu_url: string | null;
+  photo_url: string | null;
+  google_maps_url: string | null;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -53,14 +63,44 @@ export async function action({ request, context }: Route.ActionArgs) {
     const address = formData.get('address');
     const cuisine = formData.get('cuisine');
     const url = formData.get('url');
+    const googlePlaceId = formData.get('google_place_id');
+    const googleRating = formData.get('google_rating');
+    const ratingCount = formData.get('rating_count');
+    const priceLevel = formData.get('price_level');
+    const phoneNumber = formData.get('phone_number');
+    const reservationUrl = formData.get('reservation_url');
+    const menuUrl = formData.get('menu_url');
+    const photoUrl = formData.get('photo_url');
+    const googleMapsUrl = formData.get('google_maps_url');
 
     if (!name) {
       return { error: 'Restaurant name is required' };
     }
 
     await db
-      .prepare('INSERT INTO restaurant_suggestions (user_id, name, address, cuisine, url) VALUES (?, ?, ?, ?, ?)')
-      .bind(user.id, name, address || null, cuisine || null, url || null)
+      .prepare(`
+        INSERT INTO restaurant_suggestions (
+          user_id, name, address, cuisine, url,
+          google_place_id, google_rating, rating_count, price_level,
+          phone_number, reservation_url, menu_url, photo_url, google_maps_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        user.id,
+        name,
+        address || null,
+        cuisine || null,
+        url || null,
+        googlePlaceId || null,
+        googleRating ? parseFloat(googleRating as string) : null,
+        ratingCount ? parseInt(ratingCount as string) : null,
+        priceLevel ? parseInt(priceLevel as string) : null,
+        phoneNumber || null,
+        reservationUrl || null,
+        menuUrl || null,
+        photoUrl || null,
+        googleMapsUrl || null
+      )
       .run();
 
     return redirect('/dashboard/restaurants');
@@ -105,6 +145,8 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
   const { suggestions } = loaderData;
   const [showForm, setShowForm] = useState(false);
   const submit = useSubmit();
+  const [restaurantName, setRestaurantName] = useState("");
+  const [placeDetails, setPlaceDetails] = useState<any>(null);
 
   function handleVote(suggestionId: number, currentlyVoted: boolean) {
     const formData = new FormData();
@@ -136,68 +178,78 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Suggest a Restaurant</h2>
-          <Form method="post" className="space-y-4">
+          <Form method="post" className="space-y-4" onSubmit={() => {
+            setShowForm(false);
+            setRestaurantName("");
+            setPlaceDetails(null);
+          }}>
             <input type="hidden" name="_action" value="suggest" />
+            <input type="hidden" name="name" value={placeDetails?.name || restaurantName} />
+            <input type="hidden" name="address" value={placeDetails?.address || ""} />
+            <input type="hidden" name="cuisine" value={placeDetails?.cuisine || ""} />
+            <input type="hidden" name="url" value={placeDetails?.website || ""} />
+            <input type="hidden" name="google_place_id" value={placeDetails?.placeId || ""} />
+            <input type="hidden" name="google_rating" value={placeDetails?.rating || ""} />
+            <input type="hidden" name="rating_count" value={placeDetails?.ratingCount || ""} />
+            <input type="hidden" name="price_level" value={placeDetails?.priceLevel || ""} />
+            <input type="hidden" name="phone_number" value={placeDetails?.phone || ""} />
+            <input type="hidden" name="photo_url" value={placeDetails?.photoUrl || ""} />
+            <input type="hidden" name="google_maps_url" value={placeDetails?.googleMapsUrl || ""} />
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Restaurant Name *
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Search for Restaurant *
               </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                placeholder="e.g., Ruth's Chris Steak House"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              <RestaurantAutocomplete
+                value={restaurantName}
+                onChange={setRestaurantName}
+                onSelect={(details) => {
+                  setPlaceDetails(details);
+                  setRestaurantName(details.name);
+                }}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Start typing to search Google Places
+              </p>
             </div>
 
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
-              <input
-                id="address"
-                name="address"
-                type="text"
-                placeholder="e.g., 123 Main St, San Francisco, CA"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
+            {placeDetails && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-semibold text-green-900 mb-2">✓ Restaurant Found</h3>
+                <div className="space-y-1 text-sm text-green-800">
+                  <p><strong>{placeDetails.name}</strong></p>
+                  {placeDetails.address && <p>{placeDetails.address}</p>}
+                  {placeDetails.cuisine && <p>Cuisine: {placeDetails.cuisine}</p>}
+                  {placeDetails.rating > 0 && (
+                    <p>⭐ {placeDetails.rating} ({placeDetails.ratingCount} reviews)</p>
+                  )}
+                  {placeDetails.priceLevel > 0 && (
+                    <p>{"$".repeat(placeDetails.priceLevel)}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <div>
-              <label htmlFor="cuisine" className="block text-sm font-medium text-gray-700 mb-1">
-                Cuisine Type
-              </label>
-              <input
-                id="cuisine"
-                name="cuisine"
-                type="text"
-                placeholder="e.g., Steakhouse, American, Brazilian"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={!restaurantName}
+                className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Suggestion
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setRestaurantName("");
+                  setPlaceDetails(null);
+                }}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-
-            <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-                Website URL
-              </label>
-              <input
-                id="url"
-                name="url"
-                type="url"
-                placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-            >
-              Submit Suggestion
-            </button>
           </Form>
         </div>
       )}
@@ -226,65 +278,124 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
             return (
               <div
                 key={suggestion.id}
-                className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold mb-2">
-                      {suggestion.name}
-                    </h3>
+                <div className="flex flex-col md:flex-row">
+                  {/* Restaurant Photo */}
+                  {suggestion.photo_url && (
+                    <div className="md:w-48 h-48 md:h-auto flex-shrink-0">
+                      <img
+                        src={suggestion.photo_url}
+                        alt={suggestion.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
 
-                    {suggestion.cuisine && (
-                      <p className="text-gray-600 mb-1">
-                        <span className="font-medium">Cuisine:</span>{' '}
-                        {suggestion.cuisine}
-                      </p>
-                    )}
+                  <div className="flex-1 p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {/* Restaurant Name & Rating */}
+                        <div className="flex items-start gap-3 mb-2">
+                          <h3 className="text-xl font-semibold text-gray-900">
+                            {suggestion.name}
+                          </h3>
+                          {suggestion.google_rating && suggestion.google_rating > 0 && (
+                            <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded">
+                              <span className="text-amber-600">⭐</span>
+                              <span className="font-semibold text-amber-900">
+                                {suggestion.google_rating.toFixed(1)}
+                              </span>
+                              {suggestion.rating_count && (
+                                <span className="text-xs text-gray-600">
+                                  ({suggestion.rating_count})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
-                    {suggestion.address && (
-                      <p className="text-gray-600 mb-1">
-                        <span className="font-medium">Address:</span>{' '}
-                        {suggestion.address}
-                      </p>
-                    )}
+                        {/* Cuisine & Price */}
+                        <div className="flex items-center gap-3 mb-3">
+                          {suggestion.cuisine && (
+                            <span className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-700">
+                              {suggestion.cuisine}
+                            </span>
+                          )}
+                          {suggestion.price_level && suggestion.price_level > 0 && (
+                            <span className="text-sm font-medium text-gray-600">
+                              {"$".repeat(suggestion.price_level)}
+                            </span>
+                          )}
+                        </div>
 
-                    {suggestion.url && (
-                      <p className="mb-2">
-                        <a
-                          href={suggestion.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-amber-600 hover:text-amber-700 hover:underline"
+                        {/* Address */}
+                        {suggestion.address && (
+                          <p className="text-gray-600 mb-3 flex items-start gap-2">
+                            <span className="text-gray-400">📍</span>
+                            <span>{suggestion.address}</span>
+                          </p>
+                        )}
+
+                        {/* Links */}
+                        <div className="flex flex-wrap gap-3 mb-3">
+                          {suggestion.google_maps_url && (
+                            <a
+                              href={suggestion.google_maps_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              View on Google Maps →
+                            </a>
+                          )}
+                          {suggestion.url && (
+                            <a
+                              href={suggestion.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-amber-600 hover:text-amber-700 hover:underline"
+                            >
+                              Website →
+                            </a>
+                          )}
+                          {suggestion.phone_number && (
+                            <a
+                              href={`tel:${suggestion.phone_number}`}
+                              className="text-sm text-gray-600 hover:text-gray-700"
+                            >
+                              {suggestion.phone_number}
+                            </a>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-500">
+                          Suggested by {suggestion.suggested_by_name}
+                        </p>
+                      </div>
+
+                      {/* Voting Section */}
+                      <div className="ml-6 flex flex-col items-center gap-2">
+                        <button
+                          onClick={() => handleVote(suggestion.id, hasVoted)}
+                          className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
+                            hasVoted
+                              ? 'bg-amber-600 text-white hover:bg-amber-700'
+                              : 'bg-white border-2 border-amber-600 text-amber-600 hover:bg-amber-50'
+                          }`}
                         >
-                          Visit Website →
-                        </a>
-                      </p>
-                    )}
+                          {hasVoted ? '✓ Voted' : 'Vote'}
+                        </button>
 
-                    <p className="text-sm text-gray-500 mt-2">
-                      Suggested by {suggestion.suggested_by_name}
-                    </p>
-                  </div>
-
-                  <div className="ml-6 flex flex-col items-center gap-2">
-                    <button
-                      onClick={() => handleVote(suggestion.id, hasVoted)}
-                      className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
-                        hasVoted
-                          ? 'bg-amber-600 text-white hover:bg-amber-700'
-                          : 'bg-white border-2 border-amber-600 text-amber-600 hover:bg-amber-50'
-                      }`}
-                    >
-                      {hasVoted ? '✓ Voted' : 'Vote'}
-                    </button>
-
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-gray-900">
-                        {suggestion.vote_count}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {suggestion.vote_count === 1 ? 'vote' : 'votes'}
-                      </p>
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-gray-900">
+                            {suggestion.vote_count}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {suggestion.vote_count === 1 ? 'vote' : 'votes'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
