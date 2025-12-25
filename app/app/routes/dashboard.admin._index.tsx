@@ -12,10 +12,30 @@ export default function AdminPage() {
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <p className="text-gray-600 mt-1">Manage events and members</p>
+        <p className="text-gray-600 mt-1">Manage events, polls, and members</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link to="/dashboard/admin/polls">
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+                🗳️
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Polls</h2>
+                <p className="text-gray-600">Manage voting polls</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li>• View active poll status</li>
+              <li>• See vote leaders</li>
+              <li>• Close polls with winners</li>
+              <li>• Create events from winners</li>
+            </ul>
+          </div>
+        </Link>
+
         <Link to="/dashboard/admin/events">
           <div className="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
             <div className="flex items-center gap-4 mb-4">

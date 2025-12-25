@@ -1,0 +1,393 @@
+import { Form, Link } from "react-router";
+import type { Route } from "./+types/dashboard.admin.polls";
+import { requireActiveUser } from "../lib/auth.server";
+import { redirect } from "react-router";
+
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const user = await requireActiveUser(request, context);
+
+  if (!user.is_admin) {
+    return redirect('/dashboard');
+  }
+
+  const db = context.cloudflare.env.DB;
+
+  // Get active poll
+  const activePoll = await db
+    .prepare(`
+      SELECT * FROM polls
+      WHERE status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `)
+    .first();
+
+  // Get top restaurant for active poll
+  let topRestaurant = null;
+  if (activePoll) {
+    topRestaurant = await db
+      .prepare(`
+        SELECT
+          rs.*,
+          COUNT(rv.id) as vote_count
+        FROM restaurant_suggestions rs
+        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
+        WHERE rs.poll_id = ?
+        GROUP BY rs.id
+        ORDER BY vote_count DESC
+        LIMIT 1
+      `)
+      .bind(activePoll.id)
+      .first();
+  }
+
+  // Get top date for active poll
+  let topDate = null;
+  if (activePoll) {
+    topDate = await db
+      .prepare(`
+        SELECT
+          ds.*,
+          COUNT(dv.id) as vote_count
+        FROM date_suggestions ds
+        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
+        WHERE ds.poll_id = ?
+        GROUP BY ds.id
+        ORDER BY vote_count DESC
+        LIMIT 1
+      `)
+      .bind(activePoll.id)
+      .first();
+  }
+
+  // Get recent closed polls
+  const closedPolls = await db
+    .prepare(`
+      SELECT
+        p.*,
+        u.name as created_by_name,
+        cu.name as closed_by_name,
+        rs.name as winning_restaurant_name,
+        ds.suggested_date as winning_date,
+        e.id as event_id
+      FROM polls p
+      LEFT JOIN users u ON p.created_by = u.id
+      LEFT JOIN users cu ON p.closed_by = cu.id
+      LEFT JOIN restaurant_suggestions rs ON p.winning_restaurant_id = rs.id
+      LEFT JOIN date_suggestions ds ON p.winning_date_id = ds.id
+      LEFT JOIN events e ON p.created_event_id = e.id
+      WHERE p.status = 'closed'
+      ORDER BY p.closed_at DESC
+      LIMIT 10
+    `)
+    .all();
+
+  return {
+    activePoll,
+    topRestaurant,
+    topDate,
+    closedPolls: closedPolls.results || [],
+  };
+}
+
+export async function action({ request, context }: Route.ActionArgs) {
+  const user = await requireActiveUser(request, context);
+
+  if (!user.is_admin) {
+    return { error: 'Only admins can manage polls' };
+  }
+
+  const db = context.cloudflare.env.DB;
+  const formData = await request.formData();
+  const action = formData.get('_action');
+
+  if (action === 'close') {
+    const pollId = formData.get('poll_id');
+    const winningRestaurantId = formData.get('winning_restaurant_id');
+    const winningDateId = formData.get('winning_date_id');
+    const createEvent = formData.get('create_event') === 'true';
+
+    if (!pollId) {
+      return { error: 'Poll ID is required' };
+    }
+
+    let createdEventId = null;
+
+    // If creating an event, get the winner details and create event
+    if (createEvent && winningRestaurantId && winningDateId) {
+      const restaurant = await db
+        .prepare(`SELECT * FROM restaurant_suggestions WHERE id = ?`)
+        .bind(winningRestaurantId)
+        .first();
+
+      const date = await db
+        .prepare(`SELECT * FROM date_suggestions WHERE id = ?`)
+        .bind(winningDateId)
+        .first();
+
+      if (restaurant && date) {
+        const eventResult = await db
+          .prepare(`
+            INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
+            VALUES (?, ?, ?, 'upcoming')
+          `)
+          .bind(restaurant.name, restaurant.address, date.suggested_date)
+          .run();
+
+        createdEventId = eventResult.meta.last_row_id;
+      }
+    }
+
+    // Close the poll
+    await db
+      .prepare(`
+        UPDATE polls
+        SET status = 'closed',
+            closed_by = ?,
+            closed_at = CURRENT_TIMESTAMP,
+            winning_restaurant_id = ?,
+            winning_date_id = ?,
+            created_event_id = ?
+        WHERE id = ?
+      `)
+      .bind(
+        user.id,
+        winningRestaurantId || null,
+        winningDateId || null,
+        createdEventId || null,
+        pollId
+      )
+      .run();
+
+    return redirect('/dashboard/admin/polls');
+  }
+
+  return { error: 'Invalid action' };
+}
+
+export default function AdminPollsPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { activePoll, topRestaurant, topDate, closedPolls } = loaderData;
+
+  return (
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <Link
+        to="/dashboard/admin"
+        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+      >
+        ← Back to Admin
+      </Link>
+
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Poll Management</h1>
+          <p className="text-gray-600 mt-1">Manage voting polls and close with winners</p>
+        </div>
+      </div>
+
+      {actionData?.error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+          {actionData.error}
+        </div>
+      )}
+
+      {/* Active Poll Section */}
+      {activePoll ? (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                🗳️ {activePoll.title}
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Started {new Date(activePoll.created_at).toLocaleDateString()}
+              </p>
+            </div>
+            <span className="px-4 py-2 bg-green-100 text-green-800 font-semibold rounded-full">
+              Active
+            </span>
+          </div>
+
+          {/* Current Winners */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Top Restaurant */}
+            {topRestaurant ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-amber-900">
+                    Leading Restaurant
+                  </span>
+                  <span className="px-2 py-1 bg-amber-200 text-amber-900 text-xs font-bold rounded">
+                    {topRestaurant.vote_count} votes
+                  </span>
+                </div>
+                <p className="font-bold text-amber-900 text-lg">{topRestaurant.name}</p>
+                {topRestaurant.address && (
+                  <p className="text-sm text-amber-800 mt-1">{topRestaurant.address}</p>
+                )}
+              </div>
+            ) : (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-gray-600 text-center">No restaurant suggestions yet</p>
+              </div>
+            )}
+
+            {/* Top Date */}
+            {topDate ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900">Leading Date</span>
+                  <span className="px-2 py-1 bg-blue-200 text-blue-900 text-xs font-bold rounded">
+                    {topDate.vote_count} votes
+                  </span>
+                </div>
+                <p className="font-bold text-blue-900 text-lg">
+                  {new Date(topDate.suggested_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-gray-600 text-center">No date suggestions yet</p>
+              </div>
+            )}
+          </div>
+
+          {/* Close Poll Form */}
+          {topRestaurant && topDate && (
+            <Form method="post" className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
+              <input type="hidden" name="_action" value="close" />
+              <input type="hidden" name="poll_id" value={activePoll.id} />
+              <input type="hidden" name="winning_restaurant_id" value={topRestaurant.id} />
+              <input type="hidden" name="winning_date_id" value={topDate.id} />
+
+              <div className="mb-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="create_event"
+                    value="true"
+                    defaultChecked
+                    className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Create event from winners
+                  </span>
+                </label>
+                <p className="text-xs text-gray-600 mt-1 ml-6">
+                  This will create an upcoming event with the winning restaurant and date
+                </p>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-gray-900 mb-2">Event Preview:</h4>
+                <p className="text-sm text-gray-700">
+                  <strong>Restaurant:</strong> {topRestaurant.name}
+                </p>
+                {topRestaurant.address && (
+                  <p className="text-sm text-gray-700">
+                    <strong>Address:</strong> {topRestaurant.address}
+                  </p>
+                )}
+                <p className="text-sm text-gray-700">
+                  <strong>Date:</strong>{' '}
+                  {new Date(topDate.suggested_date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-6 py-3 bg-meat-red text-white rounded-md font-bold hover:bg-meat-brown transition-colors"
+              >
+                Close Poll & Finalize Winners
+              </button>
+            </Form>
+          )}
+        </div>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center mb-8">
+          <p className="text-yellow-800 font-medium mb-2">No active poll</p>
+          <p className="text-sm text-yellow-700">
+            Users can start a new poll from the restaurant or date voting pages.
+          </p>
+        </div>
+      )}
+
+      {/* Closed Polls History */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold">Closed Polls History</h2>
+        </div>
+
+        {closedPolls.length === 0 ? (
+          <div className="p-8 text-center text-gray-600">
+            No closed polls yet.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {closedPolls.map((poll: any) => (
+              <div key={poll.id} className="p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{poll.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Closed {new Date(poll.closed_at).toLocaleDateString()} by{' '}
+                      {poll.closed_by_name}
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
+                    Closed
+                  </span>
+                </div>
+
+                {poll.winning_restaurant_name && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-600 mb-1">Winning Restaurant</p>
+                      <p className="font-medium text-gray-900">
+                        {poll.winning_restaurant_name}
+                      </p>
+                    </div>
+
+                    {poll.winning_date && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-600 mb-1">Winning Date</p>
+                        <p className="font-medium text-gray-900">
+                          {new Date(poll.winning_date).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {poll.event_id && (
+                  <div className="mt-3">
+                    <Link
+                      to="/dashboard/admin/events"
+                      className="text-sm text-meat-red hover:text-meat-brown font-medium"
+                    >
+                      View Created Event →
+                    </Link>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

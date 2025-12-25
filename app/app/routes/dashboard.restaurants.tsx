@@ -27,13 +27,24 @@ interface Suggestion {
   menu_url: string | null;
   photo_url: string | null;
   google_maps_url: string | null;
+  opening_hours: string | null;
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
 
-  // Get restaurant suggestions with vote counts
+  // Get the current active poll
+  const activePoll = await db
+    .prepare(`
+      SELECT * FROM polls
+      WHERE status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
+    `)
+    .first();
+
+  // Get restaurant suggestions for active poll only
   const suggestionsResult = await db
     .prepare(`
       SELECT
@@ -44,13 +55,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ?) as user_has_voted
       FROM restaurant_suggestions rs
       JOIN users u ON rs.user_id = u.id
+      WHERE rs.poll_id = ? OR rs.poll_id IS NULL
       ORDER BY vote_count DESC, rs.created_at DESC
     `)
-    .bind(user.id)
+    .bind(user.id, activePoll?.id || null)
     .all();
 
   return {
     suggestions: suggestionsResult.results || [],
+    activePoll: activePoll || null,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -78,21 +91,32 @@ export async function action({ request, context }: Route.ActionArgs) {
     const menuUrl = formData.get('menu_url');
     const photoUrl = formData.get('photo_url');
     const googleMapsUrl = formData.get('google_maps_url');
+    const openingHours = formData.get('opening_hours');
 
     if (!name) {
       return { error: 'Restaurant name is required' };
     }
 
+    // Get active poll
+    const activePoll = await db
+      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
+      .first();
+
+    if (!activePoll) {
+      return { error: 'No active poll. Please start a new poll first.' };
+    }
+
     await db
       .prepare(`
         INSERT INTO restaurant_suggestions (
-          user_id, name, address, cuisine, url,
+          user_id, poll_id, name, address, cuisine, url,
           google_place_id, google_rating, rating_count, price_level,
-          phone_number, reservation_url, menu_url, photo_url, google_maps_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          phone_number, reservation_url, menu_url, photo_url, google_maps_url, opening_hours
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
         user.id,
+        activePoll.id,
         name,
         address || null,
         cuisine || null,
@@ -105,7 +129,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         reservationUrl || null,
         menuUrl || null,
         photoUrl || null,
-        googleMapsUrl || null
+        googleMapsUrl || null,
+        openingHours || null
       )
       .run();
 
@@ -178,11 +203,23 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function RestaurantsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { suggestions, currentUser } = loaderData;
+  const { suggestions, activePoll, currentUser } = loaderData;
   const [showForm, setShowForm] = useState(false);
+  const [showNewPollForm, setShowNewPollForm] = useState(false);
   const submit = useSubmit();
   const [restaurantName, setRestaurantName] = useState("");
   const [placeDetails, setPlaceDetails] = useState<any>(null);
+
+  function handleStartPoll(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    fetch('/api/polls', {
+      method: 'POST',
+      body: formData,
+    }).then(() => {
+      window.location.reload();
+    });
+  }
 
   function handleVote(suggestionId: number, currentlyVoted: boolean) {
     const formData = new FormData();
@@ -205,13 +242,96 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Restaurant Voting</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-        >
-          {showForm ? 'Cancel' : '+ Suggest Restaurant'}
-        </button>
+        <div className="flex gap-3">
+          {activePoll && (
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
+            >
+              {showForm ? 'Cancel' : '+ Suggest Restaurant'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowNewPollForm(!showNewPollForm)}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+          >
+            {showNewPollForm ? 'Cancel' : '🗳️ Start New Poll'}
+          </button>
+        </div>
       </div>
+
+      {/* Poll Status Indicator */}
+      {activePoll ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-green-900">
+                🗳️ Active Poll: {activePoll.title}
+              </h3>
+              <p className="text-sm text-green-700 mt-1">
+                Started {new Date(activePoll.created_at).toLocaleDateString()}
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
+              Active
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-600">⚠️</span>
+            <p className="text-yellow-800 font-medium">
+              No active poll. Start a new poll to begin voting on restaurants.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Start New Poll Form */}
+      {showNewPollForm && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Start New Poll</h2>
+          <form onSubmit={handleStartPoll} className="space-y-4">
+            <input type="hidden" name="_action" value="create" />
+            <div>
+              <label htmlFor="poll_title" className="block text-sm font-medium text-gray-700 mb-1">
+                Poll Title *
+              </label>
+              <input
+                id="poll_title"
+                name="title"
+                type="text"
+                required
+                placeholder="e.g., Q1 2025 Meetup Poll"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {activePoll && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <p className="text-sm text-orange-800">
+                  ⚠️ Starting a new poll will close the current active poll "{activePoll.title}".
+                </p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+              >
+                Start Poll
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewPollForm(false)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {actionData?.error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
@@ -240,6 +360,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
             <input type="hidden" name="phone_number" value={placeDetails?.phone || ""} />
             <input type="hidden" name="photo_url" value={placeDetails?.photoUrl || ""} />
             <input type="hidden" name="google_maps_url" value={placeDetails?.googleMapsUrl || ""} />
+            <input type="hidden" name="opening_hours" value={placeDetails?.openingHours || ""} />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -373,6 +494,29 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                             </span>
                           )}
                         </div>
+
+                        {/* Opening Hours */}
+                        {suggestion.opening_hours && (() => {
+                          try {
+                            const hours = JSON.parse(suggestion.opening_hours);
+                            // Extract days from hours like "Monday: 11:00 AM – 10:00 PM"
+                            const daysOpen = hours.map((h: string) => {
+                              const day = h.split(':')[0];
+                              return day.substring(0, 3); // Mon, Tue, Wed, etc.
+                            });
+
+                            return (
+                              <div className="mb-3">
+                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                                  <span className="text-gray-400">🕒</span>
+                                  <span className="font-medium">{daysOpen.join(', ')}</span>
+                                </p>
+                              </div>
+                            );
+                          } catch {
+                            return null;
+                          }
+                        })()}
 
                         {/* Address */}
                         {suggestion.address && (

@@ -29,6 +29,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
             "types",
             "photos",
             "editorialSummary",
+            "currentOpeningHours",
           ].join(","),
         },
       }
@@ -53,10 +54,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       rating: data.rating || 0,
       ratingCount: data.userRatingCount || 0,
       priceLevel: data.priceLevel ? getPriceLevelNumber(data.priceLevel) : 0,
-      photoUrl: data.photos?.[0]?.name 
+      photoUrl: data.photos?.[0]?.name
         ? `https://places.googleapis.com/v1/${data.photos[0].name}/media?maxHeightPx=400&maxWidthPx=400&key=${apiKey}`
         : "",
       cuisine: getCuisineFromTypes(data.types || []),
+      openingHours: data.currentOpeningHours?.weekdayDescriptions
+        ? JSON.stringify(data.currentOpeningHours.weekdayDescriptions)
+        : null,
     };
 
     return Response.json(placeData);

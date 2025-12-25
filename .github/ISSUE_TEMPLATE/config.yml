@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: General Question
+    url: https://github.com/jspahr/meatup-club/discussions
+    about: Have a question? Start a discussion!
