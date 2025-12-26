@@ -8,6 +8,7 @@ import { DoodleView } from "../components/DoodleView";
 import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
 import { isDateInPastUTC } from "../lib/dateUtils";
 import { logActivity } from "../lib/activity.server";
+import { getComments, createComment, deleteComment } from "../lib/comments.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -89,12 +90,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1)
     .all();
 
+  // Get comments for active poll
+  const comments = activePoll
+    ? await getComments(db, 'poll', activePoll.id)
+    : [];
+
   return {
     dateSuggestions: dateSuggestionsResult.results || [],
     restaurantSuggestions: restaurantSuggestionsResult.results || [],
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
     dateVotes: dateVotesResult.results || [],
+    comments,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -401,11 +408,67 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/dashboard/polls');
   }
 
+  // COMMENT ACTIONS
+  if (action === 'add_comment') {
+    const content = formData.get('content');
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return { error: 'Comment content is required' };
+    }
+
+    if (content.length > 1000) {
+      return { error: 'Comment must be less than 1000 characters' };
+    }
+
+    await createComment(db, user.id, 'poll', activePoll.id, content.trim());
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'comment',
+      actionDetails: { type: 'poll', poll_id: activePoll.id },
+      route: '/dashboard/polls',
+      request,
+    });
+
+    return redirect('/dashboard/polls');
+  }
+
+  if (action === 'delete_comment') {
+    const commentId = formData.get('comment_id');
+
+    if (!commentId) {
+      return { error: 'Comment ID is required' };
+    }
+
+    const success = await deleteComment(
+      db,
+      parseInt(commentId as string),
+      user.id,
+      user.is_admin === 1
+    );
+
+    if (!success) {
+      return { error: 'Permission denied or comment not found' };
+    }
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'delete_comment',
+      actionDetails: { comment_id: commentId },
+      route: '/dashboard/polls',
+      request,
+    });
+
+    return redirect('/dashboard/polls');
+  }
+
   return { error: 'Invalid action' };
 }
 
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, currentUser } = loaderData;
+  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, comments, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [restaurantName, setRestaurantName] = useState("");
@@ -620,6 +683,102 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
           <p className="text-gray-600 text-lg">
             No active poll at the moment. Check back soon!
           </p>
+        </div>
+      )}
+
+      {/* Comments Section */}
+      {activePoll && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Discussion</h2>
+
+          {/* Add Comment Form */}
+          <Form method="post" className="mb-6">
+            <input type="hidden" name="_action" value="add_comment" />
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <textarea
+                name="content"
+                placeholder="Share your thoughts about this poll..."
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-meat-red focus:border-transparent resize-none"
+                rows={3}
+                maxLength={1000}
+                required
+              />
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs text-gray-500">Max 1000 characters</span>
+                <button
+                  type="submit"
+                  className="bg-meat-red text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                >
+                  Post Comment
+                </button>
+              </div>
+            </div>
+          </Form>
+
+          {/* Comments List */}
+          <div className="space-y-4">
+            {comments.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+                No comments yet. Be the first to share your thoughts!
+              </div>
+            ) : (
+              comments.map((comment: any) => (
+                <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    {comment.user_picture && (
+                      <img
+                        src={comment.user_picture}
+                        alt={comment.user_name || comment.user_email}
+                        className="w-10 h-10 rounded-full flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-gray-900">
+                            {comment.user_name || comment.user_email}
+                          </span>
+                          {comment.user_id === currentUser.id && (
+                            <span className="text-xs text-blue-600">(you)</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {new Date(comment.created_at).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          {(comment.user_id === currentUser.id || currentUser.isAdmin) && (
+                            <Form method="post" className="inline">
+                              <input type="hidden" name="_action" value="delete_comment" />
+                              <input type="hidden" name="comment_id" value={comment.id} />
+                              <button
+                                type="submit"
+                                className="text-xs text-red-600 hover:text-red-700"
+                                onClick={(e) => {
+                                  if (!confirm('Delete this comment?')) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </Form>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                        {comment.content}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 

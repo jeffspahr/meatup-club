@@ -18,7 +18,9 @@ export type ActivityType =
   | 'suggest_restaurant'
   | 'delete_restaurant'
   | 'rsvp'
-  | 'update_rsvp';
+  | 'update_rsvp'
+  | 'comment'
+  | 'delete_comment';
 
 export interface LogActivityParams {
   db: D1Database;
