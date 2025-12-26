@@ -10,6 +10,7 @@ export type AuthUser = {
   picture: string | null;
   is_admin: number;
   status: string;
+  requires_reauth: number;
 };
 
 // Get current user from session
@@ -44,6 +45,11 @@ export async function requireAuth(
 
   if (!user) {
     throw redirect("/login");
+  }
+
+  // Force re-authentication if required
+  if (user.requires_reauth === 1) {
+    throw await logout(request);
   }
 
   return user;

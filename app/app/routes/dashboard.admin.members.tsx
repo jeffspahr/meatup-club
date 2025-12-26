@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
 import { sendInviteEmail } from "../lib/email.server";
+import { forceUserReauth } from "../lib/db.server";
 
 interface Member {
   id: number;
@@ -183,6 +184,21 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   }
 
+  if (actionType === 'force_reauth') {
+    const user_id = formData.get('user_id');
+
+    if (!user_id) {
+      return { error: 'User ID is required' };
+    }
+
+    try {
+      await forceUserReauth(db, Number(user_id));
+      return { success: 'User will be forced to re-login on their next page load' };
+    } catch (err) {
+      return { error: 'Failed to force re-authentication' };
+    }
+  }
+
   return { error: 'Invalid action' };
 }
 
@@ -226,6 +242,17 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     submit(formData, { method: 'post' });
   }
 
+  function handleForceReauth(memberId: number, memberName: string) {
+    if (!confirm(`Force ${memberName} to re-login? Their session will be invalidated and they'll need to sign in again with Google OAuth.`)) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('_action', 'force_reauth');
+    formData.append('user_id', memberId.toString());
+    submit(formData, { method: 'post' });
+  }
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
@@ -252,6 +279,12 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       {actionData?.error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
           {actionData.error}
+        </div>
+      )}
+
+      {actionData?.success && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+          {actionData.success}
         </div>
       )}
 
@@ -485,6 +518,13 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         className="text-meat-red hover:text-meat-brown font-medium mr-4"
                       >
                         Edit
+                      </button>
+                      <button
+                        onClick={() => handleForceReauth(member.id, member.name || member.email)}
+                        className="text-blue-600 hover:text-blue-900 font-medium mr-4"
+                        title="Force user to re-login with OAuth"
+                      >
+                        Re-login
                       </button>
                       <button
                         onClick={() => handleDelete(member.id)}

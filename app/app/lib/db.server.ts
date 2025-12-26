@@ -18,8 +18,9 @@ export async function ensureUser(
 
   if (existing) {
     // Update name and picture from OAuth on every login (keep them synced)
+    // Also clear requires_reauth flag after successful login
     await db
-      .prepare("UPDATE users SET name = ?, picture = ? WHERE id = ?")
+      .prepare("UPDATE users SET name = ?, picture = ?, requires_reauth = 0 WHERE id = ?")
       .bind(name || null, picture || null, existing.id)
       .run();
 
@@ -50,4 +51,15 @@ export async function isUserActive(
 ): Promise<boolean> {
   const user = await getUserByEmail(db, email);
   return user?.status === "active";
+}
+
+// Helper function to force user re-authentication
+export async function forceUserReauth(
+  db: D1Database,
+  userId: number
+): Promise<void> {
+  await db
+    .prepare("UPDATE users SET requires_reauth = 1 WHERE id = ?")
+    .bind(userId)
+    .run();
 }
