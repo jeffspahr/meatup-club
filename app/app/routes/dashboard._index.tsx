@@ -28,38 +28,60 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind('active')
     .first();
 
-  // Get top restaurant for active poll
+  // Get top restaurant for active poll and user's vote
   let topRestaurant = null;
+  let userRestaurantVote = null;
   if (activePoll) {
     topRestaurant = await db
       .prepare(`
         SELECT rs.name, COUNT(rv.id) as vote_count
         FROM restaurant_suggestions rs
-        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
-        WHERE rs.poll_id = ?
+        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
         GROUP BY rs.id
         ORDER BY vote_count DESC
         LIMIT 1
       `)
       .bind((activePoll as any).id)
       .first();
+
+    // Get user's restaurant vote for this poll
+    userRestaurantVote = await db
+      .prepare(`
+        SELECT rs.name
+        FROM restaurant_votes rv
+        JOIN restaurant_suggestions rs ON rv.suggestion_id = rs.id
+        WHERE rv.poll_id = ? AND rv.user_id = ?
+      `)
+      .bind((activePoll as any).id, user.id)
+      .first();
   }
 
-  // Get top date for active poll
+  // Get top date for active poll and user's vote count
   let topDate = null;
+  let userDateVoteCount = 0;
   if (activePoll) {
     topDate = await db
       .prepare(`
         SELECT ds.suggested_date, COUNT(dv.id) as vote_count
         FROM date_suggestions ds
-        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
-        WHERE ds.poll_id = ?
+        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
         GROUP BY ds.id
         ORDER BY vote_count DESC
         LIMIT 1
       `)
       .bind((activePoll as any).id)
       .first();
+
+    // Get count of user's date votes for this poll
+    const userDateVoteResult = await db
+      .prepare(`
+        SELECT COUNT(*) as count
+        FROM date_votes
+        WHERE poll_id = ? AND user_id = ?
+      `)
+      .bind((activePoll as any).id, user.id)
+      .first();
+    userDateVoteCount = (userDateVoteResult as any)?.count || 0;
   }
 
   // Get next upcoming event
@@ -77,11 +99,23 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .first();
   }
 
-  return { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content: contentResult.results || [] };
+  return {
+    user,
+    memberCount,
+    isAdmin,
+    activePoll,
+    topRestaurant,
+    topDate,
+    nextEvent,
+    userRsvp,
+    content: contentResult.results || [],
+    userRestaurantVote,
+    userDateVoteCount
+  };
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content } = loaderData;
+  const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
 
@@ -165,60 +199,85 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Active Poll Banner */}
       {activePoll ? (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🗳️</span>
-              <div>
-                <h3 className="text-lg font-bold text-green-900">
-                  {(activePoll as any).title}
-                </h3>
-                <p className="text-sm text-green-700">
-                  Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()}
-                </p>
+        <Link to="/dashboard/polls">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🗳️</span>
+                <div>
+                  <h3 className="text-lg font-bold text-green-900">
+                    {(activePoll as any).title}
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
+                  </p>
+                </div>
+              </div>
+              <span className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-full">
+                Voting Open
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white/60 rounded-lg p-4">
+                <p className="text-xs text-green-700 font-medium mb-1">Restaurant</p>
+                {userRestaurantVote ? (
+                  <>
+                    <p className="font-bold text-green-900">✓ You voted: {(userRestaurantVote as any).name}</p>
+                    {topRestaurant && (topRestaurant as any).vote_count > 0 && (
+                      <p className="text-xs text-green-700 mt-1">
+                        Leading: {(topRestaurant as any).name} ({(topRestaurant as any).vote_count} vote{(topRestaurant as any).vote_count !== 1 ? 's' : ''})
+                      </p>
+                    )}
+                  </>
+                ) : topRestaurant && (topRestaurant as any).vote_count > 0 ? (
+                  <>
+                    <p className="font-bold text-green-900">{(topRestaurant as any).name}</p>
+                    <p className="text-xs text-green-700 mt-1">
+                      {(topRestaurant as any).vote_count} vote{(topRestaurant as any).vote_count !== 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-green-700">No votes yet - be the first!</p>
+                )}
+              </div>
+
+              <div className="bg-white/60 rounded-lg p-4">
+                <p className="text-xs text-green-700 font-medium mb-1">Dates</p>
+                {userDateVoteCount > 0 ? (
+                  <>
+                    <p className="font-bold text-green-900">✓ You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}</p>
+                    {topDate && (topDate as any).vote_count > 0 && (
+                      <p className="text-xs text-green-700 mt-1">
+                        Leading: {new Date((topDate as any).suggested_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })} ({(topDate as any).vote_count} vote{(topDate as any).vote_count !== 1 ? 's' : ''})
+                      </p>
+                    )}
+                  </>
+                ) : topDate && (topDate as any).vote_count > 0 ? (
+                  <>
+                    <p className="font-bold text-green-900">
+                      {new Date((topDate as any).suggested_date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </p>
+                    <p className="text-xs text-green-700 mt-1">
+                      {(topDate as any).vote_count} vote{(topDate as any).vote_count !== 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-green-700">No votes yet - be the first!</p>
+                )}
               </div>
             </div>
-            <span className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-full">
-              Voting Open
-            </span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {topRestaurant && (topRestaurant as any).vote_count > 0 ? (
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-xs text-green-700 font-medium mb-1">Leading Restaurant</p>
-                <p className="font-bold text-green-900">{(topRestaurant as any).name}</p>
-                <p className="text-xs text-green-700 mt-1">
-                  {(topRestaurant as any).vote_count} vote{(topRestaurant as any).vote_count !== 1 ? 's' : ''}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-sm text-green-700">No restaurant votes yet</p>
-              </div>
-            )}
-
-            {topDate && (topDate as any).vote_count > 0 ? (
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-xs text-green-700 font-medium mb-1">Leading Date</p>
-                <p className="font-bold text-green-900">
-                  {new Date((topDate as any).suggested_date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
-                <p className="text-xs text-green-700 mt-1">
-                  {(topDate as any).vote_count} vote{(topDate as any).vote_count !== 1 ? 's' : ''}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-sm text-green-700">No date votes yet</p>
-              </div>
-            )}
-          </div>
-        </div>
+        </Link>
       ) : (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
           <div className="flex items-center gap-3">
