@@ -47,10 +47,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ? AND poll_id = ?) as user_has_voted
       FROM restaurant_suggestions rs
       JOIN users u ON rs.user_id = u.id
-      WHERE rs.poll_id = ?
       ORDER BY vote_count DESC, rs.created_at DESC
     `)
-    .bind(activePoll?.id || -1, user.id, activePoll?.id || -1, activePoll?.id || -1)
+    .bind(activePoll?.id || -1, user.id, activePoll?.id || -1)
     .all();
 
   // Get previous polls with winners
@@ -203,22 +202,22 @@ export async function action({ request, context }: Route.ActionArgs) {
     // Check for duplicate by place_id or name
     if (placeId) {
       const existing = await db
-        .prepare('SELECT id FROM restaurant_suggestions WHERE place_id = ? AND poll_id = ?')
-        .bind(placeId, activePoll.id)
+        .prepare('SELECT id FROM restaurant_suggestions WHERE place_id = ?')
+        .bind(placeId)
         .first();
 
       if (existing) {
-        return { error: 'This restaurant has already been suggested for the current poll' };
+        return { error: 'This restaurant has already been suggested' };
       }
     }
 
     await db
       .prepare(`
         INSERT INTO restaurant_suggestions
-        (user_id, poll_id, place_id, name, address, cuisine, photo_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        (user_id, place_id, name, address, cuisine, photo_url)
+        VALUES (?, ?, ?, ?, ?, ?)
       `)
-      .bind(user.id, activePoll.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
+      .bind(user.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
       .run();
 
     return redirect('/dashboard/polls');
