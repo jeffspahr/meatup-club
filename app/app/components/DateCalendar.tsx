@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getDateString, isDateInPast } from "../lib/dateUtils";
 
 interface DateSuggestion {
   id: number;
@@ -204,7 +205,8 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
           }
 
           const isToday = isDayInCurrentMonth && day === todayDate;
-          const isPast = new Date(targetYear, targetMonth, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dateStr = getDateString(targetYear, targetMonth, day);
+          const isPast = isDateInPast(dateStr);
           const isInActivePoll = suggestion && suggestion.poll_id === activePollId;
           const isOtherMonth = isPreviousMonth || isNextMonth;
           const userCreatedThis = suggestion && suggestion.user_id === currentUserId;

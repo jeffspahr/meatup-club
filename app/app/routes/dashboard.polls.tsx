@@ -6,6 +6,7 @@ import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
+import { isDateInPast } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -124,10 +125,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     // Prevent adding dates in the past
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selectedDate = new Date(suggestedDate as string);
-    if (selectedDate < today) {
+    if (isDateInPast(suggestedDate as string)) {
       return { error: 'Cannot add dates in the past' };
     }
 
@@ -178,13 +176,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         .bind(suggestionId)
         .first();
 
-      if (suggestion) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const suggestedDate = new Date(suggestion.suggested_date as string);
-        if (suggestedDate < today) {
-          return { error: 'Cannot vote on dates in the past' };
-        }
+      if (suggestion && isDateInPast(suggestion.suggested_date as string)) {
+        return { error: 'Cannot vote on dates in the past' };
       }
 
       const existing = await db
