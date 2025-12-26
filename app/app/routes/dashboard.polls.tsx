@@ -7,6 +7,7 @@ import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
 import { isDateInPastUTC } from "../lib/dateUtils";
+import { logActivity } from "../lib/activity.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -152,6 +153,15 @@ export async function action({ request, context }: Route.ActionArgs) {
         .run();
     }
 
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'suggest_date',
+      actionDetails: { date: suggestedDate, poll_id: activePoll.id },
+      route: '/dashboard/polls',
+      request,
+    });
+
     return redirect('/dashboard/polls');
   }
 
@@ -169,6 +179,15 @@ export async function action({ request, context }: Route.ActionArgs) {
         .prepare('DELETE FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?')
         .bind(activePoll.id, suggestionId, user.id)
         .run();
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'unvote_date',
+        actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+        route: '/dashboard/polls',
+        request,
+      });
     } else {
       // Prevent adding NEW votes for past dates
       const suggestion = await db
@@ -190,6 +209,15 @@ export async function action({ request, context }: Route.ActionArgs) {
           .prepare('INSERT INTO date_votes (poll_id, date_suggestion_id, user_id) VALUES (?, ?, ?)')
           .bind(activePoll.id, suggestionId, user.id)
           .run();
+
+        await logActivity({
+          db,
+          userId: user.id,
+          actionType: 'vote_date',
+          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+          route: '/dashboard/polls',
+          request,
+        });
       }
     }
 
@@ -221,6 +249,15 @@ export async function action({ request, context }: Route.ActionArgs) {
       .prepare('DELETE FROM date_suggestions WHERE id = ?')
       .bind(suggestionId)
       .run();
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'delete_date',
+      actionDetails: { suggestion_id: suggestionId },
+      route: '/dashboard/polls',
+      request,
+    });
 
     return redirect('/dashboard/polls');
   }
@@ -258,6 +295,15 @@ export async function action({ request, context }: Route.ActionArgs) {
       .bind(user.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
       .run();
 
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'suggest_restaurant',
+      actionDetails: { name, place_id: placeId },
+      route: '/dashboard/polls',
+      request,
+    });
+
     return redirect('/dashboard/polls');
   }
 
@@ -281,12 +327,30 @@ export async function action({ request, context }: Route.ActionArgs) {
           .prepare('DELETE FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
           .bind(activePoll.id, user.id)
           .run();
+
+        await logActivity({
+          db,
+          userId: user.id,
+          actionType: 'unvote_restaurant',
+          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+          route: '/dashboard/polls',
+          request,
+        });
       } else {
         // Change vote
         await db
           .prepare('UPDATE restaurant_votes SET suggestion_id = ? WHERE poll_id = ? AND user_id = ?')
           .bind(suggestionId, activePoll.id, user.id)
           .run();
+
+        await logActivity({
+          db,
+          userId: user.id,
+          actionType: 'vote_restaurant',
+          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id, changed: true },
+          route: '/dashboard/polls',
+          request,
+        });
       }
     } else {
       // New vote
@@ -294,6 +358,15 @@ export async function action({ request, context }: Route.ActionArgs) {
         .prepare('INSERT INTO restaurant_votes (poll_id, suggestion_id, user_id) VALUES (?, ?, ?)')
         .bind(activePoll.id, suggestionId, user.id)
         .run();
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'vote_restaurant',
+        actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+        route: '/dashboard/polls',
+        request,
+      });
     }
 
     return redirect('/dashboard/polls');

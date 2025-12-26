@@ -115,6 +115,26 @@ export default function AdminPage() {
             </ul>
           </div>
         </Link>
+
+        <Link to="/dashboard/admin/analytics">
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+                📊
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
+                <p className="text-gray-600">Track user activity</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li>• View user login history</li>
+              <li>• Track voting and suggestions</li>
+              <li>• See activity statistics</li>
+              <li>• Monitor engagement metrics</li>
+            </ul>
+          </div>
+        </Link>
       </div>
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

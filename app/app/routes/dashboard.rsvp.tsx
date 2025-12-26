@@ -2,6 +2,7 @@ import { Form, useActionData, useNavigate } from "react-router";
 import type { Route } from "./+types/dashboard.rsvp";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
+import { logActivity } from "../lib/activity.server";
 
 interface Event {
   id: number;
@@ -93,12 +94,30 @@ export async function action({ request, context }: Route.ActionArgs) {
       .prepare('UPDATE rsvps SET status = ?, comments = ? WHERE event_id = ? AND user_id = ?')
       .bind(status, comments || null, eventId, user.id)
       .run();
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'update_rsvp',
+      actionDetails: { event_id: eventId, status, comments },
+      route: '/dashboard/rsvp',
+      request,
+    });
   } else {
     // Create new RSVP
     await db
       .prepare('INSERT INTO rsvps (event_id, user_id, status, comments) VALUES (?, ?, ?, ?)')
       .bind(eventId, user.id, status, comments || null)
       .run();
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'rsvp',
+      actionDetails: { event_id: eventId, status, comments },
+      route: '/dashboard/rsvp',
+      request,
+    });
   }
 
   return redirect('/dashboard/rsvp');

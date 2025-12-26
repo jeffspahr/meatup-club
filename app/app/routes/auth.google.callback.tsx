@@ -5,6 +5,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { getSession } = await import("../lib/session.server");
   const { getGoogleTokens, getGoogleUserInfo, createUserSession } = await import("../lib/auth.server");
   const { ensureUser, isUserActive } = await import("../lib/db.server");
+  const { logActivity } = await import("../lib/activity.server");
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -39,6 +40,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   // Check if user is active
   const active = await isUserActive(db, googleUser.email);
+
+  // Log the login activity
+  await logActivity({
+    db,
+    userId,
+    actionType: 'login',
+    actionDetails: {
+      email: googleUser.email,
+      name: googleUser.name,
+      active,
+    },
+    route: '/auth/google/callback',
+    request,
+  });
 
   // Create session and redirect
   if (active) {
