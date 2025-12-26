@@ -17,6 +17,12 @@ export async function ensureUser(
     .first();
 
   if (existing) {
+    // Update name and picture from OAuth on every login (keep them synced)
+    await db
+      .prepare("UPDATE users SET name = ?, picture = ? WHERE id = ?")
+      .bind(name || null, picture || null, existing.id)
+      .run();
+
     return existing.id;
   }
 
