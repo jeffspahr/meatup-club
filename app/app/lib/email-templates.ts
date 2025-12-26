@@ -26,10 +26,10 @@ export function generateInviteEmail(data: InviteEmailData) {
           <tr>
             <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
               <h1 style="margin: 0; font-size: 32px; color: #ffffff; font-weight: bold;">
-                🥩 Meatup.Club
+                🥩 Meatup
               </h1>
               <p style="margin: 10px 0 0; font-size: 16px; color: #fecaca;">
-                You've been invited to join the club
+                Quarterly steakhouse dinners in Raleigh
               </p>
             </td>
           </tr>
@@ -58,7 +58,7 @@ export function generateInviteEmail(data: InviteEmailData) {
               </div>
 
               <p style="margin: 0 0 24px; font-size: 16px; color: #374151; line-height: 1.6;">
-                Click the button below to accept your invitation and join the club:
+                Interested? Click below to get started:
               </p>
 
               <!-- CTA Button -->
@@ -66,7 +66,7 @@ export function generateInviteEmail(data: InviteEmailData) {
                 <tr>
                   <td align="center" style="padding: 0 0 24px;">
                     <a href="${data.acceptLink}" style="display: inline-block; background-color: #991b1b; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(153, 27, 27, 0.2);">
-                      Accept Invitation
+                      Join the Group
                     </a>
                   </td>
                 </tr>
@@ -102,29 +102,27 @@ export function generateInviteEmail(data: InviteEmailData) {
   `.trim();
 
   const text = `
-You're Invited to Meatup.Club!
-
 Hey ${displayName},
 
-${data.inviterName} has invited you to join Meatup.Club – a group of friends dining quarterly at steakhouses in the Raleigh area.
+${data.inviterName} invited you to Meatup – a group of friends dining quarterly at steakhouses in the Raleigh area.
 
-What is Meatup.Club?
+What is Meatup?
 - Intentional bro time at great steakhouses
 - Quarterly meetups voted on by members
 - Suggest restaurants and dates, vote on favorites
 - Family-style dining and good times
 
-Accept your invitation here:
+Interested? Join here:
 ${data.acceptLink}
 
 ---
-This invitation was sent by ${data.inviterName} via Meatup.Club
-Questions? Reach out to an admin for more information.
+This invitation was sent by ${data.inviterName}
+You received this because they thought you'd enjoy quarterly steakhouse dinners with the group.
   `.trim();
 
   return {
     html,
     text,
-    subject: "🥩 You're invited to join Meatup.Club!",
+    subject: `${data.inviterName} invited you to Meatup`,
   };
 }
