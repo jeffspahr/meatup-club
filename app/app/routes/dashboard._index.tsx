@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -84,6 +84,15 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
+
+  // Show content expanded on first visit
+  useEffect(() => {
+    const hasVisitedDashboard = localStorage.getItem('hasVisitedDashboard');
+    if (!hasVisitedDashboard) {
+      setShowContent(true);
+      localStorage.setItem('hasVisitedDashboard', 'true');
+    }
+  }, []);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
