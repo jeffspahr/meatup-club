@@ -18,6 +18,7 @@ export default [
     route("restaurants", "routes/dashboard.restaurants.tsx"),
     route("polls", "routes/dashboard.polls.tsx"),
     route("members", "routes/dashboard.members.tsx"),
+    route("profile", "routes/dashboard.profile.tsx"),
     route("admin", "routes/dashboard.admin._index.tsx"),
     route("admin/events", "routes/dashboard.admin.events.tsx"),
     route("admin/members", "routes/dashboard.admin.members.tsx"),

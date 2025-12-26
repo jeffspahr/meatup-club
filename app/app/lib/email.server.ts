@@ -82,3 +82,73 @@ export async function sendInviteEmail({
     return { success: false, error: 'Failed to send invitation email' };
   }
 }
+
+interface SendCommentReplyParams {
+  to: string;
+  recipientName: string | null;
+  replierName: string;
+  originalComment: string;
+  replyContent: string;
+  pollUrl: string;
+  resendApiKey: string;
+}
+
+export async function sendCommentReplyEmail({
+  to,
+  recipientName,
+  replierName,
+  originalComment,
+  replyContent,
+  pollUrl,
+  resendApiKey,
+}: SendCommentReplyParams): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { generateCommentReplyEmail } = await import('./email-templates');
+
+    const { subject, html, text } = generateCommentReplyEmail({
+      recipientName,
+      replierName,
+      originalComment,
+      replyContent,
+      pollUrl,
+    });
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Meatup.Club <notifications@mail.meatup.club>',
+        to: [to],
+        subject,
+        html,
+        text,
+        reply_to: 'noreply@meatup.club',
+        headers: {
+          'X-Entity-Ref-ID': `comment-reply-${Date.now()}`,
+        },
+        tags: [
+          {
+            name: 'category',
+            value: 'comment_reply',
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Resend API error:', error);
+      return { success: false, error: `Failed to send email: ${response.statusText}` };
+    }
+
+    const data = await response.json();
+    console.log('Comment reply email sent successfully:', data);
+    return { success: true };
+  } catch (error) {
+    console.error('Comment reply email error:', error);
+    return { success: false, error: 'Failed to send comment reply notification' };
+  }
+}

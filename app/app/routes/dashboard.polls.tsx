@@ -439,6 +439,44 @@ export async function action({ request, context }: Route.ActionArgs) {
       request,
     });
 
+    // Send notification if this is a reply
+    if (parentId) {
+      const { sendCommentReplyEmail } = await import('../lib/email.server');
+
+      // Get the parent comment and its author
+      const parentComment = await db
+        .prepare(`
+          SELECT c.*, u.email, u.name, u.notify_comment_replies
+          FROM comments c
+          JOIN users u ON c.user_id = u.id
+          WHERE c.id = ?
+        `)
+        .bind(Number(parentId))
+        .first();
+
+      // Send email if parent author wants notifications and isn't replying to themselves
+      if (
+        parentComment &&
+        parentComment.notify_comment_replies === 1 &&
+        parentComment.user_id !== user.id
+      ) {
+        const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+        const url = new URL(request.url);
+        const pollUrl = `${url.origin}/dashboard/polls`;
+
+        // Fire and forget - don't block the response
+        sendCommentReplyEmail({
+          to: parentComment.email as string,
+          recipientName: parentComment.name as string | null,
+          replierName: user.name || user.email,
+          originalComment: parentComment.content as string,
+          replyContent: content.trim(),
+          pollUrl,
+          resendApiKey,
+        }).catch(err => console.error('Failed to send comment reply email:', err));
+      }
+    }
+
     return redirect('/dashboard/polls');
   }
 

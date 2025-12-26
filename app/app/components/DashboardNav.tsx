@@ -105,6 +105,12 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <Link
+              to="/dashboard/profile"
+              className="text-foreground hover:text-meat-red transition text-sm font-medium"
+            >
+              Profile
+            </Link>
             <Form method="post" action="/logout">
               <button
                 type="submit"
