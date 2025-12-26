@@ -5,6 +5,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
+import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -341,9 +342,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
   const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [restaurantName, setRestaurantName] = useState("");
 
   // Calendar date click handler
   function handleDateClick(dateStr: string) {
@@ -376,22 +375,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
     submit(formData, { method: 'post' });
   }
 
-  // Restaurant search
-  async function handleSearch() {
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(`/api/places/search?input=${encodeURIComponent(searchQuery)}`);
-      const data = await response.json();
-      setSearchResults(data.places || []);
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setIsSearching(false);
-    }
-  }
-
+  // Restaurant selection handler
   function handleRestaurantSelect(place: any) {
     const formData = new FormData();
     formData.append('_action', 'suggest_restaurant');
@@ -403,8 +387,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
 
     submit(formData, { method: 'post' });
     setShowRestaurantSearch(false);
-    setSearchQuery('');
-    setSearchResults([]);
+    setRestaurantName("");
   }
 
   function handleRestaurantVote(suggestionId: number) {
@@ -488,59 +471,24 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               {/* Restaurant Search Modal */}
               {showRestaurantSearch && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
                     <h3 className="text-xl font-semibold mb-4">Search for a Restaurant</h3>
 
-                    <div className="flex gap-2 mb-4">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        placeholder="Search for steakhouses..."
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                    <div className="mb-4">
+                      <RestaurantAutocomplete
+                        value={restaurantName}
+                        onChange={setRestaurantName}
+                        onSelect={handleRestaurantSelect}
                       />
-                      <button
-                        onClick={handleSearch}
-                        disabled={isSearching}
-                        className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors disabled:opacity-50"
-                      >
-                        {isSearching ? 'Searching...' : 'Search'}
-                      </button>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      {searchResults.map((place: any) => (
-                        <div
-                          key={place.placeId}
-                          className="border border-gray-200 rounded-lg p-4 hover:border-meat-red cursor-pointer transition-colors"
-                          onClick={() => handleRestaurantSelect(place)}
-                        >
-                          <div className="flex gap-4">
-                            {place.photoUrl && (
-                              <img
-                                src={place.photoUrl}
-                                alt={place.name}
-                                className="w-20 h-20 object-cover rounded"
-                              />
-                            )}
-                            <div className="flex-1">
-                              <h4 className="font-semibold">{place.name}</h4>
-                              <p className="text-sm text-gray-600">{place.address}</p>
-                              {place.cuisine && (
-                                <span className="text-xs text-gray-500">{place.cuisine}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Start typing to search Google Places
+                      </p>
                     </div>
 
                     <button
                       onClick={() => {
                         setShowRestaurantSearch(false);
-                        setSearchQuery('');
-                        setSearchResults([]);
+                        setRestaurantName("");
                       }}
                       className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
                     >
