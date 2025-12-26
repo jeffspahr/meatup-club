@@ -12,7 +12,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-card shadow-sm border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center gap-8">
@@ -25,7 +25,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 Home
@@ -35,7 +35,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/about')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 About
@@ -45,7 +45,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/polls')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 Polls
@@ -55,7 +55,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/rsvp')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 RSVP
@@ -65,7 +65,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/restaurants')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 Restaurants
@@ -75,7 +75,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/events')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 Events
@@ -85,7 +85,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/members')
                     ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
                 Members
@@ -96,7 +96,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                   className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                     pathname?.startsWith('/dashboard/admin')
                       ? 'bg-meat-red text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      : 'text-foreground hover:bg-muted'
                   }`}
                 >
                   Admin
@@ -108,7 +108,7 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
             <Form method="post" action="/logout">
               <button
                 type="submit"
-                className="text-gray-700 hover:text-meat-red transition text-sm font-medium"
+                className="text-foreground hover:text-meat-red transition text-sm font-medium"
               >
                 Sign out
               </button>

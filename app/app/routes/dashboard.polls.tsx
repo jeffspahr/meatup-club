@@ -529,8 +529,8 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Polls</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Polls</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Vote on dates and restaurants for upcoming meetups
         </p>
       </div>
@@ -544,21 +544,21 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
       {/* Active Poll */}
       {activePoll ? (
         <div className="space-y-8">
-          <div className="bg-white border-2 border-meat-red rounded-lg p-6">
+          <div className="bg-white dark:bg-gray-800 border-2 border-meat-red rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
               <span className="px-3 py-1 bg-meat-red text-white text-sm font-semibold rounded-full">
                 Active Poll
               </span>
-              <h2 className="text-2xl font-bold">{activePoll.name}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{activePoll.name}</h2>
             </div>
             {activePoll.description && (
-              <p className="text-gray-600 mb-6">{activePoll.description}</p>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">{activePoll.description}</p>
             )}
 
             {/* Dates Section */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4">📅 Vote on Dates</h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">📅 Vote on Dates</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Click on calendar dates to add or vote. You can vote for multiple dates.
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -584,8 +584,8 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold">🍖 Vote on Restaurants</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">🍖 Vote on Restaurants</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     You can vote for one restaurant. Click again to change or remove your vote.
                   </p>
                 </div>
@@ -600,8 +600,8 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               {/* Restaurant Search Modal */}
               {showRestaurantSearch && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-                    <h3 className="text-xl font-semibold mb-4">Search for a Restaurant</h3>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Search for a Restaurant</h3>
 
                     <div className="mb-4">
                       <RestaurantAutocomplete
@@ -609,7 +609,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                         onChange={setRestaurantName}
                         onSelect={handleRestaurantSelect}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Start typing to search Google Places
                       </p>
                     </div>
@@ -619,7 +619,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                         setShowRestaurantSearch(false);
                         setRestaurantName("");
                       }}
-                      className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                      className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     >
                       Cancel
                     </button>
@@ -634,19 +634,19 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     key={suggestion.id}
                     className={`border-2 rounded-lg p-4 transition-all cursor-pointer ${
                       suggestion.user_has_voted > 0
-                        ? 'border-meat-red bg-red-50'
-                        : 'border-gray-200 hover:border-meat-red'
+                        ? 'border-meat-red bg-red-50 dark:bg-red-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-meat-red'
                     }`}
                     onClick={() => handleRestaurantVote(suggestion.id)}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-lg">{suggestion.name}</h4>
+                        <h4 className="font-semibold text-lg text-gray-900 dark:text-gray-100">{suggestion.name}</h4>
                         {suggestion.address && (
-                          <p className="text-sm text-gray-600">{suggestion.address}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{suggestion.address}</p>
                         )}
                         {suggestion.cuisine && (
-                          <span className="text-xs text-gray-500">{suggestion.cuisine}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-500">{suggestion.cuisine}</span>
                         )}
                       </div>
                       {suggestion.photo_url && (
@@ -657,12 +657,12 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                         />
                       )}
                     </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
                         {suggestion.vote_count} {suggestion.vote_count === 1 ? 'vote' : 'votes'}
                         {suggestion.user_has_voted > 0 && ' · You voted'}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
                         by {suggestion.suggested_by_name || suggestion.suggested_by_email}
                       </span>
                     </div>
@@ -671,7 +671,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               </div>
 
               {restaurantSuggestions.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-gray-500 dark:text-gray-500">
                   No restaurant suggestions yet. Be the first to suggest one!
                 </div>
               )}
@@ -679,8 +679,8 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
           </div>
         </div>
       ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-12 text-center">
-          <p className="text-gray-600 text-lg">
+        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-12 text-center">
+          <p className="text-gray-600 dark:text-gray-400 text-lg">
             No active poll at the moment. Check back soon!
           </p>
         </div>
@@ -689,22 +689,22 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
       {/* Comments Section */}
       {activePoll && (
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Discussion</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Discussion</h2>
 
           {/* Add Comment Form */}
           <Form method="post" className="mb-6">
             <input type="hidden" name="_action" value="add_comment" />
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <textarea
                 name="content"
                 placeholder="Share your thoughts about this poll..."
-                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-meat-red focus:border-transparent resize-none"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-meat-red focus:border-transparent resize-none"
                 rows={3}
                 maxLength={1000}
                 required
               />
               <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-gray-500">Max 1000 characters</span>
+                <span className="text-xs text-gray-500 dark:text-gray-500">Max 1000 characters</span>
                 <button
                   type="submit"
                   className="bg-meat-red text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-medium"
@@ -718,12 +718,12 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
           {/* Comments List */}
           <div className="space-y-4">
             {comments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-500 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 No comments yet. Be the first to share your thoughts!
               </div>
             ) : (
               comments.map((comment: any) => (
-                <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                <div key={comment.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     {comment.user_picture && (
                       <img
@@ -735,7 +735,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-gray-900">
+                          <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
                             {comment.user_name || comment.user_email}
                           </span>
                           {comment.user_id === currentUser.id && (
@@ -743,7 +743,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-500">
                             {new Date(comment.created_at).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -770,7 +770,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                           )}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                         {comment.content}
                       </p>
                     </div>
@@ -785,25 +785,25 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
       {/* Previous Polls */}
       {previousPolls.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Previous Polls</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Previous Polls</h2>
           <div className="space-y-4">
             {previousPolls.map((poll: any) => (
-              <div key={poll.id} className="bg-white border border-gray-200 rounded-lg p-6">
+              <div key={poll.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">{poll.name}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{poll.name}</h3>
                     {poll.description && (
-                      <p className="text-sm text-gray-600 mt-1">{poll.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{poll.description}</p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-500">
                     Closed {new Date(poll.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 {poll.winner_restaurant && poll.winner_date && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Winner:</p>
-                    <div className="flex items-center gap-4 text-sm">
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Winner:</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
                       <span>🍖 {poll.winner_restaurant}</span>
                       <span>📅 {new Date(poll.winner_date).toLocaleDateString()}</span>
                     </div>

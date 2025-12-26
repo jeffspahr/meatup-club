@@ -13,7 +13,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const isAdmin = user.is_admin === 1;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <DashboardNav isAdmin={isAdmin} />
       <Outlet />
     </div>
