@@ -1,5 +1,6 @@
 import type { Route } from "./+types/dashboard.about";
 import { requireActiveUser } from "../lib/auth.server";
+import ReactMarkdown from 'react-markdown';
 
 interface ContentItem {
   id: number;
@@ -24,26 +25,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function AboutPage({ loaderData }: Route.ComponentProps) {
   const { content } = loaderData;
 
-  // Helper function to render content with basic markdown-style formatting
-  function renderContent(text: string) {
-    return text.split('\n').map((line, index) => {
-      // Check if line starts with * (bullet point)
-      if (line.trim().startsWith('*')) {
-        return (
-          <li key={index} className="ml-4">
-            {line.trim().substring(1).trim()}
-          </li>
-        );
-      }
-      // Regular line
-      return line.trim() ? (
-        <p key={index} className="mb-2">
-          {line}
-        </p>
-      ) : null;
-    });
-  }
-
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
@@ -64,10 +45,22 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
               {item.key === 'safety' && '🚗'}
               {item.title}
             </h2>
-            <div className="text-gray-700 leading-relaxed">
-              <ul className="space-y-2 list-none">
-                {renderContent(item.content)}
-              </ul>
+            <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed">
+              <ReactMarkdown
+                components={{
+                  ul: ({ children }) => <ul className="space-y-2 list-disc ml-6">{children}</ul>,
+                  ol: ({ children }) => <ol className="space-y-2 list-decimal ml-6">{children}</ol>,
+                  li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                  p: ({ children }) => <p className="mb-3">{children}</p>,
+                  strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-gray-900">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-gray-900">{children}</h3>,
+                }}
+              >
+                {item.content}
+              </ReactMarkdown>
             </div>
           </div>
         ))}

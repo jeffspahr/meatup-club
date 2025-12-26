@@ -2,6 +2,7 @@ import { Form, Link, redirect } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
+import ReactMarkdown from 'react-markdown';
 
 interface ContentItem {
   id: number;
@@ -57,15 +58,18 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
   const { content } = loaderData;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   function startEditing(item: any) {
     setEditingId(item.id);
     setEditContent(item.content);
+    setShowPreview(false);
   }
 
   function cancelEditing() {
     setEditingId(null);
     setEditContent('');
+    setShowPreview(false);
   }
 
   return (
@@ -101,20 +105,50 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   <input type="hidden" name="id" value={item.id} />
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Content *
-                    </label>
-                    <textarea
-                      name="content"
-                      required
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      rows={10}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
-                      placeholder="Enter content here..."
-                    />
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Content *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowPreview(!showPreview)}
+                        className="text-sm text-meat-red hover:text-meat-brown font-medium"
+                      >
+                        {showPreview ? 'Edit' : 'Preview'}
+                      </button>
+                    </div>
+
+                    {showPreview ? (
+                      <div className="w-full px-4 py-3 border border-gray-300 rounded-md bg-gray-50 min-h-[240px]">
+                        <ReactMarkdown
+                          components={{
+                            ul: ({ children }) => <ul className="space-y-2 list-disc ml-6">{children}</ul>,
+                            ol: ({ children }) => <ol className="space-y-2 list-decimal ml-6">{children}</ol>,
+                            li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                            p: ({ children }) => <p className="mb-3">{children}</p>,
+                            strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-gray-900">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-gray-900">{children}</h3>,
+                          }}
+                        >
+                          {editContent}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <textarea
+                        name="content"
+                        required
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={10}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                        placeholder="Enter content here..."
+                      />
+                    )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Supports markdown-style formatting. Use * for bullet points.
+                      Full markdown support: **bold**, *italic*, lists, headings, etc.
                     </p>
                   </div>
 
@@ -153,9 +187,23 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700">
-                    {item.content}
-                  </pre>
+                  <div className="prose prose-gray max-w-none text-gray-700">
+                    <ReactMarkdown
+                      components={{
+                        ul: ({ children }) => <ul className="space-y-2 list-disc ml-6">{children}</ul>,
+                        ol: ({ children }) => <ol className="space-y-2 list-decimal ml-6">{children}</ol>,
+                        li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                        p: ({ children }) => <p className="mb-3">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-gray-900">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-gray-900">{children}</h3>,
+                      }}
+                    >
+                      {item.content}
+                    </ReactMarkdown>
+                  </div>
                 </div>
               </div>
             )}
