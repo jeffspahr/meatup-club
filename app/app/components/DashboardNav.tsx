@@ -31,6 +31,16 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 Home
               </Link>
               <Link
+                to="/dashboard/about"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                  isActive('/dashboard/about')
+                    ? 'bg-meat-red text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                About
+              </Link>
+              <Link
                 to="/dashboard/rsvp"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/rsvp')

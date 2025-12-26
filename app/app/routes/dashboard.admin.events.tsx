@@ -1,4 +1,4 @@
-import { Form, Link, redirect } from "react-router";
+import { Form, Link, redirect, useSubmit } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
@@ -118,6 +118,25 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   }
 
+  if (actionType === 'delete') {
+    const id = formData.get('id');
+
+    if (!id) {
+      return { error: 'Event ID is required' };
+    }
+
+    try {
+      await db
+        .prepare('DELETE FROM events WHERE id = ?')
+        .bind(id)
+        .run();
+
+      return redirect('/dashboard/admin/events');
+    } catch (err) {
+      return { error: 'Failed to delete event' };
+    }
+  }
+
   return { error: 'Invalid action' };
 }
 
@@ -132,6 +151,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
     event_date: '',
     status: '',
   });
+  const submit = useSubmit();
 
   function startEditing(event: any) {
     setEditingId(event.id);
@@ -153,6 +173,20 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       event_date: '',
       status: '',
     });
+  }
+
+  function handleDelete(eventId: number, eventName: string, eventDate: string) {
+    const dateStr = new Date(eventDate).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    if (confirm(`Are you sure you want to delete the event "${eventName}" on ${dateStr}? This action cannot be undone.`)) {
+      const formData = new FormData();
+      formData.append('_action', 'delete');
+      formData.append('id', eventId.toString());
+      submit(formData, { method: 'post' });
+    }
   }
 
   return (
@@ -453,12 +487,20 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         Created {new Date(event.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <button
-                      onClick={() => startEditing(event)}
-                      className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEditing(event)}
+                        className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(event.id, event.restaurant_name, event.event_date)}
+                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

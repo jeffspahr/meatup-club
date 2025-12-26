@@ -75,6 +75,58 @@ export default function AdminPage() {
             </ul>
           </div>
         </Link>
+
+        <Link to="/dashboard/admin/content">
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+                📝
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Content</h2>
+                <p className="text-gray-600">Edit site content</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li>• Edit club description</li>
+              <li>• Update goals and guidelines</li>
+              <li>• Manage membership info</li>
+              <li>• Update safety reminders</li>
+            </ul>
+          </div>
+        </Link>
+
+        <Link to="/dashboard/admin/email-templates">
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+                ✉️
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Email Templates</h2>
+                <p className="text-gray-600">Manage invitation emails</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li>• Create custom email templates</li>
+              <li>• Edit existing templates</li>
+              <li>• Set default template</li>
+              <li>• Preview before sending</li>
+            </ul>
+          </div>
+        </Link>
+      </div>
+
+      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="font-semibold text-blue-900 mb-2">🛠️ Maintenance Tools</h3>
+        <Link
+          to="/dashboard/admin/backfill-hours"
+          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+        >
+          <span>🔄</span>
+          <span>Backfill Opening Hours for Existing Restaurants</span>
+          <span>→</span>
+        </Link>
       </div>
     </main>
   );

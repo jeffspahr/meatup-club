@@ -12,6 +12,7 @@ export default [
   route("api/polls", "routes/api.polls.tsx"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),
+    route("about", "routes/dashboard.about.tsx"),
     route("events", "routes/dashboard.events.tsx"),
     route("rsvp", "routes/dashboard.rsvp.tsx"),
     route("restaurants", "routes/dashboard.restaurants.tsx"),
@@ -21,5 +22,7 @@ export default [
     route("admin/events", "routes/dashboard.admin.events.tsx"),
     route("admin/members", "routes/dashboard.admin.members.tsx"),
     route("admin/polls", "routes/dashboard.admin.polls.tsx"),
+    route("admin/content", "routes/dashboard.admin.content.tsx"),
+    route("admin/backfill-hours", "routes/dashboard.admin.backfill-hours.tsx"),
   ]),
 ] satisfies RouteConfig;

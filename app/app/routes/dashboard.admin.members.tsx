@@ -2,6 +2,7 @@ import { Form, Link, redirect, useSubmit } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
+import { sendInviteEmail } from "../lib/email.server";
 
 interface Member {
   id: number;
@@ -22,11 +23,19 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare('SELECT * FROM users ORDER BY created_at DESC')
     .all();
 
-  return { members: membersResult.results || [] };
+  // Fetch email templates for invite form
+  const templatesResult = await db
+    .prepare('SELECT id, name, is_default FROM email_templates ORDER BY is_default DESC, name ASC')
+    .all();
+
+  return {
+    members: membersResult.results || [],
+    templates: templatesResult.results || []
+  };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdmin(request, context);
+  const admin = await requireAdmin(request, context);
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const actionType = formData.get('_action');
@@ -34,6 +43,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (actionType === 'invite') {
     const email = formData.get('email');
     const name = formData.get('name');
+    const templateId = formData.get('template_id');
 
     if (!email) {
       return { error: 'Email is required' };
@@ -51,13 +61,62 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
 
       // Create invited user
-      await db
+      const result = await db
         .prepare('INSERT INTO users (email, name, status) VALUES (?, ?, ?)')
         .bind(email, name || null, 'invited')
         .run();
 
+      // Send invitation email if Resend API key is configured
+      const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+
+      if (resendApiKey) {
+        // Fetch the selected template (or default if none selected)
+        let template;
+        if (templateId) {
+          template = await db
+            .prepare('SELECT * FROM email_templates WHERE id = ?')
+            .bind(templateId)
+            .first();
+        } else {
+          template = await db
+            .prepare('SELECT * FROM email_templates WHERE is_default = 1 LIMIT 1')
+            .first();
+        }
+
+        if (!template) {
+          return { error: 'Email template not found' };
+        }
+
+        const url = new URL(request.url);
+        const acceptLink = `${url.origin}/accept-invite?email=${encodeURIComponent(email as string)}`;
+
+        const emailResult = await sendInviteEmail({
+          to: email as string,
+          inviteeName: (name as string) || null,
+          inviterName: admin.name || admin.email,
+          acceptLink,
+          resendApiKey,
+          template: {
+            subject: template.subject,
+            html: template.html_body,
+            text: template.text_body,
+          },
+        });
+
+        if (!emailResult.success) {
+          console.error('Failed to send invitation email:', emailResult.error);
+          // Still continue - user was created, just email failed
+          return {
+            success: true,
+            warning: 'User invited but email failed to send. Share the invite link manually.',
+            inviteLink: acceptLink
+          };
+        }
+      }
+
       return redirect('/dashboard/admin/members');
     } catch (err) {
+      console.error('Invite error:', err);
       return { error: 'Failed to invite member' };
     }
   }
@@ -128,7 +187,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function AdminMembersPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { members } = loaderData;
+  const { members, templates } = loaderData;
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState({
@@ -196,6 +255,20 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
         </div>
       )}
 
+      {actionData?.warning && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+          <p className="font-semibold mb-2">{actionData.warning}</p>
+          {actionData.inviteLink && (
+            <div className="mt-2">
+              <p className="text-sm mb-1">Share this link with the invitee:</p>
+              <code className="bg-yellow-100 px-2 py-1 rounded text-xs break-all">
+                {actionData.inviteLink}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Invite User Form */}
       {showAddForm && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
@@ -234,6 +307,33 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 placeholder="John Doe"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="template_id"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Email Template
+              </label>
+              <select
+                id="template_id"
+                name="template_id"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+              >
+                {templates.map((template: any) => (
+                  <option
+                    key={template.id}
+                    value={template.id}
+                    selected={template.is_default === 1}
+                  >
+                    {template.name}{template.is_default === 1 ? ' (Default)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Choose which email template to send. <Link to="/dashboard/admin/email-templates" className="text-meat-red hover:underline">Manage templates</Link>
+              </p>
             </div>
 
             <button

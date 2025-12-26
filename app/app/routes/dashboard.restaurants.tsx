@@ -44,21 +44,21 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     `)
     .first();
 
-  // Get restaurant suggestions for active poll only
+  // Get all restaurant suggestions (they exist independently of polls)
+  // For vote counts, only count votes from the active poll if one exists
   const suggestionsResult = await db
     .prepare(`
       SELECT
         rs.*,
         u.name as suggested_by_name,
         u.email as suggested_by_email,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id) as vote_count,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ?) as user_has_voted
+        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND poll_id = ?) as vote_count,
+        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ? AND poll_id = ?) as user_has_voted
       FROM restaurant_suggestions rs
       JOIN users u ON rs.user_id = u.id
-      WHERE rs.poll_id = ? OR rs.poll_id IS NULL
       ORDER BY vote_count DESC, rs.created_at DESC
     `)
-    .bind(user.id, activePoll?.id || null)
+    .bind(activePoll?.id || -1, user.id, activePoll?.id || -1)
     .all();
 
   return {
@@ -97,14 +97,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant name is required' };
     }
 
-    // Get active poll
+    // Get active poll (optional - suggestions can exist without a poll)
     const activePoll = await db
       .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
       .first();
-
-    if (!activePoll) {
-      return { error: 'No active poll. Please start a new poll first.' };
-    }
 
     await db
       .prepare(`
@@ -116,7 +112,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       `)
       .bind(
         user.id,
-        activePoll.id,
+        activePoll?.id || null,
         name,
         address || null,
         cuisine || null,
@@ -145,23 +141,39 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Suggestion ID is required' };
     }
 
+    // Require active poll for voting
+    const activePoll = await db
+      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
+      .first();
+
+    if (!activePoll) {
+      return { error: 'No active poll. Voting requires an active poll.' };
+    }
+
     if (remove) {
-      // Remove vote
+      // Remove vote for this poll
       await db
-        .prepare('DELETE FROM restaurant_votes WHERE suggestion_id = ? AND user_id = ?')
-        .bind(suggestionId, user.id)
+        .prepare('DELETE FROM restaurant_votes WHERE poll_id = ? AND suggestion_id = ? AND user_id = ?')
+        .bind(activePoll.id, suggestionId, user.id)
         .run();
     } else {
-      // Add vote (check if already voted)
-      const existing = await db
-        .prepare('SELECT id FROM restaurant_votes WHERE suggestion_id = ? AND user_id = ?')
-        .bind(suggestionId, user.id)
+      // Check if user has already voted in this poll
+      const existingVote = await db
+        .prepare('SELECT id, suggestion_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
+        .bind(activePoll.id, user.id)
         .first();
 
-      if (!existing) {
+      if (existingVote) {
+        // User already voted - update their vote to the new restaurant
         await db
-          .prepare('INSERT INTO restaurant_votes (suggestion_id, user_id) VALUES (?, ?)')
-          .bind(suggestionId, user.id)
+          .prepare('UPDATE restaurant_votes SET suggestion_id = ? WHERE poll_id = ? AND user_id = ?')
+          .bind(suggestionId, activePoll.id, user.id)
+          .run();
+      } else {
+        // New vote
+        await db
+          .prepare('INSERT INTO restaurant_votes (poll_id, suggestion_id, user_id) VALUES (?, ?, ?)')
+          .bind(activePoll.id, suggestionId, user.id)
           .run();
       }
     }
@@ -243,14 +255,12 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Restaurant Voting</h1>
         <div className="flex gap-3">
-          {activePoll && (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-            >
-              {showForm ? 'Cancel' : '+ Suggest Restaurant'}
-            </button>
-          )}
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
+          >
+            {showForm ? 'Cancel' : '+ Suggest Restaurant'}
+          </button>
           <button
             onClick={() => setShowNewPollForm(!showNewPollForm)}
             className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
@@ -444,12 +454,12 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
             return (
               <div
                 key={suggestion.id}
-                className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow"
               >
                 <div className="flex flex-col md:flex-row">
                   {/* Restaurant Photo */}
                   {suggestion.photo_url && (
-                    <div className="md:w-48 h-48 md:h-auto flex-shrink-0">
+                    <div className="md:w-48 h-48 md:h-auto flex-shrink-0 overflow-hidden md:rounded-l-lg">
                       <img
                         src={suggestion.photo_url}
                         alt={suggestion.name}
@@ -506,11 +516,25 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                             });
 
                             return (
-                              <div className="mb-3">
-                                <p className="text-sm text-gray-600 flex items-center gap-2">
+                              <div className="mb-3 group relative">
+                                <p className="text-sm text-gray-600 flex items-center gap-2 cursor-help">
                                   <span className="text-gray-400">🕒</span>
                                   <span className="font-medium">{daysOpen.join(', ')}</span>
+                                  <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    (hover for hours)
+                                  </span>
                                 </p>
+                                {/* Tooltip with full hours */}
+                                <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg z-10 min-w-[250px]">
+                                  <div className="space-y-1">
+                                    {hours.map((h: string, idx: number) => (
+                                      <div key={idx} className="flex justify-between gap-3">
+                                        <span className="font-medium">{h.split(':')[0]}:</span>
+                                        <span className="text-gray-300">{h.split(':').slice(1).join(':').trim()}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             );
                           } catch {
@@ -565,25 +589,36 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
                       {/* Voting Section */}
                       <div className="ml-6 flex flex-col items-center gap-2">
-                        <button
-                          onClick={() => handleVote(suggestion.id, hasVoted)}
-                          className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
-                            hasVoted
-                              ? 'bg-amber-600 text-white hover:bg-amber-700'
-                              : 'bg-white border-2 border-amber-600 text-amber-600 hover:bg-amber-50'
-                          }`}
-                        >
-                          {hasVoted ? '✓ Voted' : 'Vote'}
-                        </button>
+                        {/* Show vote button when there's an active poll */}
+                        {activePoll ? (
+                          <>
+                            <button
+                              onClick={() => handleVote(suggestion.id, hasVoted)}
+                              className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
+                                hasVoted
+                                  ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                  : 'bg-white border-2 border-amber-600 text-amber-600 hover:bg-amber-50'
+                              }`}
+                            >
+                              {hasVoted ? '✓ Voted' : 'Vote'}
+                            </button>
 
-                        <div className="text-center">
-                          <p className="text-3xl font-bold text-gray-900">
-                            {suggestion.vote_count}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {suggestion.vote_count === 1 ? 'vote' : 'votes'}
-                          </p>
-                        </div>
+                            <div className="text-center">
+                              <p className="text-3xl font-bold text-gray-900">
+                                {suggestion.vote_count}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {suggestion.vote_count === 1 ? 'vote' : 'votes'}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center px-4 py-2 bg-gray-100 rounded-md">
+                            <p className="text-sm text-gray-600">
+                              No active poll
+                            </p>
+                          </div>
+                        )}
 
                         {/* Delete button - shown if user owns or is admin */}
                         {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
