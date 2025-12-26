@@ -88,27 +88,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1)
     .all();
 
-  // Filter out past dates from suggestions and votes (for Doodle view)
-  // Use UTC for server-side filtering to ensure consistency
-  const allDateSuggestions = dateSuggestionsResult.results || [];
-  const allDateVotes = dateVotesResult.results || [];
-
-  // Keep past dates for the calendar view (so users can see/delete them)
-  // but filter them for the Doodle view using UTC
-  const futureDateSuggestions = allDateSuggestions.filter((ds: any) =>
-    !isDateInPastUTC(ds.suggested_date)
-  );
-
-  const futureDateVotes = allDateVotes.filter((dv: any) =>
-    !isDateInPastUTC(dv.suggested_date)
-  );
-
   return {
-    dateSuggestions: allDateSuggestions,
+    dateSuggestions: dateSuggestionsResult.results || [],
     restaurantSuggestions: restaurantSuggestionsResult.results || [],
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
-    dateVotes: futureDateVotes,
+    dateVotes: dateVotesResult.results || [],
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,

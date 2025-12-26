@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { isDateInPastLocal } from "../lib/dateUtils";
+
 interface DateVote {
   date_suggestion_id: number;
   user_id: number;
@@ -19,28 +22,44 @@ interface DoodleViewProps {
 }
 
 export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: DoodleViewProps) {
-  // Get unique users who have voted
+  const [isClient, setIsClient] = useState(false);
+
+  // Set client flag after hydration to enable local timezone filtering
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Filter dates based on user's local timezone (client-side only)
+  // On server render, show all dates to avoid hydration mismatch
+  const filteredDateSuggestions = isClient
+    ? dateSuggestions.filter(ds => !isDateInPastLocal(ds.suggested_date))
+    : dateSuggestions;
+
+  const filteredDateVotes = isClient
+    ? dateVotes.filter(dv => !isDateInPastLocal(dv.suggested_date))
+    : dateVotes;
+
+  // Get unique users who have voted (from filtered votes)
   const uniqueUsers = Array.from(
     new Map(
-      dateVotes.map(vote => [
+      filteredDateVotes.map(vote => [
         vote.user_id,
         { id: vote.user_id, name: vote.user_name || vote.user_email }
       ])
     ).values()
   );
 
-  // Create a map of user_id -> date -> hasVoted
+  // Create a map of user_id -> date -> hasVoted (from filtered votes)
   const voteMap = new Map<number, Set<string>>();
-  dateVotes.forEach(vote => {
+  filteredDateVotes.forEach(vote => {
     if (!voteMap.has(vote.user_id)) {
       voteMap.set(vote.user_id, new Set());
     }
     voteMap.get(vote.user_id)!.add(vote.suggested_date);
   });
 
-  // Only show dates that have at least one vote
-  // Past dates are already filtered out on the server
-  const votedDates = dateSuggestions.filter(ds => ds.vote_count > 0);
+  // Only show dates that have at least one vote and are not in the past (user's timezone)
+  const votedDates = filteredDateSuggestions.filter(ds => ds.vote_count > 0);
 
   if (votedDates.length === 0 || uniqueUsers.length === 0) {
     return null;
