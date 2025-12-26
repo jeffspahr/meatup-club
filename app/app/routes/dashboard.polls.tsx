@@ -61,7 +61,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         e.restaurant_name as winner_restaurant,
         e.event_date as winner_date
       FROM polls p
-      LEFT JOIN events e ON p.id = e.poll_id
+      LEFT JOIN events e ON p.created_event_id = e.id
       WHERE p.status = 'closed'
       ORDER BY p.created_at DESC
       LIMIT 10
