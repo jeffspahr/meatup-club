@@ -249,23 +249,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
         </Link>
 
-        <Link to="/dashboard/restaurants">
+        <Link to="/dashboard/polls">
           <div className="bg-gradient-to-br from-amber-600 to-orange-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">🍽️ Vote on Restaurants</h3>
+            <h3 className="text-2xl font-bold mb-2">🗳️ Vote on Polls</h3>
             <p className="text-white/90 mb-4">
-              Search Google Places, suggest steakhouses, and vote in the current poll
+              Vote on dates and restaurants for the next meetup
             </p>
-            <span className="text-white font-semibold">Suggest & Vote →</span>
-          </div>
-        </Link>
-
-        <Link to="/dashboard/dates">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">📆 Vote on Dates</h3>
-            <p className="text-white/90 mb-4">
-              Propose dates that work for you and vote in the current poll
-            </p>
-            <span className="text-white font-semibold">Suggest & Vote →</span>
+            <span className="text-white font-semibold">View Poll →</span>
           </div>
         </Link>
 

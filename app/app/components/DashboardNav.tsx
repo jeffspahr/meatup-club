@@ -41,6 +41,16 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 About
               </Link>
               <Link
+                to="/dashboard/polls"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                  isActive('/dashboard/polls')
+                    ? 'bg-meat-red text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Polls
+              </Link>
+              <Link
                 to="/dashboard/rsvp"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/rsvp')
@@ -49,26 +59,6 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 }`}
               >
                 RSVP
-              </Link>
-              <Link
-                to="/dashboard/restaurants"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  isActive('/dashboard/restaurants')
-                    ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Restaurants
-              </Link>
-              <Link
-                to="/dashboard/dates"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  isActive('/dashboard/dates')
-                    ? 'bg-meat-red text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                Dates
               </Link>
               <Link
                 to="/dashboard/events"

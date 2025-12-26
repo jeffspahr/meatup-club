@@ -129,10 +129,10 @@ export default function BackfillHoursPage({ loaderData, actionData }: Route.Comp
         {actionData?.results && (
           <div className="mt-6 text-center">
             <Link
-              to="/dashboard/restaurants"
+              to="/dashboard/polls"
               className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              View Restaurants →
+              View Polls →
             </Link>
           </div>
         )}
