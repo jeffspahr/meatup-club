@@ -454,6 +454,14 @@ export async function action({ request, context }: Route.ActionArgs) {
         .bind(Number(parentId))
         .first();
 
+      console.log('Parent comment found:', {
+        id: parentComment?.id,
+        user_id: parentComment?.user_id,
+        email: parentComment?.email,
+        notify_enabled: parentComment?.notify_comment_replies,
+        is_self_reply: parentComment?.user_id === user.id,
+      });
+
       // Send email if parent author wants notifications and isn't replying to themselves
       if (
         parentComment &&
@@ -464,8 +472,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         const url = new URL(request.url);
         const pollUrl = `${url.origin}/dashboard/polls`;
 
-        // Fire and forget - don't block the response
-        sendCommentReplyEmail({
+        console.log('Sending comment reply email to:', parentComment.email);
+
+        // Use waitUntil to handle async work properly in Cloudflare Workers
+        const emailPromise = sendCommentReplyEmail({
           to: parentComment.email as string,
           recipientName: parentComment.name as string | null,
           replierName: user.name || user.email,
@@ -473,7 +483,26 @@ export async function action({ request, context }: Route.ActionArgs) {
           replyContent: content.trim(),
           pollUrl,
           resendApiKey,
-        }).catch(err => console.error('Failed to send comment reply email:', err));
+        }).then(result => {
+          console.log('Email send result:', result);
+          return result;
+        }).catch(err => {
+          console.error('Failed to send comment reply email:', err);
+          throw err;
+        });
+
+        // Use waitUntil if available, otherwise await
+        if (context.cloudflare.ctx?.waitUntil) {
+          context.cloudflare.ctx.waitUntil(emailPromise);
+        } else {
+          await emailPromise;
+        }
+      } else {
+        console.log('Skipping email notification:', {
+          hasParentComment: !!parentComment,
+          notifyEnabled: parentComment?.notify_comment_replies === 1,
+          isSelfReply: parentComment?.user_id === user.id,
+        });
       }
     }
 
