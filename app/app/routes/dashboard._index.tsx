@@ -1,10 +1,17 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
+import ReactMarkdown from 'react-markdown';
+import { useState } from 'react';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
+
+  // Get site content
+  const contentResult = await db
+    .prepare('SELECT * FROM site_content ORDER BY id ASC')
+    .all();
 
   // Get member count
   const memberCountResult = await db
@@ -70,23 +77,82 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .first();
   }
 
-  return { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp };
+  return { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content: contentResult.results || [] };
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp } = loaderData;
+  const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
+  const [showContent, setShowContent] = useState(false);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, {firstName}!
-        </h2>
-        <p className="text-gray-600">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Hero Section */}
+      <div className="mb-6">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
+        </h1>
+        <p className="text-xl text-gray-600">
           Your quarterly steakhouse meetup headquarters
         </p>
       </div>
+
+      {/* Site Content Section - Front and Center */}
+      {content.length > 0 && (
+        <div className="mb-8 bg-gradient-to-r from-meat-red/10 to-meat-brown/10 border-2 border-meat-red/30 rounded-xl p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🥩</span>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  About Meatup.Club
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Everything you need to know about our quarterly steakhouse adventures
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowContent(!showContent)}
+              className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-meat-red/10 rounded-lg transition"
+            >
+              {showContent ? 'Hide' : 'Show'} Details
+            </button>
+          </div>
+
+          {showContent && (
+            <div className="space-y-4 mt-6">
+              {content.map((item: any) => (
+                <div key={item.id} className="bg-white rounded-lg p-5 shadow-sm">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    {item.key === 'description' && '📖'}
+                    {item.key === 'goals' && '🎯'}
+                    {item.key === 'guidelines' && '📋'}
+                    {item.key === 'membership' && '👥'}
+                    {item.key === 'safety' && '🚗'}
+                    {item.title}
+                  </h3>
+                  <div className="prose prose-sm max-w-none text-gray-700">
+                    <ReactMarkdown
+                      components={{
+                        ul: ({ children }) => <ul className="space-y-1 list-disc ml-6">{children}</ul>,
+                        ol: ({ children }) => <ol className="space-y-1 list-decimal ml-6">{children}</ol>,
+                        li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                        p: ({ children }) => <p className="mb-2">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        h3: ({ children }) => <h3 className="text-base font-semibold mb-1 text-gray-900">{children}</h3>,
+                      }}
+                    >
+                      {item.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Active Poll Banner */}
       {activePoll ? (
@@ -158,138 +224,137 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link to="/dashboard/events">
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Next Meetup</p>
-                {nextEvent ? (
+      {/* At a Glance - Compact Stats */}
+      {nextEvent && (
+        <div className="mb-8 bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">📍 Next Meetup</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Restaurant</p>
+              <p className="text-xl font-bold text-gray-900">{(nextEvent as any).restaurant_name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Date</p>
+              <p className="text-xl font-bold text-gray-900">
+                {new Date((nextEvent as any).event_date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Your RSVP</p>
+              <div className="flex items-center gap-2">
+                {userRsvp ? (
                   <>
-                    <p className="text-lg font-bold text-gray-900">
-                      {(nextEvent as any).restaurant_name}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {new Date((nextEvent as any).event_date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </p>
+                    {(userRsvp as any).status === 'yes' && (
+                      <>
+                        <span className="text-2xl">✅</span>
+                        <span className="text-xl font-bold text-green-600">Going</span>
+                      </>
+                    )}
+                    {(userRsvp as any).status === 'no' && (
+                      <>
+                        <span className="text-2xl">❌</span>
+                        <span className="text-xl font-bold text-red-600">Not Going</span>
+                      </>
+                    )}
+                    {(userRsvp as any).status === 'maybe' && (
+                      <>
+                        <span className="text-2xl">❔</span>
+                        <span className="text-xl font-bold text-yellow-600">Maybe</span>
+                      </>
+                    )}
                   </>
                 ) : (
-                  <p className="text-2xl font-bold text-gray-900">TBD</p>
+                  <Link to="/dashboard/rsvp" className="text-meat-red hover:text-meat-brown font-semibold">
+                    Set RSVP →
+                  </Link>
                 )}
-              </div>
-              <div className="text-4xl">📅</div>
-            </div>
-          </div>
-        </Link>
-
-        <Link to="/dashboard/rsvp">
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Your RSVP</p>
-                {userRsvp ? (
-                  <p className="text-2xl font-bold text-gray-900 capitalize">
-                    {(userRsvp as any).status === 'yes' && '✓ Going'}
-                    {(userRsvp as any).status === 'no' && 'Not Going'}
-                    {(userRsvp as any).status === 'maybe' && 'Maybe'}
-                  </p>
-                ) : nextEvent ? (
-                  <p className="text-2xl font-bold text-gray-400">Not Set</p>
-                ) : (
-                  <p className="text-2xl font-bold text-gray-400">-</p>
-                )}
-              </div>
-              <div className="text-4xl">
-                {userRsvp && (userRsvp as any).status === 'yes' ? '✅' :
-                 userRsvp && (userRsvp as any).status === 'no' ? '❌' :
-                 userRsvp && (userRsvp as any).status === 'maybe' ? '❔' : '✅'}
               </div>
             </div>
           </div>
-        </Link>
+        </div>
+      )}
 
-        {isAdmin ? (
-          <Link to="/dashboard/members">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Members</p>
-                  <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
+      {/* Quick Actions */}
+      <div className="mb-8">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">🎯 Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activePoll && (
+            <Link to="/dashboard/polls">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-3xl">🗳️</span>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Active</span>
                 </div>
-                <div className="text-4xl">👥</div>
+                <h3 className="text-lg font-bold mb-1">Vote on Polls</h3>
+                <p className="text-sm text-white/80">
+                  {activePoll && `${(topRestaurant as any)?.vote_count || 0} restaurant votes, ${(topDate as any)?.vote_count || 0} date votes`}
+                </p>
               </div>
+            </Link>
+          )}
+
+          {nextEvent && (
+            <Link to="/dashboard/rsvp">
+              <div className="bg-gradient-to-br from-meat-red to-meat-brown text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-3xl">✋</span>
+                  {!userRsvp && <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Action Needed</span>}
+                </div>
+                <h3 className="text-lg font-bold mb-1">RSVP</h3>
+                <p className="text-sm text-white/80">
+                  {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
+                </p>
+              </div>
+            </Link>
+          )}
+
+          <Link to="/dashboard/restaurants">
+            <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-3xl">🍖</span>
+              </div>
+              <h3 className="text-lg font-bold mb-1">Restaurants</h3>
+              <p className="text-sm text-white/80">Browse and add steakhouses</p>
             </div>
           </Link>
-        ) : (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Members</p>
-                <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
+
+          <Link to="/dashboard/events">
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-3xl">📜</span>
               </div>
-              <div className="text-4xl">👥</div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link to="/dashboard/rsvp">
-          <div className="bg-gradient-to-br from-meat-red to-meat-brown text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">RSVP to Events</h3>
-            <p className="text-white/90 mb-4">
-              Let us know if you'll be joining the next meetup
-            </p>
-            <span className="text-white font-semibold">View & RSVP →</span>
-          </div>
-        </Link>
-
-        <Link to="/dashboard/polls">
-          <div className="bg-gradient-to-br from-amber-600 to-orange-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">🗳️ Vote on Polls</h3>
-            <p className="text-white/90 mb-4">
-              Vote on dates and restaurants for the next meetup
-            </p>
-            <span className="text-white font-semibold">View Poll →</span>
-          </div>
-        </Link>
-
-        <Link to="/dashboard/restaurants">
-          <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">🍖 Restaurants</h3>
-            <p className="text-white/90 mb-4">
-              Browse and manage the restaurant collection
-            </p>
-            <span className="text-white font-semibold">View Restaurants →</span>
-          </div>
-        </Link>
-
-        <Link to="/dashboard/events">
-          <div className="bg-gradient-to-br from-purple-600 to-pink-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-            <h3 className="text-2xl font-bold mb-2">📜 Event History</h3>
-            <p className="text-white/90 mb-4">
-              View all past and upcoming meetups
-            </p>
-            <span className="text-white font-semibold">View Events →</span>
-          </div>
-        </Link>
-
-        {isAdmin && (
-          <Link to="/dashboard/admin">
-            <div className="bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
-              <h3 className="text-2xl font-bold mb-2">⚙️ Admin Panel</h3>
-              <p className="text-white/90 mb-4">
-                Manage polls, events, and members
-              </p>
-              <span className="text-white font-semibold">Admin Dashboard →</span>
+              <h3 className="text-lg font-bold mb-1">Events</h3>
+              <p className="text-sm text-white/80">View past and upcoming meetups</p>
             </div>
           </Link>
-        )}
+
+          <Link to="/dashboard/members">
+            <div className="bg-gradient-to-br from-blue-600 to-cyan-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-3xl">👥</span>
+              </div>
+              <h3 className="text-lg font-bold mb-1">Members</h3>
+              <p className="text-sm text-white/80">{memberCount} active members</p>
+            </div>
+          </Link>
+
+          {isAdmin && (
+            <Link to="/dashboard/admin">
+              <div className="bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-3xl">⚙️</span>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Admin</span>
+                </div>
+                <h3 className="text-lg font-bold mb-1">Admin Panel</h3>
+                <p className="text-sm text-white/80">Manage polls, events, and members</p>
+              </div>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Feedback Section */}
