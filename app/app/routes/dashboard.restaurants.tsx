@@ -16,8 +16,6 @@ interface Suggestion {
   created_at: string;
   suggested_by_name: string;
   suggested_by_email: string;
-  vote_count: number;
-  user_has_voted: number;
   google_place_id: string | null;
   google_rating: number | null;
   rating_count: number | null;
@@ -34,36 +32,21 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
 
-  // Get the current active poll
-  const activePoll = await db
-    .prepare(`
-      SELECT * FROM polls
-      WHERE status = 'active'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `)
-    .first();
-
-  // Get all restaurant suggestions (they exist independently of polls)
-  // For vote counts, only count votes from the active poll if one exists
+  // Get all restaurants
   const suggestionsResult = await db
     .prepare(`
       SELECT
         rs.*,
         u.name as suggested_by_name,
-        u.email as suggested_by_email,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND poll_id = ?) as vote_count,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ? AND poll_id = ?) as user_has_voted
+        u.email as suggested_by_email
       FROM restaurant_suggestions rs
       JOIN users u ON rs.user_id = u.id
-      ORDER BY vote_count DESC, rs.created_at DESC
+      ORDER BY rs.created_at DESC
     `)
-    .bind(activePoll?.id || -1, user.id, activePoll?.id || -1)
     .all();
 
   return {
     suggestions: suggestionsResult.results || [],
-    activePoll: activePoll || null,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -133,54 +116,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/dashboard/restaurants');
   }
 
-  if (action === 'vote') {
-    const suggestionId = formData.get('suggestion_id');
-    const remove = formData.get('remove') === 'true';
-
-    if (!suggestionId) {
-      return { error: 'Suggestion ID is required' };
-    }
-
-    // Require active poll for voting
-    const activePoll = await db
-      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
-      .first();
-
-    if (!activePoll) {
-      return { error: 'No active poll. Voting requires an active poll.' };
-    }
-
-    if (remove) {
-      // Remove vote for this poll
-      await db
-        .prepare('DELETE FROM restaurant_votes WHERE poll_id = ? AND suggestion_id = ? AND user_id = ?')
-        .bind(activePoll.id, suggestionId, user.id)
-        .run();
-    } else {
-      // Check if user has already voted in this poll
-      const existingVote = await db
-        .prepare('SELECT id, suggestion_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
-        .bind(activePoll.id, user.id)
-        .first();
-
-      if (existingVote) {
-        // User already voted - update their vote to the new restaurant
-        await db
-          .prepare('UPDATE restaurant_votes SET suggestion_id = ? WHERE poll_id = ? AND user_id = ?')
-          .bind(suggestionId, activePoll.id, user.id)
-          .run();
-      } else {
-        // New vote
-        await db
-          .prepare('INSERT INTO restaurant_votes (poll_id, suggestion_id, user_id) VALUES (?, ?, ?)')
-          .bind(activePoll.id, suggestionId, user.id)
-          .run();
-      }
-    }
-
-    return redirect('/dashboard/restaurants');
-  }
-
   if (action === 'delete') {
     const suggestionId = formData.get('suggestion_id');
 
@@ -215,19 +150,11 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function RestaurantsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { suggestions, activePoll, currentUser } = loaderData;
+  const { suggestions, currentUser } = loaderData;
   const [showForm, setShowForm] = useState(false);
   const submit = useSubmit();
   const [restaurantName, setRestaurantName] = useState("");
   const [placeDetails, setPlaceDetails] = useState<any>(null);
-
-  function handleVote(suggestionId: number, currentlyVoted: boolean) {
-    const formData = new FormData();
-    formData.append('_action', 'vote');
-    formData.append('suggestion_id', suggestionId.toString());
-    formData.append('remove', currentlyVoted.toString());
-    submit(formData, { method: 'post' });
-  }
 
   function handleDelete(suggestionId: number, restaurantName: string) {
     if (confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
@@ -240,43 +167,20 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Restaurant Voting</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-        >
-          {showForm ? 'Cancel' : '+ Add Restaurant'}
-        </button>
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-3xl font-bold">Restaurants</h1>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
+          >
+            {showForm ? 'Cancel' : '+ Add Restaurant'}
+          </button>
+        </div>
+        <p className="text-gray-600">
+          Manage the restaurant collection. Visit the <a href="/dashboard/polls" className="text-meat-red hover:underline">Polls page</a> to vote.
+        </p>
       </div>
-
-      {/* Poll Status Indicator */}
-      {activePoll ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-green-900">
-                🗳️ Active Poll: {activePoll.title}
-              </h3>
-              <p className="text-sm text-green-700 mt-1">
-                Started {new Date(activePoll.created_at).toLocaleDateString()}
-              </p>
-            </div>
-            <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-              Active
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2">
-            <span className="text-yellow-600">⚠️</span>
-            <p className="text-yellow-800 font-medium">
-              No active poll. Visit the Polls page to start voting on dates.
-            </p>
-          </div>
-        </div>
-      )}
 
       {actionData?.error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
@@ -383,10 +287,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
           <h2 className="text-xl font-semibold mb-4">
             All Restaurants ({suggestions.length})
           </h2>
-          {suggestions.map((suggestion: any) => {
-            const hasVoted = suggestion.user_has_voted > 0;
-
-            return (
+          {suggestions.map((suggestion: any) => (
               <div
                 key={suggestion.id}
                 className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow"
@@ -522,56 +423,24 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                         </p>
                       </div>
 
-                      {/* Voting Section */}
-                      <div className="ml-6 flex flex-col items-center gap-2">
-                        {/* Show vote button when there's an active poll */}
-                        {activePoll ? (
-                          <>
-                            <button
-                              onClick={() => handleVote(suggestion.id, hasVoted)}
-                              className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
-                                hasVoted
-                                  ? 'bg-amber-600 text-white hover:bg-amber-700'
-                                  : 'bg-white border-2 border-amber-600 text-amber-600 hover:bg-amber-50'
-                              }`}
-                            >
-                              {hasVoted ? '✓ Voted' : 'Vote'}
-                            </button>
-
-                            <div className="text-center">
-                              <p className="text-3xl font-bold text-gray-900">
-                                {suggestion.vote_count}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {suggestion.vote_count === 1 ? 'vote' : 'votes'}
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-center px-4 py-2 bg-gray-100 rounded-md">
-                            <p className="text-sm text-gray-600">
-                              No active poll
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Delete button - shown if user owns or is admin */}
-                        {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
+                      {/* Delete button - shown if user owns or is admin */}
+                      {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
+                        <div className="ml-6 flex items-start">
                           <button
                             onClick={() => handleDelete(suggestion.id, suggestion.name)}
-                            className="mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                             title="Delete suggestion"
                           >
                             Delete
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            )
+          )}
         </div>
       )}
     </main>
