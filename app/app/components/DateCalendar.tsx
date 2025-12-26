@@ -210,15 +210,20 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
           const userCreatedThis = suggestion && suggestion.user_id === currentUserId;
           const userVotedThis = suggestion && suggestion.user_has_voted > 0;
 
+          // Allow clicking past dates ONLY if user can delete/remove their interaction
+          const canInteractWithPastDate = isPast && suggestion && (userCreatedThis || userVotedThis);
+          const isDisabled = isPast && !canInteractWithPastDate;
+
           return (
             <button
               key={`${index}-${day}`}
               onClick={() => handleDayClick(day, isPreviousMonth, isNextMonth)}
-              disabled={isPast}
+              disabled={isDisabled}
               className={`
                 aspect-square p-0.5 rounded border transition-all text-[10px]
                 ${isOtherMonth ? 'bg-gray-50 text-gray-400 border-transparent opacity-60' : ''}
-                ${isPast ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-transparent' : 'cursor-pointer'}
+                ${isPast && !canInteractWithPastDate ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-transparent' : 'cursor-pointer'}
+                ${canInteractWithPastDate ? 'bg-red-50 border-red-300 hover:bg-red-100' : ''}
                 ${isToday && !isPast ? 'border-blue-500 font-bold' : ''}
                 ${suggestion && isInActivePoll && !isPast ? 'bg-blue-100 border-blue-400 hover:bg-blue-200' : ''}
                 ${suggestion && !isInActivePoll && !isPast ? 'bg-gray-100 border-gray-300' : ''}

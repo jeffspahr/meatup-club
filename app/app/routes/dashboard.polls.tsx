@@ -122,6 +122,14 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Date is required' };
     }
 
+    // Prevent adding dates in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(suggestedDate as string);
+    if (selectedDate < today) {
+      return { error: 'Cannot add dates in the past' };
+    }
+
     // Check for duplicate
     const existingDate = await db
       .prepare(`SELECT id FROM date_suggestions WHERE suggested_date = ? AND poll_id = ?`)
@@ -157,11 +165,27 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (remove) {
+      // Always allow removing votes, even for past dates
       await db
         .prepare('DELETE FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?')
         .bind(activePoll.id, suggestionId, user.id)
         .run();
     } else {
+      // Prevent adding NEW votes for past dates
+      const suggestion = await db
+        .prepare('SELECT suggested_date FROM date_suggestions WHERE id = ?')
+        .bind(suggestionId)
+        .first();
+
+      if (suggestion) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const suggestedDate = new Date(suggestion.suggested_date as string);
+        if (suggestedDate < today) {
+          return { error: 'Cannot vote on dates in the past' };
+        }
+      }
+
       const existing = await db
         .prepare('SELECT id FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?')
         .bind(activePoll.id, suggestionId, user.id)
