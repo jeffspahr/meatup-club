@@ -15,13 +15,15 @@ export interface Comment {
   content: string;
   created_at: string;
   updated_at: string;
+  parent_id?: number | null;
   user_name?: string;
   user_email?: string;
   user_picture?: string;
+  replies?: Comment[];
 }
 
 /**
- * Get comments for a poll or event
+ * Get comments for a poll or event, organized into threads
  */
 export async function getComments(
   db: D1Database,
@@ -43,30 +45,58 @@ export async function getComments(
     .bind(commentableType, commentableId)
     .all();
 
-  return (result.results as Comment[]) || [];
+  const allComments = (result.results as Comment[]) || [];
+
+  // Build threaded structure
+  const commentMap = new Map<number, Comment>();
+  const rootComments: Comment[] = [];
+
+  // First pass: create map and initialize replies array
+  allComments.forEach(comment => {
+    comment.replies = [];
+    commentMap.set(comment.id, comment);
+  });
+
+  // Second pass: organize into threads
+  allComments.forEach(comment => {
+    if (comment.parent_id) {
+      const parent = commentMap.get(comment.parent_id);
+      if (parent) {
+        parent.replies!.push(comment);
+      } else {
+        // Parent not found, treat as root
+        rootComments.push(comment);
+      }
+    } else {
+      rootComments.push(comment);
+    }
+  });
+
+  return rootComments;
 }
 
 /**
- * Create a new comment
+ * Create a new comment or reply
  */
 export async function createComment(
   db: D1Database,
   userId: number,
   commentableType: CommentableType,
   commentableId: number,
-  content: string
+  content: string,
+  parentId?: number | null
 ): Promise<void> {
   await db
     .prepare(`
-      INSERT INTO comments (user_id, commentable_type, commentable_id, content)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO comments (user_id, commentable_type, commentable_id, content, parent_id)
+      VALUES (?, ?, ?, ?, ?)
     `)
-    .bind(userId, commentableType, commentableId, content)
+    .bind(userId, commentableType, commentableId, content, parentId || null)
     .run();
 }
 
 /**
- * Delete a comment (user can delete own comments, admins can delete any)
+ * Delete a comment and all its replies (user can delete own comments, admins can delete any)
  */
 export async function deleteComment(
   db: D1Database,
@@ -86,12 +116,35 @@ export async function deleteComment(
     }
   }
 
+  // Delete all nested replies first (recursive delete)
+  await deleteCommentAndReplies(db, commentId);
+
+  return true;
+}
+
+/**
+ * Recursively delete a comment and all its replies
+ */
+async function deleteCommentAndReplies(
+  db: D1Database,
+  commentId: number
+): Promise<void> {
+  // Get all direct replies
+  const replies = await db
+    .prepare('SELECT id FROM comments WHERE parent_id = ?')
+    .bind(commentId)
+    .all();
+
+  // Delete all replies recursively
+  for (const reply of (replies.results || [])) {
+    await deleteCommentAndReplies(db, (reply as any).id);
+  }
+
+  // Delete the comment itself
   await db
     .prepare('DELETE FROM comments WHERE id = ?')
     .bind(commentId)
     .run();
-
-  return true;
 }
 
 /**
