@@ -217,21 +217,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function RestaurantsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { suggestions, activePoll, currentUser } = loaderData;
   const [showForm, setShowForm] = useState(false);
-  const [showNewPollForm, setShowNewPollForm] = useState(false);
   const submit = useSubmit();
   const [restaurantName, setRestaurantName] = useState("");
   const [placeDetails, setPlaceDetails] = useState<any>(null);
-
-  function handleStartPoll(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    fetch('/api/polls', {
-      method: 'POST',
-      body: formData,
-    }).then(() => {
-      window.location.reload();
-    });
-  }
 
   function handleVote(suggestionId: number, currentlyVoted: boolean) {
     const formData = new FormData();
@@ -254,20 +242,12 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Restaurant Voting</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-          >
-            {showForm ? 'Cancel' : '+ Add Restaurant'}
-          </button>
-          <button
-            onClick={() => setShowNewPollForm(!showNewPollForm)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
-          >
-            {showNewPollForm ? 'Cancel' : '🗳️ Start New Poll'}
-          </button>
-        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
+        >
+          {showForm ? 'Cancel' : '+ Add Restaurant'}
+        </button>
       </div>
 
       {/* Poll Status Indicator */}
@@ -292,54 +272,9 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
           <div className="flex items-center gap-2">
             <span className="text-yellow-600">⚠️</span>
             <p className="text-yellow-800 font-medium">
-              No active poll. Start a new poll to begin voting on restaurants.
+              No active poll. Visit the Polls page to start voting on dates.
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Start New Poll Form */}
-      {showNewPollForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Start New Poll</h2>
-          <form onSubmit={handleStartPoll} className="space-y-4">
-            <input type="hidden" name="_action" value="create" />
-            <div>
-              <label htmlFor="poll_title" className="block text-sm font-medium text-gray-700 mb-1">
-                Poll Title *
-              </label>
-              <input
-                id="poll_title"
-                name="title"
-                type="text"
-                required
-                placeholder="e.g., Q1 2025 Meetup Poll"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            {activePoll && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="text-sm text-orange-800">
-                  ⚠️ Starting a new poll will close the current active poll "{activePoll.title}".
-                </p>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
-              >
-                Start Poll
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowNewPollForm(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
         </div>
       )}
 
