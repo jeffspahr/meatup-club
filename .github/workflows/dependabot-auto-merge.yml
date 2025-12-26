@@ -22,9 +22,12 @@ jobs:
 
       - name: Enable auto-merge for Dependabot PRs
         # Auto-merge patch and minor updates
+        # For GitHub Actions, also auto-merge major updates (major version tags are safe)
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+           steps.metadata.outputs.package-ecosystem == 'github_actions')
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
@@ -32,17 +35,22 @@ jobs:
 
       - name: Approve Dependabot PR
         # Auto-approve patch and minor updates
+        # For GitHub Actions, also auto-approve major updates (major version tags are safe)
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+          (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+           steps.metadata.outputs.package-ecosystem == 'github_actions')
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - name: Comment on major updates
-        # For major updates, just comment but don't auto-merge
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+      - name: Comment on major updates (non-GitHub Actions)
+        # For major updates (except GitHub Actions), just comment but don't auto-merge
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+          steps.metadata.outputs.package-ecosystem != 'github_actions'
         run: |
           gh pr comment "$PR_URL" --body "⚠️ **Major version update detected!**
 
