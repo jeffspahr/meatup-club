@@ -259,6 +259,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
         </Link>
 
+        <Link to="/dashboard/restaurants">
+          <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
+            <h3 className="text-2xl font-bold mb-2">🍖 Restaurants</h3>
+            <p className="text-white/90 mb-4">
+              Browse and manage the restaurant collection
+            </p>
+            <span className="text-white font-semibold">View Restaurants →</span>
+          </div>
+        </Link>
+
         <Link to="/dashboard/events">
           <div className="bg-gradient-to-br from-purple-600 to-pink-700 text-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer">
             <h3 className="text-2xl font-bold mb-2">📜 Event History</h3>

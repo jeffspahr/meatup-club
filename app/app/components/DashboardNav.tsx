@@ -61,6 +61,16 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 RSVP
               </Link>
               <Link
+                to="/dashboard/restaurants"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                  isActive('/dashboard/restaurants')
+                    ? 'bg-meat-red text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Restaurants
+              </Link>
+              <Link
                 to="/dashboard/events"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
                   isActive('/dashboard/events')
