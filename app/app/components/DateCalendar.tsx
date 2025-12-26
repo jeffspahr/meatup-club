@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getDateString, isDateInPast } from "../lib/dateUtils";
+import { useState, useEffect } from "react";
+import { getDateString, isDateInPastLocal, getTodayDateStringLocal } from "../lib/dateUtils";
 
 interface DateSuggestion {
   id: number;
@@ -19,6 +19,12 @@ interface DateCalendarProps {
 
 export function DateCalendar({ suggestions, activePollId, currentUserId, onDateClick }: DateCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [todayDateString, setTodayDateString] = useState<string | null>(null);
+
+  // Set today's date on client-side only to avoid SSR/hydration mismatch
+  useEffect(() => {
+    setTodayDateString(getTodayDateStringLocal());
+  }, []);
 
   // Get first day of month and total days
   const year = currentDate.getFullYear();
@@ -133,9 +139,13 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
     return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
-  const today = new Date();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
-  const todayDate = isCurrentMonth ? today.getDate() : null;
+  // Parse today's date only on client-side (after useEffect sets it)
+  let todayDate: number | null = null;
+  if (todayDateString) {
+    const [todayYear, todayMonth, todayDay] = todayDateString.split('-').map(Number);
+    const isCurrentMonth = todayYear === year && todayMonth - 1 === month;
+    todayDate = isCurrentMonth ? todayDay : null;
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-3">
@@ -204,9 +214,10 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
             }
           }
 
-          const isToday = isDayInCurrentMonth && day === todayDate;
           const dateStr = getDateString(targetYear, targetMonth, day);
-          const isPast = isDateInPast(dateStr);
+          const isToday = todayDateString && dateStr === todayDateString;
+          // Only mark as past on client-side (after hydration) using local timezone
+          const isPast = todayDateString ? isDateInPastLocal(dateStr) : false;
           const isInActivePoll = suggestion && suggestion.poll_id === activePollId;
           const isOtherMonth = isPreviousMonth || isNextMonth;
           const userCreatedThis = suggestion && suggestion.user_id === currentUserId;

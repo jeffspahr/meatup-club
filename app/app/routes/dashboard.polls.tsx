@@ -6,7 +6,7 @@ import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
-import { isDateInPast } from "../lib/dateUtils";
+import { isDateInPastUTC } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -89,17 +89,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .all();
 
   // Filter out past dates from suggestions and votes (for Doodle view)
+  // Use UTC for server-side filtering to ensure consistency
   const allDateSuggestions = dateSuggestionsResult.results || [];
   const allDateVotes = dateVotesResult.results || [];
 
   // Keep past dates for the calendar view (so users can see/delete them)
-  // but filter them for the Doodle view
+  // but filter them for the Doodle view using UTC
   const futureDateSuggestions = allDateSuggestions.filter((ds: any) =>
-    !isDateInPast(ds.suggested_date)
+    !isDateInPastUTC(ds.suggested_date)
   );
 
   const futureDateVotes = allDateVotes.filter((dv: any) =>
-    !isDateInPast(dv.suggested_date)
+    !isDateInPastUTC(dv.suggested_date)
   );
 
   return {
@@ -138,8 +139,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Date is required' };
     }
 
-    // Prevent adding dates in the past
-    if (isDateInPast(suggestedDate as string)) {
+    // Prevent adding dates in the past (using UTC for consistency)
+    if (isDateInPastUTC(suggestedDate as string)) {
       return { error: 'Cannot add dates in the past' };
     }
 
@@ -190,7 +191,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .bind(suggestionId)
         .first();
 
-      if (suggestion && isDateInPast(suggestion.suggested_date as string)) {
+      if (suggestion && isDateInPastUTC(suggestion.suggested_date as string)) {
         return { error: 'Cannot vote on dates in the past' };
       }
 
