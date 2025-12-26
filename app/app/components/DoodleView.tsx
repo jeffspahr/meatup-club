@@ -22,23 +22,25 @@ interface DoodleViewProps {
 }
 
 export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: DoodleViewProps) {
-  // Store filtered data in state to ensure re-render after client-side filtering
-  const [filteredDateSuggestions, setFilteredDateSuggestions] = useState(dateSuggestions);
-  const [filteredDateVotes, setFilteredDateVotes] = useState(dateVotes);
+  // Only render on client-side to use local timezone consistently
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Filter dates based on user's local timezone after component mounts
   useEffect(() => {
-    // Filter out past dates using local timezone
-    const filteredSuggestions = dateSuggestions.filter(ds =>
-      !isDateInPastLocal(ds.suggested_date)
-    );
-    const filteredVotes = dateVotes.filter(dv =>
-      !isDateInPastLocal(dv.suggested_date)
-    );
+    setIsMounted(true);
+  }, []);
 
-    setFilteredDateSuggestions(filteredSuggestions);
-    setFilteredDateVotes(filteredVotes);
-  }, [dateSuggestions, dateVotes]);
+  // Don't render anything during SSR
+  if (!isMounted) {
+    return null;
+  }
+
+  // Filter dates based on user's local timezone (client-side only)
+  const filteredDateSuggestions = dateSuggestions.filter(ds =>
+    !isDateInPastLocal(ds.suggested_date)
+  );
+  const filteredDateVotes = dateVotes.filter(dv =>
+    !isDateInPastLocal(dv.suggested_date)
+  );
 
   // Get unique users who have voted (from filtered votes)
   const uniqueUsers = Array.from(
