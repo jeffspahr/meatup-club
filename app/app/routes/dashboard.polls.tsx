@@ -382,9 +382,9 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
 
     setIsSearching(true);
     try {
-      const response = await fetch(`/api/places/search?query=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/places/search?input=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
-      setSearchResults(data.results || []);
+      setSearchResults(data.places || []);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
