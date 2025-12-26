@@ -35,17 +35,9 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
   }
 
   // Filter dates based on user's local timezone (client-side only)
-  const today = getTodayDateStringLocal();
-  console.log('DoodleView - Today (local):', today);
-  console.log('DoodleView - All date suggestions:', dateSuggestions.map(ds => ds.suggested_date));
-
   const filteredDateSuggestions = dateSuggestions.filter(ds => {
-    const isPast = isDateInPastLocal(ds.suggested_date);
-    console.log(`Date ${ds.suggested_date}: isPast=${isPast}`);
-    return !isPast;
+    return !isDateInPastLocal(ds.suggested_date);
   });
-
-  console.log('DoodleView - Filtered suggestions:', filteredDateSuggestions.map(ds => ds.suggested_date));
 
   const filteredDateVotes = dateVotes.filter(dv =>
     !isDateInPastLocal(dv.suggested_date)
@@ -97,26 +89,32 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
               <th className="border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-600">
                 Name
               </th>
-              {votedDates.map(date => (
-                <th
-                  key={date.id}
-                  className="border border-gray-300 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-600 min-w-[80px]"
-                >
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      {new Date(date.suggested_date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {new Date(date.suggested_date).toLocaleDateString('en-US', {
-                        weekday: 'short'
-                      })}
-                    </span>
-                  </div>
-                </th>
-              ))}
+              {votedDates.map(date => {
+                // Parse date as local (not UTC) to avoid timezone shifts
+                const [year, month, day] = date.suggested_date.split('-').map(Number);
+                const localDate = new Date(year, month - 1, day);
+
+                return (
+                  <th
+                    key={date.id}
+                    className="border border-gray-300 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-600 min-w-[80px]"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        {localDate.toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                      <span className="text-[10px] text-gray-500">
+                        {localDate.toLocaleDateString('en-US', {
+                          weekday: 'short'
+                        })}
+                      </span>
+                    </div>
+                  </th>
+                );
+              })}
               <th className="border border-gray-300 bg-gray-50 px-3 py-2 text-center text-xs font-medium text-gray-600">
                 Total
               </th>
