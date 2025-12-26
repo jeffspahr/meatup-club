@@ -58,8 +58,18 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
     voteMap.get(vote.user_id)!.add(vote.suggested_date);
   });
 
-  // Only show dates that have at least one vote and are not in the past (user's timezone)
-  const votedDates = filteredDateSuggestions.filter(ds => ds.vote_count > 0);
+  // Recalculate vote counts based on filtered votes (not database count)
+  const dateVoteCounts = new Map<string, number>();
+  filteredDateVotes.forEach(vote => {
+    const count = dateVoteCounts.get(vote.suggested_date) || 0;
+    dateVoteCounts.set(vote.suggested_date, count + 1);
+  });
+
+  // Only show dates that have at least one vote (after filtering)
+  const votedDates = filteredDateSuggestions.filter(ds => {
+    const voteCount = dateVoteCounts.get(ds.suggested_date) || 0;
+    return voteCount > 0;
+  });
 
   if (votedDates.length === 0 || uniqueUsers.length === 0) {
     return null;
@@ -142,7 +152,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                   key={date.id}
                   className="border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-gray-700"
                 >
-                  {date.vote_count}
+                  {dateVoteCounts.get(date.suggested_date) || 0}
                 </td>
               ))}
               <td className="border border-gray-300"></td>
