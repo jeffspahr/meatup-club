@@ -21,19 +21,15 @@ Meatup.Club is a serverless web application built on Cloudflare's edge infrastru
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Cloudflare Edge Network                       │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │                  Cloudflare Pages                          │ │
-│  │  - Static asset hosting                                    │ │
-│  │  - Global CDN distribution                                 │ │
-│  │  - Automatic HTTPS                                         │ │
-│  │  - Custom domain (meatup.club)                             │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │              Cloudflare Workers (SSR Functions)            │ │
-│  │  - Server-side React rendering                             │ │
+│  │                  Cloudflare Workers                        │ │
+│  │  - Server-side React rendering (SSR)                       │ │
 │  │  - API route handlers                                      │ │
 │  │  - Authentication middleware                               │ │
 │  │  - Database queries                                        │ │
+│  │  - Static asset serving (Assets binding)                   │ │
+│  │  - Global CDN distribution                                 │ │
+│  │  - Automatic HTTPS                                         │ │
+│  │  - Custom domain (meatup.club)                             │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
@@ -73,7 +69,7 @@ All Cloudflare resources are managed via Terraform:
 │                                                                  │
 │  Manages:                                                        │
 │  • DNS records (A/AAAA for meatup.club)                         │
-│  • Pages project                                                 │
+│  • Worker deployment                                             │
 │  • D1 database instance                                          │
 │  • Environment variables and secrets                             │
 │  • SSL/TLS certificates                                          │
@@ -218,26 +214,27 @@ app/
 ┌──────────────────────────────────────────────────────────────────┐
 │                      GitHub Repository                            │
 │  - Code stored                                                    │
-│  - Webhook triggered                                              │
+│  - GitHub Actions triggered                                       │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                   Cloudflare Pages Build                          │
-│  1. Install dependencies (npm install)                            │
-│  2. Build application (npm run build)                             │
-│  3. Generate static assets                                        │
-│  4. Prepare SSR functions                                         │
+│                   GitHub Actions Build                            │
+│  1. Checkout code                                                 │
+│  2. Install dependencies (npm ci)                                 │
+│  3. Build application (npm run build)                             │
+│     - Client bundle (static assets)                               │
+│     - Server bundle (SSR handler)                                 │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    Cloudflare Pages Deploy                        │
-│  1. Upload static assets to global CDN                            │
-│  2. Deploy SSR functions to Workers                               │
+│                   Wrangler Deploy to Workers                      │
+│  1. Upload Worker code (workers/app.ts)                           │
+│  2. Bundle static assets (Assets binding)                         │
 │  3. Bind D1 database                                              │
-│  4. Configure environment variables                               │
-│  5. Activate deployment                                           │
+│  4. Deploy to Cloudflare's edge network                           │
+│  5. Activate new version                                          │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
@@ -245,18 +242,19 @@ app/
 │                      Live Production Site                         │
 │  https://meatup.club                                              │
 │  - Zero-downtime deployment                                       │
-│  - Instant global propagation                                     │
+│  - Instant global propagation (300+ locations)                    │
 │  - Automatic rollback on errors                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Design Decisions
 
-### Why Cloudflare Pages + Workers?
+### Why Cloudflare Workers?
 - **Global performance**: Edge computing ensures low latency worldwide
 - **Scalability**: Automatic scaling with no infrastructure management
 - **Cost-effective**: Pay-per-use model, generous free tier
-- **Integrated ecosystem**: Pages, Workers, D1 work seamlessly together
+- **Integrated ecosystem**: Workers, D1, and Assets work seamlessly together
+- **Modern deployment**: Single Worker handles SSR, API routes, and static assets
 
 ### Why React Router 7 (Remix)?
 - **SSR by default**: Better SEO and initial load performance
