@@ -231,13 +231,13 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
                   ? 'Past date'
                   : suggestion
                   ? userCreatedThis && userVotedThis
-                    ? `${suggestion.vote_count} vote${suggestion.vote_count !== 1 ? 's' : ''} - Click to delete your suggestion${isOtherMonth ? ` (${isPreviousMonth ? 'Previous' : 'Next'} month)` : ''}`
+                    ? `${suggestion.vote_count} vote${suggestion.vote_count !== 1 ? 's' : ''} - Click to delete your date${isOtherMonth ? ` (${isPreviousMonth ? 'Previous' : 'Next'} month)` : ''}`
                     : userVotedThis
                     ? `${suggestion.vote_count} vote${suggestion.vote_count !== 1 ? 's' : ''} - Click to remove your vote${isOtherMonth ? ` (${isPreviousMonth ? 'Previous' : 'Next'} month)` : ''}`
                     : `${suggestion.vote_count} vote${suggestion.vote_count !== 1 ? 's' : ''} - Click to vote${isOtherMonth ? ` (${isPreviousMonth ? 'Previous' : 'Next'} month)` : ''}`
                   : isOtherMonth
-                  ? `Click to suggest this date (${isPreviousMonth ? 'Previous' : 'Next'} month)`
-                  : 'Click to suggest this date'
+                  ? `Click to add this date (${isPreviousMonth ? 'Previous' : 'Next'} month)`
+                  : 'Click to add this date'
               }
             >
               <div className="flex flex-col items-center justify-center h-full">

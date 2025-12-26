@@ -109,7 +109,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       .first();
 
     if (existingDate) {
-      return { error: 'This date has already been suggested for the current poll' };
+      return { error: 'This date has already been added for the current poll' };
     }
 
     const result = await db
@@ -207,7 +207,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .first();
 
       if (existing) {
-        return { error: 'This restaurant has already been suggested' };
+        return { error: 'This restaurant has already been added' };
       }
     }
 
@@ -403,7 +403,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
             <div className="mb-8">
               <h3 className="text-xl font-semibold mb-4">📅 Vote on Dates</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Click on calendar dates to suggest or vote. You can vote for multiple dates.
+                Click on calendar dates to add or vote. You can vote for multiple dates.
               </p>
               <DateCalendar
                 suggestions={dateSuggestions as any}
@@ -426,7 +426,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                   onClick={() => setShowRestaurantSearch(true)}
                   className="px-4 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
                 >
-                  + Suggest Restaurant
+                  + Add Restaurant
                 </button>
               </div>
 

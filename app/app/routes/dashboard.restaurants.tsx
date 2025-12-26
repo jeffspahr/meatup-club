@@ -259,7 +259,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
             onClick={() => setShowForm(!showForm)}
             className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
           >
-            {showForm ? 'Cancel' : '+ Suggest Restaurant'}
+            {showForm ? 'Cancel' : '+ Add Restaurant'}
           </button>
           <button
             onClick={() => setShowNewPollForm(!showNewPollForm)}
@@ -349,10 +349,10 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
         </div>
       )}
 
-      {/* Suggestion Form */}
+      {/* Restaurant Form */}
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Suggest a Restaurant</h2>
+          <h2 className="text-xl font-semibold mb-4">Add a Restaurant</h2>
           <Form method="post" className="space-y-4" onSubmit={() => {
             setShowForm(false);
             setRestaurantName("");
@@ -412,7 +412,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                 disabled={!restaurantName}
                 className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Suggestion
+                Add Restaurant
               </button>
               <button
                 type="button"
@@ -430,23 +430,23 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
         </div>
       )}
 
-      {/* Suggestions List */}
+      {/* Restaurants List */}
       {suggestions.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
           <p className="text-gray-600 mb-4">
-            No restaurant suggestions yet. Be the first to suggest one!
+            No restaurants yet. Be the first to add one!
           </p>
           <button
             onClick={() => setShowForm(true)}
             className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
           >
-            Suggest Restaurant
+            Add Restaurant
           </button>
         </div>
       ) : (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">
-            Current Suggestions ({suggestions.length})
+            All Restaurants ({suggestions.length})
           </h2>
           {suggestions.map((suggestion: any) => {
             const hasVoted = suggestion.user_has_voted > 0;
