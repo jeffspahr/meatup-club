@@ -38,8 +38,15 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
     voteMap.get(vote.user_id)!.add(vote.suggested_date);
   });
 
-  // Only show dates that have at least one vote
-  const votedDates = dateSuggestions.filter(ds => ds.vote_count > 0);
+  // Only show dates that have at least one vote AND are not in the past
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const votedDates = dateSuggestions.filter(ds => {
+    if (ds.vote_count === 0) return false;
+    const dateValue = new Date(ds.suggested_date);
+    return dateValue >= today;
+  });
 
   if (votedDates.length === 0 || uniqueUsers.length === 0) {
     return null;
