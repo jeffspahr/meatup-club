@@ -137,29 +137,29 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
   const todayDate = isCurrentMonth ? today.getDate() : null;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className="bg-white border border-gray-200 rounded-lg p-3">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-gray-900">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-bold text-gray-900">
           {monthNames[month]} {year}
         </h2>
         <div className="flex gap-1">
           <button
             onClick={goToPreviousMonth}
-            className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-sm"
+            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-xs"
             title="Previous month"
           >
             ←
           </button>
           <button
             onClick={goToToday}
-            className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-xs font-medium"
+            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-[10px] font-medium"
           >
             Today
           </button>
           <button
             onClick={goToNextMonth}
-            className="px-2 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-sm"
+            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-xs"
             title="Next month"
           >
             →
@@ -168,11 +168,11 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       </div>
 
       {/* Day names header */}
-      <div className="grid grid-cols-7 gap-1 mb-1">
+      <div className="grid grid-cols-7 gap-0.5 mb-0.5">
         {dayNames.map(name => (
           <div
             key={name}
-            className="text-center text-xs font-semibold text-gray-600 py-1"
+            className="text-center text-[10px] font-semibold text-gray-600 py-0.5"
           >
             {name}
           </div>
@@ -180,7 +180,7 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {calendarDays.map((dayObj, index) => {
           const { day, isCurrentMonth: isDayInCurrentMonth, isPreviousMonth, isNextMonth } = dayObj;
           const dateKey = formatDateKey(day, isDayInCurrentMonth, isPreviousMonth, isNextMonth);
@@ -216,7 +216,7 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
               onClick={() => handleDayClick(day, isPreviousMonth, isNextMonth)}
               disabled={isPast}
               className={`
-                aspect-square p-1 rounded border-2 transition-all text-xs
+                aspect-square p-0.5 rounded border transition-all text-[10px]
                 ${isOtherMonth ? 'bg-gray-50 text-gray-400 border-transparent opacity-60' : ''}
                 ${isPast ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-transparent' : 'cursor-pointer'}
                 ${isToday && !isPast ? 'border-blue-500 font-bold' : ''}
@@ -261,22 +261,22 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       </div>
 
       {/* Legend */}
-      <div className="mt-3 pt-3 border-t border-gray-200">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 border-2 border-blue-500 rounded flex-shrink-0"></div>
+      <div className="mt-2 pt-2 border-t border-gray-200">
+        <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 border border-blue-500 rounded flex-shrink-0"></div>
             <span className="text-gray-600">Today</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-blue-100 border-2 border-blue-400 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Active Poll</span>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-blue-100 border border-blue-400 rounded flex-shrink-0"></div>
+            <span className="text-gray-600">Active</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-gray-100 border-2 border-gray-300 rounded flex-shrink-0"></div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-gray-100 border border-gray-300 rounded flex-shrink-0"></div>
             <span className="text-gray-600">Not Active</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 bg-gray-50 rounded flex-shrink-0"></div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-gray-50 rounded flex-shrink-0"></div>
             <span className="text-gray-600">Past</span>
           </div>
         </div>

@@ -4,6 +4,7 @@ import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
+import { DoodleView } from "../components/DoodleView";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -67,11 +68,30 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     `)
     .all();
 
+  // Get detailed voting data for doodle-style view
+  const dateVotesResult = await db
+    .prepare(`
+      SELECT
+        dv.date_suggestion_id,
+        dv.user_id,
+        ds.suggested_date,
+        u.name as user_name,
+        u.email as user_email
+      FROM date_votes dv
+      JOIN date_suggestions ds ON dv.date_suggestion_id = ds.id
+      JOIN users u ON dv.user_id = u.id
+      WHERE dv.poll_id = ?
+      ORDER BY ds.suggested_date ASC, u.name ASC
+    `)
+    .bind(activePoll?.id || -1)
+    .all();
+
   return {
     dateSuggestions: dateSuggestionsResult.results || [],
     restaurantSuggestions: restaurantSuggestionsResult.results || [],
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
+    dateVotes: dateVotesResult.results || [],
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -294,7 +314,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, currentUser } = loaderData;
+  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -405,12 +425,23 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               <p className="text-sm text-gray-600 mb-4">
                 Click on calendar dates to add or vote. You can vote for multiple dates.
               </p>
-              <DateCalendar
-                suggestions={dateSuggestions as any}
-                activePollId={activePoll.id}
-                currentUserId={currentUser.id}
-                onDateClick={handleDateClick}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <DateCalendar
+                    suggestions={dateSuggestions as any}
+                    activePollId={activePoll.id}
+                    currentUserId={currentUser.id}
+                    onDateClick={handleDateClick}
+                  />
+                </div>
+                <div>
+                  <DoodleView
+                    dateSuggestions={dateSuggestions as any}
+                    dateVotes={dateVotes as any}
+                    currentUserId={currentUser.id}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Restaurants Section */}
