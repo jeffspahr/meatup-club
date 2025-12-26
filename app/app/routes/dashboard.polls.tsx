@@ -88,12 +88,26 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1)
     .all();
 
+  // Filter out past dates from suggestions and votes (for Doodle view)
+  const allDateSuggestions = dateSuggestionsResult.results || [];
+  const allDateVotes = dateVotesResult.results || [];
+
+  // Keep past dates for the calendar view (so users can see/delete them)
+  // but filter them for the Doodle view
+  const futureDateSuggestions = allDateSuggestions.filter((ds: any) =>
+    !isDateInPast(ds.suggested_date)
+  );
+
+  const futureDateVotes = allDateVotes.filter((dv: any) =>
+    !isDateInPast(dv.suggested_date)
+  );
+
   return {
-    dateSuggestions: dateSuggestionsResult.results || [],
+    dateSuggestions: allDateSuggestions,
     restaurantSuggestions: restaurantSuggestionsResult.results || [],
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
-    dateVotes: dateVotesResult.results || [],
+    dateVotes: futureDateVotes,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,

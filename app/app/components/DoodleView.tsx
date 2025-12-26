@@ -1,5 +1,3 @@
-import { isDateTodayOrFuture } from "../lib/dateUtils";
-
 interface DateVote {
   date_suggestion_id: number;
   user_id: number;
@@ -40,11 +38,9 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
     voteMap.get(vote.user_id)!.add(vote.suggested_date);
   });
 
-  // Only show dates that have at least one vote AND are not in the past
-  const votedDates = dateSuggestions.filter(ds => {
-    if (ds.vote_count === 0) return false;
-    return isDateTodayOrFuture(ds.suggested_date);
-  });
+  // Only show dates that have at least one vote
+  // Past dates are already filtered out on the server
+  const votedDates = dateSuggestions.filter(ds => ds.vote_count > 0);
 
   if (votedDates.length === 0 || uniqueUsers.length === 0) {
     return null;
