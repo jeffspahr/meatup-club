@@ -55,6 +55,16 @@ export async function sendInviteEmail({
         subject,
         html,
         text,
+        reply_to: 'noreply@meatup.club',
+        headers: {
+          'X-Entity-Ref-ID': `invite-${Date.now()}`,
+        },
+        tags: [
+          {
+            name: 'category',
+            value: 'invite',
+          },
+        ],
       }),
     });
 

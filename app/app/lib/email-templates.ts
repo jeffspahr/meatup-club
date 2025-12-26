@@ -84,9 +84,12 @@ export function generateInviteEmail(data: InviteEmailData) {
           <!-- Footer -->
           <tr>
             <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; font-size: 12px; color: #6b7280; text-align: center; line-height: 1.5;">
-                This invitation was sent by ${data.inviterName} via Meatup.Club<br>
-                Questions? Reach out to an admin for more information.
+              <p style="margin: 0 0 12px; font-size: 12px; color: #6b7280; text-align: center; line-height: 1.5;">
+                This invitation was sent by ${data.inviterName} via Meatup.Club
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #9ca3af; text-align: center; line-height: 1.5;">
+                You received this email because ${data.inviterName} invited you to join a private dining club.<br>
+                This is a one-time invitation. If you don't want to join, you can safely ignore this email.
               </p>
             </td>
           </tr>
