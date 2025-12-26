@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { isDateInPastLocal } from "../lib/dateUtils";
+import { isDateInPastLocal, getTodayDateStringLocal } from "../lib/dateUtils";
 
 interface DateVote {
   date_suggestion_id: number;
@@ -35,9 +35,18 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
   }
 
   // Filter dates based on user's local timezone (client-side only)
-  const filteredDateSuggestions = dateSuggestions.filter(ds =>
-    !isDateInPastLocal(ds.suggested_date)
-  );
+  const today = getTodayDateStringLocal();
+  console.log('DoodleView - Today (local):', today);
+  console.log('DoodleView - All date suggestions:', dateSuggestions.map(ds => ds.suggested_date));
+
+  const filteredDateSuggestions = dateSuggestions.filter(ds => {
+    const isPast = isDateInPastLocal(ds.suggested_date);
+    console.log(`Date ${ds.suggested_date}: isPast=${isPast}`);
+    return !isPast;
+  });
+
+  console.log('DoodleView - Filtered suggestions:', filteredDateSuggestions.map(ds => ds.suggested_date));
+
   const filteredDateVotes = dateVotes.filter(dv =>
     !isDateInPastLocal(dv.suggested_date)
   );
