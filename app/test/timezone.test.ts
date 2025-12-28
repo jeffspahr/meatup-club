@@ -472,36 +472,75 @@ describe('Timezone Safety - Local Time Handling', () => {
       const componentFiles = discoverSourceFiles(join(__dirname, '../app/components'));
       const allFiles = [...routeFiles, ...componentFiles];
 
-      const filesWithAntiPattern: Array<{ file: string; matches: string[] }> = [];
+      const filesWithLiteralAntiPattern: Array<{ file: string; matches: string[] }> = [];
+      const filesWithVariableAntiPattern: Array<{ file: string; matches: string[]; lines: number[] }> = [];
 
       for (const file of allFiles) {
         const content = readFileSync(file, 'utf-8');
 
-        // Look for new Date with YYYY-MM-DD string pattern
-        const matches = content.match(/new Date\(['"`]\d{4}-\d{2}-\d{2}['"`]\)/g);
+        // Look for new Date with YYYY-MM-DD string literal pattern
+        const literalMatches = content.match(/new Date\(['"`]\d{4}-\d{2}-\d{2}['"`]\)/g);
 
-        if (matches && matches.length > 0) {
-          filesWithAntiPattern.push({
+        if (literalMatches && literalMatches.length > 0) {
+          filesWithLiteralAntiPattern.push({
             file: file.replace(__dirname + '/../app/', ''),
-            matches,
+            matches: literalMatches,
+          });
+        }
+
+        // Look for new Date with variable that might be a date string
+        // Pattern: new Date(variable).toLocaleDateString
+        // This is a strong indicator that the variable is likely a date string
+        const variablePattern = /new Date\(([a-zA-Z_$][a-zA-Z0-9_$.]*)\)\.toLocaleDateString/g;
+        const variableMatches: string[] = [];
+        const lines: number[] = [];
+        let match;
+
+        while ((match = variablePattern.exec(content)) !== null) {
+          variableMatches.push(match[0]);
+          // Calculate line number
+          const lineNumber = content.substring(0, match.index).split('\n').length;
+          lines.push(lineNumber);
+        }
+
+        if (variableMatches.length > 0) {
+          filesWithVariableAntiPattern.push({
+            file: file.replace(__dirname + '/../app/', ''),
+            matches: variableMatches,
+            lines,
           });
         }
       }
 
-      if (filesWithAntiPattern.length > 0) {
-        console.log('\n⚠️  ANTI-PATTERN DETECTED: new Date(dateString) found in:');
-        filesWithAntiPattern.forEach(({ file, matches }) => {
+      if (filesWithLiteralAntiPattern.length > 0) {
+        console.log('\n⚠️  ANTI-PATTERN DETECTED: new Date(literal string) found in:');
+        filesWithLiteralAntiPattern.forEach(({ file, matches }) => {
           console.log(`   - ${file}: ${matches.length} occurrence(s)`);
           console.log(`     ${matches.join(', ')}`);
         });
         console.log('\n   ⚠️  Use parseLocalDate() instead to avoid timezone offset issues!');
-      } else {
+      }
+
+      if (filesWithVariableAntiPattern.length > 0) {
+        console.log('\n⚠️  ANTI-PATTERN DETECTED: new Date(variable).toLocaleDateString() found in:');
+        filesWithVariableAntiPattern.forEach(({ file, matches, lines }) => {
+          console.log(`   - ${file}:`);
+          matches.forEach((match, i) => {
+            console.log(`     Line ${lines[i]}: ${match}`);
+          });
+        });
+        console.log('\n   ⚠️  Use formatDateForDisplay() instead to avoid timezone offset issues!');
+        console.log('   ⚠️  Example: formatDateForDisplay(dateString) instead of new Date(dateString).toLocaleDateString()');
+      }
+
+      if (filesWithLiteralAntiPattern.length === 0 && filesWithVariableAntiPattern.length === 0) {
         console.log('\n✅ No new Date(dateString) anti-patterns found in user-facing code');
       }
 
       // This is informational - we don't fail the test, but we warn
       // If you want to enforce this strictly, uncomment:
-      // expect(filesWithAntiPattern.length).toBe(0);
+      // expect(filesWithLiteralAntiPattern.length).toBe(0);
+      // expect(filesWithVariableAntiPattern.length).toBe(0);
     });
 
     it('should verify calendar invite generation uses local time', async () => {

@@ -2,6 +2,7 @@ import { Form, Link, redirect, useSubmit } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
+import VoteLeadersCard from "../components/VoteLeadersCard";
 
 interface Event {
   id: number;
@@ -343,53 +344,11 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       )}
 
       {/* Vote Winners Summary */}
-      {(topRestaurant || topDate) && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold text-blue-900 mb-4">
-            Current Vote Leaders
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {topRestaurant && (
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">
-                    Restaurant
-                  </span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                    {topRestaurant.vote_count} votes
-                  </span>
-                </div>
-                <p className="font-semibold text-gray-900">
-                  {topRestaurant.name}
-                </p>
-                {topRestaurant.address && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    {topRestaurant.address}
-                  </p>
-                )}
-              </div>
-            )}
-            {topDate && (
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Date</span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                    {topDate.vote_count} votes
-                  </span>
-                </div>
-                <p className="font-semibold text-gray-900">
-                  {new Date(topDate.suggested_date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <VoteLeadersCard
+        topRestaurant={topRestaurant}
+        topDate={topDate}
+        variant="blue"
+      />
 
       {/* Create Event Form */}
       {showCreateForm && (

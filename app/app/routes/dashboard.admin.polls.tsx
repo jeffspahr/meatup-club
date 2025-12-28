@@ -2,6 +2,7 @@ import { Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
+import VoteLeadersCard from "../components/VoteLeadersCard";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -285,52 +286,12 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           </div>
 
           {/* Current Winners */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Top Restaurant */}
-            {topRestaurant ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-amber-900">
-                    Leading Restaurant
-                  </span>
-                  <span className="px-2 py-1 bg-amber-200 text-amber-900 text-xs font-bold rounded">
-                    {topRestaurant.vote_count} votes
-                  </span>
-                </div>
-                <p className="font-bold text-amber-900 text-lg">{topRestaurant.name}</p>
-                {topRestaurant.address && (
-                  <p className="text-sm text-amber-800 mt-1">{topRestaurant.address}</p>
-                )}
-              </div>
-            ) : (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-gray-600 text-center">No restaurant suggestions yet</p>
-              </div>
-            )}
-
-            {/* Top Date */}
-            {topDate ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900">Leading Date</span>
-                  <span className="px-2 py-1 bg-blue-200 text-blue-900 text-xs font-bold rounded">
-                    {topDate.vote_count} votes
-                  </span>
-                </div>
-                <p className="font-bold text-blue-900 text-lg">
-                  {new Date(topDate.suggested_date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <p className="text-gray-600 text-center">No date suggestions yet</p>
-              </div>
-            )}
+          <div className="mb-6">
+            <VoteLeadersCard
+              topRestaurant={topRestaurant}
+              topDate={topDate}
+              variant="amber"
+            />
           </div>
 
           {/* Close Poll Form */}
