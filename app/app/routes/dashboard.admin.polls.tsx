@@ -106,6 +106,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const winningRestaurantId = formData.get('winning_restaurant_id');
     const winningDateId = formData.get('winning_date_id');
     const createEvent = formData.get('create_event') === 'true';
+    const sendInvites = formData.get('send_invites') === 'true';
 
     if (!pollId) {
       return { error: 'Poll ID is required' };
@@ -113,28 +114,102 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     let createdEventId = null;
 
-    // If creating an event, get the winner details and create event
+    // If creating an event, validate and create
     if (createEvent && winningRestaurantId && winningDateId) {
+      // Get restaurant with vote count
       const restaurant = await db
-        .prepare(`SELECT * FROM restaurant_suggestions WHERE id = ?`)
+        .prepare(`
+          SELECT rs.*, COUNT(rv.id) as vote_count
+          FROM restaurant_suggestions rs
+          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
+          WHERE rs.id = ?
+          GROUP BY rs.id
+        `)
         .bind(winningRestaurantId)
         .first();
 
+      // Get date with vote count
       const date = await db
-        .prepare(`SELECT * FROM date_suggestions WHERE id = ?`)
+        .prepare(`
+          SELECT ds.*, COUNT(dv.id) as vote_count
+          FROM date_suggestions ds
+          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
+          WHERE ds.id = ?
+          GROUP BY ds.id
+        `)
         .bind(winningDateId)
         .first();
 
-      if (restaurant && date) {
-        const eventResult = await db
-          .prepare(`
-            INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
-            VALUES (?, ?, ?, 'upcoming')
-          `)
-          .bind(restaurant.name, restaurant.address, date.suggested_date)
-          .run();
+      if (!restaurant || !date) {
+        return { error: 'Selected restaurant or date not found' };
+      }
 
-        createdEventId = eventResult.meta.last_row_id;
+      // Validation 1: Check if date is in the past
+      const selectedDate = new Date(date.suggested_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        return { error: 'Cannot create event for a date in the past' };
+      }
+
+      // Validation 2: Require minimum vote threshold
+      if (restaurant.vote_count === 0 || date.vote_count === 0) {
+        return { error: 'Cannot create event: winning options must have at least 1 vote' };
+      }
+
+      // Validation 3: Warn if restaurant has no address
+      if (!restaurant.address && sendInvites) {
+        return { error: 'Cannot send calendar invites: restaurant is missing an address. Please add an address first.' };
+      }
+
+      // Create the event
+      const eventResult = await db
+        .prepare(`
+          INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
+          VALUES (?, ?, ?, 'upcoming')
+        `)
+        .bind(restaurant.name, restaurant.address, date.suggested_date)
+        .run();
+
+      createdEventId = eventResult.meta.last_row_id;
+
+      // Send calendar invites if requested
+      if (sendInvites && createdEventId) {
+        const { sendEventInvites } = await import('../lib/email.server');
+
+        // Get all active users
+        const usersResult = await db
+          .prepare('SELECT email FROM users WHERE status = ?')
+          .bind('active')
+          .all();
+
+        if (usersResult.results && usersResult.results.length > 0) {
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+
+          // Use waitUntil if available for background processing
+          const invitePromise = sendEventInvites({
+            eventId: Number(createdEventId),
+            restaurantName: restaurant.name,
+            restaurantAddress: restaurant.address,
+            eventDate: date.suggested_date,
+            recipientEmails: usersResult.results.map((u: any) => u.email),
+            resendApiKey,
+          }).then(result => {
+            console.log(`Sent ${result.sentCount} calendar invites for event ${createdEventId}`);
+            if (result.errors.length > 0) {
+              console.error('Some invites failed:', result.errors);
+            }
+            return result;
+          }).catch(err => {
+            console.error('Failed to send calendar invites:', err);
+          });
+
+          if (context.cloudflare.ctx?.waitUntil) {
+            context.cloudflare.ctx.waitUntil(invitePromise);
+          } else {
+            await invitePromise;
+          }
+        }
       }
     }
 
@@ -265,7 +340,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
               <input type="hidden" name="winning_restaurant_id" value={topRestaurant.id} />
               <input type="hidden" name="winning_date_id" value={topDate.id} />
 
-              <div className="mb-4">
+              <div className="space-y-4 mb-4">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -281,12 +356,33 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 <p className="text-xs text-gray-600 mt-1 ml-6">
                   This will create an upcoming event with the winning restaurant and date
                 </p>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="send_invites"
+                    value="true"
+                    defaultChecked
+                    className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    Send calendar invites to all members
+                  </span>
+                </label>
+                <p className="text-xs text-gray-600 mt-1 ml-6">
+                  Sends personalized calendar invites to all active members
+                </p>
               </div>
 
               <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
                 <h4 className="font-semibold text-gray-900 mb-2">Event Preview:</h4>
                 <p className="text-sm text-gray-700">
                   <strong>Restaurant:</strong> {topRestaurant.name}
+                  {!topRestaurant.address && (
+                    <span className="ml-2 text-yellow-600 text-xs">
+                      ⚠️ Missing address (calendar invites will be limited)
+                    </span>
+                  )}
                 </p>
                 {topRestaurant.address && (
                   <p className="text-sm text-gray-700">
@@ -301,6 +397,9 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     month: 'long',
                     day: 'numeric',
                   })}
+                </p>
+                <p className="text-sm text-gray-600 mt-2">
+                  <strong>Votes:</strong> {topRestaurant.vote_count} for restaurant, {topDate.vote_count} for date
                 </p>
               </div>
 
