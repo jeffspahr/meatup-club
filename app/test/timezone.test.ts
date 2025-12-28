@@ -537,10 +537,9 @@ describe('Timezone Safety - Local Time Handling', () => {
         console.log('\n✅ No new Date(dateString) anti-patterns found in user-facing code');
       }
 
-      // This is informational - we don't fail the test, but we warn
-      // If you want to enforce this strictly, uncomment:
-      // expect(filesWithLiteralAntiPattern.length).toBe(0);
-      // expect(filesWithVariableAntiPattern.length).toBe(0);
+      // Enforce timezone-safe date handling
+      expect(filesWithLiteralAntiPattern.length).toBe(0);
+      expect(filesWithVariableAntiPattern.length).toBe(0);
     });
 
     it('should verify calendar invite generation uses local time', async () => {

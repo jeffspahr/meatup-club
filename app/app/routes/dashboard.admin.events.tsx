@@ -4,6 +4,7 @@ import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
+import { formatDateForDisplay } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -257,7 +258,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
   }
 
   function handleDelete(eventId: number, eventName: string, eventDate: string) {
-    const dateStr = new Date(eventDate).toLocaleDateString('en-US', {
+    const dateStr = formatDateForDisplay(eventDate, {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
@@ -577,7 +578,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         </p>
                       )}
                       <p className="text-sm text-gray-600">
-                        {new Date(event.event_date).toLocaleDateString('en-US', {
+                        {formatDateForDisplay(event.event_date, {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
@@ -585,7 +586,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         })}
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
-                        Created {new Date(event.created_at).toLocaleDateString()}
+                        Created {formatDateForDisplay(event.created_at)}
                       </p>
                     </div>
                     <div className="flex gap-2">

@@ -1,4 +1,5 @@
 import { Form, Link, redirect } from "react-router";
+import { formatDateForDisplay } from "../lib/dateUtils";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
@@ -175,7 +176,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">{item.title}</h2>
                     <p className="text-xs text-gray-500 mt-1">
-                      Last updated: {new Date(item.updated_at).toLocaleDateString()}
+                      Last updated: {formatDateForDisplay(item.updated_at)}
                     </p>
                   </div>
                   <button

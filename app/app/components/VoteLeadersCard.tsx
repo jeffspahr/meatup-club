@@ -21,7 +21,7 @@ interface VoteLeadersCardProps {
  * Displays the current vote leaders for restaurant and date
  *
  * IMPORTANT: Uses formatDateForDisplay to avoid timezone bugs
- * Do NOT use new Date(dateString).toLocaleDateString() as it parses UTC
+ * Do NOT use the Date constructor with toLocaleDateString() as it parses UTC
  * and can shift dates by 1 day in timezones west of UTC
  */
 export default function VoteLeadersCard({

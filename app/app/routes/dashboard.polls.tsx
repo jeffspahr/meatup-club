@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
+import { formatDateForDisplay } from "../lib/dateUtils";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
@@ -941,7 +942,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     )}
                   </div>
                   <span className="text-xs text-gray-500 dark:text-gray-500">
-                    Closed {new Date(poll.created_at).toLocaleDateString()}
+                    Closed {formatDateForDisplay(poll.created_at)}
                   </span>
                 </div>
                 {poll.winner_restaurant && poll.winner_date && (
@@ -949,7 +950,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Winner:</p>
                     <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
                       <span>🍖 {poll.winner_restaurant}</span>
-                      <span>📅 {new Date(poll.winner_date).toLocaleDateString()}</span>
+                      <span>📅 {formatDateForDisplay(poll.winner_date)}</span>
                     </div>
                   </div>
                 )}

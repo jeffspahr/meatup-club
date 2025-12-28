@@ -1,4 +1,5 @@
 import { Form, Link, redirect, useSubmit } from "react-router";
+import { formatDateForDisplay } from "../lib/dateUtils";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
@@ -510,7 +511,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(member.created_at).toLocaleDateString()}
+                      {formatDateForDisplay(member.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <button

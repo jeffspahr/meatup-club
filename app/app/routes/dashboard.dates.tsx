@@ -1,4 +1,5 @@
 import { Form, useSubmit } from "react-router";
+import { formatDateForDisplay } from "../lib/dateUtils";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.dates";
 import { requireActiveUser } from "../lib/auth.server";
@@ -281,7 +282,7 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                 🗳️ Active Poll: {activePoll.title}
               </h3>
               <p className="text-sm text-green-700 mt-1">
-                Started {new Date(activePoll.created_at).toLocaleDateString()}
+                Started {formatDateForDisplay(activePoll.created_at)}
               </p>
             </div>
             <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">

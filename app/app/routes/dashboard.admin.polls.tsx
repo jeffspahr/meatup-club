@@ -4,6 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
+import { formatDateForDisplay } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -233,7 +234,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 🗳️ {activePoll.title}
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                Started {new Date(activePoll.created_at).toLocaleDateString()}
+                Started {formatDateForDisplay(activePoll.created_at)}
               </p>
             </div>
             <span className="px-4 py-2 bg-green-100 text-green-800 font-semibold rounded-full">
@@ -310,7 +311,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 )}
                 <p className="text-sm text-gray-700">
                   <strong>Date:</strong>{' '}
-                  {new Date(topDate.suggested_date).toLocaleDateString('en-US', {
+                  {formatDateForDisplay(topDate.suggested_date, {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -374,7 +375,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   <div>
                     <h3 className="font-semibold text-gray-900">{poll.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      Closed {new Date(poll.closed_at).toLocaleDateString()} by{' '}
+                      Closed {formatDateForDisplay(poll.closed_at)} by{' '}
                       {poll.closed_by_name}
                     </p>
                   </div>
@@ -396,7 +397,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs text-gray-600 mb-1">Winning Date</p>
                         <p className="font-medium text-gray-900">
-                          {new Date(poll.winning_date).toLocaleDateString('en-US', {
+                          {formatDateForDisplay(poll.winning_date, {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric',

@@ -1,4 +1,5 @@
 import type { Route } from "./+types/dashboard.members";
+import { formatDateForDisplay } from "../lib/dateUtils";
 import { requireActiveUser } from "../lib/auth.server";
 
 interface Member {
@@ -69,7 +70,7 @@ export default function MembersPage({ loaderData }: Route.ComponentProps) {
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{member.email}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  Joined {new Date(member.created_at).toLocaleDateString()}
+                  Joined {formatDateForDisplay(member.created_at)}
                 </p>
               </div>
             </div>

@@ -3,6 +3,7 @@ import type { Route } from "./+types/dashboard.rsvp";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { logActivity } from "../lib/activity.server";
+import { formatDateForDisplay } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -199,7 +200,7 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
                 )}
                 <p className="text-gray-600 dark:text-gray-400">
                   Date:{' '}
-                  {new Date(event.event_date).toLocaleDateString('en-US', {
+                  {formatDateForDisplay(event.event_date, {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',

@@ -1,5 +1,6 @@
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
+import { formatDateForDisplay } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -73,7 +74,7 @@ export default function EventsPage({ loaderData }: Route.ComponentProps) {
                     )}
                     <p className="text-base text-gray-700 font-medium">
                       📅{' '}
-                      {new Date(event.event_date).toLocaleDateString('en-US', {
+                      {formatDateForDisplay(event.event_date, {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -125,7 +126,7 @@ export default function EventsPage({ loaderData }: Route.ComponentProps) {
                     )}
                     <p className="text-base text-gray-700">
                       📅{' '}
-                      {new Date(event.event_date).toLocaleDateString('en-US', {
+                      {formatDateForDisplay(event.event_date, {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
