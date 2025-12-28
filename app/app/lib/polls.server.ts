@@ -57,6 +57,7 @@ export async function getActivePollLeaders(db: any): Promise<VoteLeaders> {
         LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
         WHERE rs.poll_id = ?
         GROUP BY rs.id
+        HAVING vote_count > 0
         ORDER BY vote_count DESC
         LIMIT 1
       `)
@@ -74,6 +75,7 @@ export async function getActivePollLeaders(db: any): Promise<VoteLeaders> {
         LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
         WHERE ds.poll_id = ?
         GROUP BY ds.id
+        HAVING vote_count > 0
         ORDER BY vote_count DESC
         LIMIT 1
       `)
