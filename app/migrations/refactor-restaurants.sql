@@ -2,6 +2,9 @@
 -- Restaurants exist independently and can be voted on in any poll
 -- Optional exclusions can hide specific restaurants from specific polls
 
+-- Step 0: Drop views that depend on old schema
+DROP VIEW IF EXISTS current_poll_restaurant_votes;
+
 -- Step 1: Create global restaurants table
 CREATE TABLE restaurants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,3 +98,16 @@ CREATE INDEX idx_restaurants_place_id ON restaurants(google_place_id);
 CREATE INDEX idx_restaurants_name ON restaurants(name COLLATE NOCASE);
 CREATE INDEX idx_poll_excluded_restaurants_poll ON poll_excluded_restaurants(poll_id);
 CREATE INDEX idx_poll_excluded_restaurants_restaurant ON poll_excluded_restaurants(restaurant_id);
+
+-- Step 9: Recreate views with new schema
+CREATE VIEW current_poll_restaurant_votes AS
+SELECT
+  rv.*,
+  r.name as restaurant_name,
+  u.name as voter_name,
+  u.email as voter_email
+FROM restaurant_votes rv
+JOIN restaurants r ON rv.restaurant_id = r.id
+JOIN users u ON rv.user_id = u.id
+JOIN polls p ON rv.poll_id = p.id
+WHERE p.status = 'active';
