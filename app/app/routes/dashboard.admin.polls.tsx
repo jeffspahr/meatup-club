@@ -25,13 +25,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         p.*,
         u.name as created_by_name,
         cu.name as closed_by_name,
-        rs.name as winning_restaurant_name,
+        r.name as winning_restaurant_name,
         ds.suggested_date as winning_date,
         e.id as event_id
       FROM polls p
       LEFT JOIN users u ON p.created_by = u.id
       LEFT JOIN users cu ON p.closed_by = cu.id
-      LEFT JOIN restaurant_suggestions rs ON p.winning_restaurant_id = rs.id
+      LEFT JOIN restaurants r ON p.winning_restaurant_id = r.id
       LEFT JOIN date_suggestions ds ON p.winning_date_id = ds.id
       LEFT JOIN events e ON p.created_event_id = e.id
       WHERE p.status = 'closed'
@@ -78,13 +78,13 @@ export async function action({ request, context }: Route.ActionArgs) {
       // Get restaurant with vote count
       const restaurant = await db
         .prepare(`
-          SELECT rs.*, COUNT(rv.id) as vote_count
-          FROM restaurant_suggestions rs
-          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
-          WHERE rs.id = ?
-          GROUP BY rs.id
+          SELECT r.*, COUNT(rv.id) as vote_count
+          FROM restaurants r
+          LEFT JOIN restaurant_votes rv ON r.id = rv.restaurant_id AND rv.poll_id = ?
+          WHERE r.id = ?
+          GROUP BY r.id
         `)
-        .bind(winningRestaurantId)
+        .bind(pollId, winningRestaurantId)
         .first();
 
       // Get date with vote count

@@ -17,7 +17,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const restaurants = await db
     .prepare(`
       SELECT id, name, google_place_id
-      FROM restaurant_suggestions
+      FROM restaurants
       WHERE google_place_id IS NOT NULL
       AND opening_hours IS NULL
     `)
@@ -51,7 +51,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
           if (openingHours) {
             await db
-              .prepare(`UPDATE restaurant_suggestions SET opening_hours = ? WHERE id = ?`)
+              .prepare(`UPDATE restaurants SET opening_hours = ? WHERE id = ?`)
               .bind(openingHours, restaurant.id)
               .run();
 

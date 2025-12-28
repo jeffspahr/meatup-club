@@ -163,10 +163,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         .bind(user_id)
         .run();
 
-      await db
-        .prepare('DELETE FROM restaurant_suggestions WHERE user_id = ?')
-        .bind(user_id)
-        .run();
+      // Note: Restaurants are global and persist even when user is deleted
+      // The created_by field will remain to preserve history
 
       await db
         .prepare('DELETE FROM date_suggestions WHERE user_id = ?')
