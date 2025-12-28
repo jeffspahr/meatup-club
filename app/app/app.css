@@ -46,6 +46,13 @@ body {
     background-color: rgb(var(--muted));
   }
 
+  /* Inverse backgrounds for dark elements in light mode / light elements in dark mode */
+  .bg-gray-700,
+  .bg-gray-800 {
+    background-color: rgb(var(--muted));
+  }
+
+  /* Dark text in light mode becomes light text in dark mode */
   .text-gray-900,
   .text-gray-800,
   .text-gray-700 {
@@ -57,11 +64,26 @@ body {
     color: rgb(var(--muted-foreground));
   }
 
+  /* Light text in light mode becomes readable in dark mode */
+  .text-gray-400,
+  .text-gray-300,
+  .text-gray-200,
+  .text-gray-100 {
+    color: rgb(var(--muted-foreground));
+  }
+
+  /* Border colors */
   .border-gray-200,
   .border-gray-300 {
     border-color: rgb(var(--border));
   }
 
+  .border-gray-600,
+  .border-gray-700 {
+    border-color: rgb(var(--border));
+  }
+
+  /* Hover states */
   .hover\:bg-gray-100:hover,
   .hover\:bg-gray-50:hover {
     background-color: rgb(var(--muted));
