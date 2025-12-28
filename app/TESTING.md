@@ -57,7 +57,7 @@ npm run build
 
 ## Test Coverage
 
-### Current Coverage (79 tests)
+### Current Coverage (98 tests)
 
 #### ✅ Calendar RSVP Parsing (26 tests)
 - **File**: `app/routes/api.webhooks.email-rsvp.test.ts`
@@ -133,6 +133,36 @@ npm run build
 
 **Quality Focus**: Ensures the CSS variable-based dark mode system is properly configured and meets accessibility standards. Prevents regression to manual `dark:` class approach.
 
+#### ✅ Email Sending (19 tests)
+- **File**: `app/lib/email.server.send.test.ts`
+- **What's Tested**:
+  - **Resend API Integration** (14 tests):
+    - Successful email sending with correct API calls
+    - Template variable replacement ({{inviteeName}}, {{inviterName}}, {{acceptLink}})
+    - Default values for null parameters
+    - Email metadata (from, to, reply_to, headers, tags)
+    - Resend API error handling (non-2xx responses)
+    - Network error handling
+    - Timeout error handling
+    - Multiple variable replacements in same field
+    - Special characters in template variables
+  - **Comment Reply Emails** (7 tests):
+    - Comment reply notification sending
+    - Correct metadata for reply emails
+    - Null recipient name handling
+    - Long comment text handling
+    - Special characters in comments
+    - API errors for comment replies
+    - Network errors for comment replies
+  - **Error Handling Edge Cases** (3 tests):
+    - Malformed JSON responses
+    - Empty API keys
+    - Invalid email addresses
+
+**Security Focus**: Tests validate that API keys are properly included in Authorization headers and that errors don't expose sensitive information.
+
+**Quality Focus**: Comprehensive mocking of fetch API ensures email sending logic works correctly without making real API calls during testing.
+
 ## Testing Philosophy
 
 ### 1. **Test Critical Paths First**
@@ -170,10 +200,10 @@ Focus on:
 
 ### 🔴 Critical Gaps
 
-1. **Email Sending**
-   - Resend API integration
-   - Error handling
-   - Attachment encoding
+1. **Email Sending - Advanced Features**
+   - Calendar invite attachments (sendEventInvites, sendCalendarUpdate functions)
+   - Batch email sending to multiple recipients
+   - Email template loading from database
 
 2. **Authentication**
    - Admin permission checks
@@ -318,7 +348,8 @@ npm run build          # Build succeeds
 - **Calendar Generation**: ~90% (excellent)
 - **Webhook Integration**: ~85% (excellent)
 - **RSVP Database Operations**: ~80% (good)
-- **Overall**: ~45% (improving)
+- **Email Sending**: ~75% (good)
+- **Overall**: ~50% (good progress)
 
 ### Coverage Targets
 - **Critical Security Code**: 100%
@@ -467,5 +498,5 @@ describe('Restaurant Addition Regression', () => {
 ---
 
 **Last Updated**: 2025-12-28
-**Test Count**: 79 tests
+**Test Count**: 98 tests
 **All Tests**: ✅ Passing
