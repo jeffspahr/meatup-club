@@ -8,6 +8,7 @@ interface Event {
   restaurant_name: string;
   restaurant_address: string | null;
   event_date: string;
+  event_time: string;
   status: string;
   created_at: string;
 }
@@ -87,8 +88,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     try {
       const result = await db
-        .prepare('INSERT INTO events (restaurant_name, restaurant_address, event_date, status) VALUES (?, ?, ?, ?)')
-        .bind(restaurant_name, restaurant_address || null, event_date, 'upcoming')
+        .prepare('INSERT INTO events (restaurant_name, restaurant_address, event_date, event_time, status) VALUES (?, ?, ?, ?, ?)')
+        .bind(restaurant_name, restaurant_address || null, event_date, event_time, 'upcoming')
         .run();
 
       const eventId = result.meta.last_row_id;
@@ -146,20 +147,75 @@ export async function action({ request, context }: Route.ActionArgs) {
     const restaurant_name = formData.get('restaurant_name');
     const restaurant_address = formData.get('restaurant_address');
     const event_date = formData.get('event_date');
+    const event_time = (formData.get('event_time') as string) || '18:00';
     const status = formData.get('status');
+    const send_updates = formData.get('send_updates') === 'true';
 
     if (!id || !restaurant_name || !event_date) {
       return { error: 'ID, restaurant name and date are required' };
     }
 
     try {
+      // Update the event
       await db
-        .prepare('UPDATE events SET restaurant_name = ?, restaurant_address = ?, event_date = ?, status = ? WHERE id = ?')
-        .bind(restaurant_name, restaurant_address || null, event_date, status, id)
+        .prepare('UPDATE events SET restaurant_name = ?, restaurant_address = ?, event_date = ?, event_time = ?, status = ? WHERE id = ?')
+        .bind(restaurant_name, restaurant_address || null, event_date, event_time, status, id)
         .run();
+
+      // Send calendar updates if requested
+      if (send_updates) {
+        const { sendCalendarUpdate } = await import('../lib/email.server');
+
+        // Get all RSVPs for this event
+        const rsvpsResult = await db
+          .prepare(`
+            SELECT r.status, u.email
+            FROM rsvps r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.event_id = ?
+          `)
+          .bind(id)
+          .all();
+
+        if (rsvpsResult.results && rsvpsResult.results.length > 0) {
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+
+          // Send calendar update to each attendee
+          const updatePromises = rsvpsResult.results.map((rsvp: any) =>
+            sendCalendarUpdate({
+              eventId: Number(id),
+              restaurantName: restaurant_name as string,
+              restaurantAddress: restaurant_address as string | null,
+              eventDate: event_date as string,
+              eventTime: event_time,
+              userEmail: rsvp.email,
+              rsvpStatus: rsvp.status,
+              resendApiKey,
+            }).catch(err => {
+              console.error(`Failed to send calendar update to ${rsvp.email}:`, err);
+              return { success: false, error: err.message };
+            })
+          );
+
+          // Use waitUntil if available for background processing
+          const allUpdates = Promise.all(updatePromises).then(results => {
+            const successCount = results.filter((r: { success: boolean }) => r.success).length;
+            const failureCount = results.filter((r: { success: boolean }) => !r.success).length;
+            console.log(`Calendar updates sent: ${successCount} succeeded, ${failureCount} failed`);
+            return results;
+          });
+
+          if (context.cloudflare.ctx?.waitUntil) {
+            context.cloudflare.ctx.waitUntil(allUpdates);
+          } else {
+            await allUpdates;
+          }
+        }
+      }
 
       return redirect('/dashboard/admin/events');
     } catch (err) {
+      console.error('Event update error:', err);
       return { error: 'Failed to update event' };
     }
   }
@@ -195,6 +251,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
     restaurant_name: '',
     restaurant_address: '',
     event_date: '',
+    event_time: '18:00',
     status: '',
   });
   const submit = useSubmit();
@@ -206,6 +263,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       restaurant_name: event.restaurant_name,
       restaurant_address: event.restaurant_address || '',
       event_date: event.event_date,
+      event_time: event.event_time || '18:00',
       status: event.status,
     });
   }
@@ -217,6 +275,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       restaurant_name: '',
       restaurant_address: '',
       event_date: '',
+      event_time: '18:00',
       status: '',
     });
   }
@@ -479,20 +538,37 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Event Date *
-                      </label>
-                      <input
-                        name="event_date"
-                        type="date"
-                        required
-                        value={editData.event_date}
-                        onChange={(e) =>
-                          setEditData({ ...editData, event_date: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Event Date *
+                        </label>
+                        <input
+                          name="event_date"
+                          type="date"
+                          required
+                          value={editData.event_date}
+                          onChange={(e) =>
+                            setEditData({ ...editData, event_date: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Event Time
+                        </label>
+                        <input
+                          name="event_time"
+                          type="time"
+                          value={editData.event_time}
+                          onChange={(e) =>
+                            setEditData({ ...editData, event_time: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        />
+                      </div>
                     </div>
 
                     <div>
@@ -511,6 +587,19 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        id="send_updates"
+                        name="send_updates"
+                        type="checkbox"
+                        value="true"
+                        className="h-4 w-4 text-meat-red focus:ring-meat-red border-gray-300 rounded"
+                      />
+                      <label htmlFor="send_updates" className="ml-2 block text-sm text-gray-700">
+                        Send calendar updates to all attendees who have RSVP'd
+                      </label>
                     </div>
 
                     <div className="flex gap-3">
