@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
+import { getActivePollLeaders } from "../lib/polls.server";
 
 interface Event {
   id: number;
@@ -34,59 +35,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare('SELECT * FROM events ORDER BY event_date DESC')
     .all();
 
-  // Get active poll (to filter vote leaders)
-  const activePoll = await db
-    .prepare(`
-      SELECT * FROM polls
-      WHERE status = 'active'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `)
-    .first();
-
-  // Fetch top restaurant for active poll
-  let topRestaurantResult = null;
-  if (activePoll) {
-    topRestaurantResult = await db
-      .prepare(`
-        SELECT
-          rs.name,
-          rs.address,
-          COUNT(rv.id) as vote_count
-        FROM restaurant_suggestions rs
-        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
-        WHERE rs.poll_id = ?
-        GROUP BY rs.id
-        ORDER BY vote_count DESC
-        LIMIT 1
-      `)
-      .bind((activePoll as any).id)
-      .first();
-  }
-
-  // Fetch top date for active poll
-  let topDateResult = null;
-  if (activePoll) {
-    topDateResult = await db
-      .prepare(`
-        SELECT
-          ds.suggested_date,
-          COUNT(dv.id) as vote_count
-        FROM date_suggestions ds
-        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
-        WHERE ds.poll_id = ?
-        GROUP BY ds.id
-        ORDER BY vote_count DESC
-        LIMIT 1
-      `)
-      .bind((activePoll as any).id)
-      .first();
-  }
+  // Get vote leaders from shared utility
+  const { topRestaurant, topDate } = await getActivePollLeaders(db);
 
   return {
     events: eventsResult.results || [],
-    topRestaurant: topRestaurantResult || null,
-    topDate: topDateResult || null,
+    topRestaurant,
+    topDate,
   };
 }
 

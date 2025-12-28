@@ -3,6 +3,7 @@ import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
+import { getActivePollLeaders } from "../lib/polls.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -13,53 +14,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const db = context.cloudflare.env.DB;
 
-  // Get active poll
-  const activePoll = await db
-    .prepare(`
-      SELECT * FROM polls
-      WHERE status = 'active'
-      ORDER BY created_at DESC
-      LIMIT 1
-    `)
-    .first();
-
-  // Get top restaurant for active poll
-  let topRestaurant = null;
-  if (activePoll) {
-    topRestaurant = await db
-      .prepare(`
-        SELECT
-          rs.*,
-          COUNT(rv.id) as vote_count
-        FROM restaurant_suggestions rs
-        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
-        WHERE rs.poll_id = ?
-        GROUP BY rs.id
-        ORDER BY vote_count DESC
-        LIMIT 1
-      `)
-      .bind(activePoll.id)
-      .first();
-  }
-
-  // Get top date for active poll
-  let topDate = null;
-  if (activePoll) {
-    topDate = await db
-      .prepare(`
-        SELECT
-          ds.*,
-          COUNT(dv.id) as vote_count
-        FROM date_suggestions ds
-        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
-        WHERE ds.poll_id = ?
-        GROUP BY ds.id
-        ORDER BY vote_count DESC
-        LIMIT 1
-      `)
-      .bind(activePoll.id)
-      .first();
-  }
+  // Get vote leaders from shared utility
+  const { activePoll, topRestaurant, topDate } = await getActivePollLeaders(db);
 
   // Get recent closed polls
   const closedPolls = await db
