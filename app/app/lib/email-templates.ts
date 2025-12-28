@@ -158,7 +158,7 @@ export function generateCommentReplyEmail(data: CommentReplyEmailData) {
           <tr>
             <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
               <h1 style="margin: 0; font-size: 28px; color: #ffffff; font-weight: bold;">
-                💬 New Reply
+                New Reply
               </h1>
             </td>
           </tr>
@@ -185,7 +185,7 @@ export function generateCommentReplyEmail(data: CommentReplyEmailData) {
               </div>
 
               <!-- Reply -->
-              <div style="background-color: #fef2f2; border-left: 4px solid: #991b1b; padding: 16px; margin: 0 0 24px; border-radius: 4px;">
+              <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 16px; margin: 0 0 24px; border-radius: 4px;">
                 <p style="margin: 0 0 8px; font-size: 12px; color: #7f1d1d; font-weight: 600; text-transform: uppercase;">
                   ${data.replierName}'s Reply
                 </p>

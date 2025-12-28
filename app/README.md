@@ -10,6 +10,9 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 - 👥 Member management and invitations
 - 🔐 Google OAuth authentication
 - 👨‍💼 Admin panel for event and member management
+- 📧 Calendar invite sync - Two-way RSVP synchronization between website and calendar apps
+
+> **📖 For detailed technical documentation on calendar sync, see [ARCHITECTURE.md](./ARCHITECTURE.md)**
 
 ## Tech Stack
 
@@ -17,6 +20,7 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 - **Runtime**: Cloudflare Pages (Edge)
 - **Database**: Cloudflare D1 (SQLite)
 - **Auth**: Google OAuth
+- **Email**: Resend (with inbound routing for calendar RSVP sync)
 - **Styling**: Tailwind CSS v3
 - **Language**: TypeScript
 
@@ -167,10 +171,21 @@ app/
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `SESSION_SECRET` - Random string for session encryption
+- `RESEND_API_KEY` - Resend API key for email sending and calendar invites
 
 ### Cloudflare Bindings
 
 - `DB` - D1 database binding (configured in wrangler.toml)
+
+### Setting up Resend
+
+After deploying the application, configure Resend inbound email routing:
+
+1. Visit https://meatup.club/dashboard/admin/setup (requires admin access)
+2. Click "Configure Resend Inbound Email"
+3. This will automatically set up `rsvp@mail.meatup.club` to forward calendar RSVP responses to your webhook
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed setup instructions and troubleshooting.
 
 ## Authentication Flow
 

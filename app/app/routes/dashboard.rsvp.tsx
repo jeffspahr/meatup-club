@@ -82,6 +82,16 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { error: 'Missing required fields' };
   }
 
+  // Get event details for calendar update
+  const event = await db
+    .prepare('SELECT id, restaurant_name, restaurant_address, event_date FROM events WHERE id = ?')
+    .bind(eventId)
+    .first();
+
+  if (!event) {
+    return { error: 'Event not found' };
+  }
+
   // Check if RSVP exists
   const existing = await db
     .prepare('SELECT id FROM rsvps WHERE event_id = ? AND user_id = ?')
@@ -118,6 +128,37 @@ export async function action({ request, context }: Route.ActionArgs) {
       route: '/dashboard/rsvp',
       request,
     });
+  }
+
+  // Send calendar update to sync their calendar
+  const { sendCalendarUpdate } = await import('../lib/email.server');
+  const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+
+  const updatePromise = sendCalendarUpdate({
+    eventId: event.id as number,
+    restaurantName: event.restaurant_name as string,
+    restaurantAddress: event.restaurant_address as string | null,
+    eventDate: event.event_date as string,
+    eventTime: '18:00', // Default time, consider storing this with events
+    userEmail: user.email,
+    rsvpStatus: status as 'yes' | 'no' | 'maybe',
+    resendApiKey,
+  }).then(result => {
+    if (result.success) {
+      console.log(`Calendar updated for ${user.email}`);
+    } else {
+      console.error(`Calendar update failed for ${user.email}:`, result.error);
+    }
+    return result;
+  }).catch(err => {
+    console.error('Calendar update error:', err);
+  });
+
+  // Use waitUntil if available for background processing
+  if (context.cloudflare.ctx?.waitUntil) {
+    context.cloudflare.ctx.waitUntil(updatePromise);
+  } else {
+    await updatePromise;
   }
 
   return redirect('/dashboard/rsvp');

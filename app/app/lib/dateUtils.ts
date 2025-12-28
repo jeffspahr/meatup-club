@@ -93,6 +93,28 @@ export function isDateTodayLocal(dateString: string): boolean {
 }
 
 /**
+ * Parse a YYYY-MM-DD date string as a local date (not UTC).
+ * This prevents timezone offset issues when displaying dates.
+ *
+ * Example: "2025-12-27" becomes Dec 27 in all timezones, not Dec 26 in EST.
+ */
+export function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a date string (YYYY-MM-DD) for display in the user's locale.
+ * Handles timezone correctly by parsing as local date first.
+ */
+export function formatDateForDisplay(
+  dateString: string,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
+): string {
+  return parseLocalDate(dateString).toLocaleDateString('en-US', options);
+}
+
+/**
  * BACKWARDS COMPATIBILITY (deprecated - will be removed)
  * These use UTC on server, local on client - causes hydration issues
  */

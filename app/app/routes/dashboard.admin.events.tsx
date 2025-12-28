@@ -78,19 +78,65 @@ export async function action({ request, context }: Route.ActionArgs) {
     const restaurant_name = formData.get('restaurant_name');
     const restaurant_address = formData.get('restaurant_address');
     const event_date = formData.get('event_date');
+    const event_time = formData.get('event_time') || '18:00'; // Default to 6 PM
+    const send_invites = formData.get('send_invites') === 'true';
 
     if (!restaurant_name || !event_date) {
       return { error: 'Restaurant name and date are required' };
     }
 
     try {
-      await db
+      const result = await db
         .prepare('INSERT INTO events (restaurant_name, restaurant_address, event_date, status) VALUES (?, ?, ?, ?)')
         .bind(restaurant_name, restaurant_address || null, event_date, 'upcoming')
         .run();
 
+      const eventId = result.meta.last_row_id;
+
+      // Send calendar invites if requested
+      if (send_invites && eventId) {
+        const { sendEventInvites } = await import('../lib/email.server');
+
+        // Get all active users
+        const usersResult = await db
+          .prepare("SELECT email FROM users WHERE status = 'active'")
+          .all();
+
+        const recipientEmails = (usersResult.results || []).map((u: any) => u.email);
+
+        if (recipientEmails.length > 0) {
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+
+          // Use waitUntil if available for background processing
+          const invitePromise = sendEventInvites({
+            eventId: Number(eventId),
+            restaurantName: restaurant_name as string,
+            restaurantAddress: restaurant_address as string | null,
+            eventDate: event_date as string,
+            eventTime: event_time as string,
+            recipientEmails,
+            resendApiKey,
+          }).then(result => {
+            console.log(`Calendar invites sent: ${result.sentCount}/${recipientEmails.length}`);
+            if (result.errors.length > 0) {
+              console.error('Some invites failed:', result.errors);
+            }
+            return result;
+          }).catch(err => {
+            console.error('Failed to send calendar invites:', err);
+          });
+
+          if (context.cloudflare.ctx?.waitUntil) {
+            context.cloudflare.ctx.waitUntil(invitePromise);
+          } else {
+            await invitePromise;
+          }
+        }
+      }
+
       return redirect('/dashboard/admin/events');
     } catch (err) {
+      console.error('Event creation error:', err);
       return { error: 'Failed to create event' };
     }
   }
@@ -326,20 +372,52 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="event_date"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Event Date *
-              </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="event_date"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Event Date *
+                </label>
+                <input
+                  id="event_date"
+                  name="event_date"
+                  type="date"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="event_time"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Event Time
+                </label>
+                <input
+                  id="event_time"
+                  name="event_time"
+                  type="time"
+                  defaultValue="18:00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center">
               <input
-                id="event_date"
-                name="event_date"
-                type="date"
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                id="send_invites"
+                name="send_invites"
+                type="checkbox"
+                value="true"
+                defaultChecked={true}
+                className="h-4 w-4 text-meat-red focus:ring-meat-red border-gray-300 rounded"
               />
+              <label htmlFor="send_invites" className="ml-2 block text-sm text-gray-700">
+                Send calendar invites to all active members
+              </label>
             </div>
 
             <button

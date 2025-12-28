@@ -1,9 +1,9 @@
-import { Form, useActionData, useSubmit } from "react-router";
+import { useSubmit } from "react-router";
 import { useState } from "react";
 import type { Route } from "./+types/dashboard.restaurants";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
-import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
+import { AddRestaurantModal } from "../components/AddRestaurantModal";
 
 interface Suggestion {
   id: number;
@@ -151,10 +151,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function RestaurantsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { suggestions, currentUser } = loaderData;
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const submit = useSubmit();
-  const [restaurantName, setRestaurantName] = useState("");
-  const [placeDetails, setPlaceDetails] = useState<any>(null);
 
   function handleDelete(suggestionId: number, restaurantName: string) {
     if (confirm(`Are you sure you want to delete "${restaurantName}"? This action cannot be undone.`)) {
@@ -165,16 +163,35 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
     }
   }
 
+  function handleRestaurantSubmit(placeDetails: any) {
+    const formData = new FormData();
+    formData.append('_action', 'suggest');
+    formData.append('name', placeDetails.name);
+    formData.append('address', placeDetails.address || '');
+    formData.append('cuisine', placeDetails.cuisine || '');
+    formData.append('url', placeDetails.website || '');
+    formData.append('google_place_id', placeDetails.placeId || '');
+    formData.append('google_rating', placeDetails.rating?.toString() || '');
+    formData.append('rating_count', placeDetails.ratingCount?.toString() || '');
+    formData.append('price_level', placeDetails.priceLevel?.toString() || '');
+    formData.append('phone_number', placeDetails.phone || '');
+    formData.append('photo_url', placeDetails.photoUrl || '');
+    formData.append('google_maps_url', placeDetails.googleMapsUrl || '');
+    formData.append('opening_hours', placeDetails.openingHours || '');
+
+    submit(formData, { method: 'post' });
+  }
+
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-3xl font-bold">Restaurants</h1>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => setShowModal(true)}
             className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
           >
-            {showForm ? 'Cancel' : '+ Add Restaurant'}
+            + Add Restaurant
           </button>
         </div>
         <p className="text-gray-600">
@@ -188,86 +205,12 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
         </div>
       )}
 
-      {/* Restaurant Form */}
-      {showForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add a Restaurant</h2>
-          <Form method="post" className="space-y-4" onSubmit={() => {
-            setShowForm(false);
-            setRestaurantName("");
-            setPlaceDetails(null);
-          }}>
-            <input type="hidden" name="_action" value="suggest" />
-            <input type="hidden" name="name" value={placeDetails?.name || restaurantName} />
-            <input type="hidden" name="address" value={placeDetails?.address || ""} />
-            <input type="hidden" name="cuisine" value={placeDetails?.cuisine || ""} />
-            <input type="hidden" name="url" value={placeDetails?.website || ""} />
-            <input type="hidden" name="google_place_id" value={placeDetails?.placeId || ""} />
-            <input type="hidden" name="google_rating" value={placeDetails?.rating || ""} />
-            <input type="hidden" name="rating_count" value={placeDetails?.ratingCount || ""} />
-            <input type="hidden" name="price_level" value={placeDetails?.priceLevel || ""} />
-            <input type="hidden" name="phone_number" value={placeDetails?.phone || ""} />
-            <input type="hidden" name="photo_url" value={placeDetails?.photoUrl || ""} />
-            <input type="hidden" name="google_maps_url" value={placeDetails?.googleMapsUrl || ""} />
-            <input type="hidden" name="opening_hours" value={placeDetails?.openingHours || ""} />
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Search for Restaurant *
-              </label>
-              <RestaurantAutocomplete
-                value={restaurantName}
-                onChange={setRestaurantName}
-                onSelect={(details) => {
-                  setPlaceDetails(details);
-                  setRestaurantName(details.name);
-                }}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Start typing to search Google Places
-              </p>
-            </div>
-
-            {placeDetails && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h3 className="font-semibold text-green-900 mb-2">✓ Restaurant Found</h3>
-                <div className="space-y-1 text-sm text-green-800">
-                  <p><strong>{placeDetails.name}</strong></p>
-                  {placeDetails.address && <p>{placeDetails.address}</p>}
-                  {placeDetails.cuisine && <p>Cuisine: {placeDetails.cuisine}</p>}
-                  {placeDetails.rating > 0 && (
-                    <p>⭐ {placeDetails.rating} ({placeDetails.ratingCount} reviews)</p>
-                  )}
-                  {placeDetails.priceLevel > 0 && (
-                    <p>{"$".repeat(placeDetails.priceLevel)}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={!restaurantName}
-                className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add Restaurant
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  setRestaurantName("");
-                  setPlaceDetails(null);
-                }}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </Form>
-        </div>
-      )}
+      {/* Restaurant Modal */}
+      <AddRestaurantModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleRestaurantSubmit}
+      />
 
       {/* Restaurants List */}
       {suggestions.length === 0 ? (
@@ -276,7 +219,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
             No restaurants yet. Be the first to add one!
           </p>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowModal(true)}
             className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
           >
             Add Restaurant

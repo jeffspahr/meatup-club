@@ -3,6 +3,7 @@ import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect } from 'react';
+import { formatDateForDisplay } from '../lib/dateUtils';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -28,21 +29,41 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind('active')
     .first();
 
-  // Get top restaurant for active poll and user's vote
-  let topRestaurant = null;
+  // Get top restaurant(s) for active poll and user's vote
+  let topRestaurants: any[] = [];
   let userRestaurantVote = null;
   if (activePoll) {
-    topRestaurant = await db
+    // First get the max vote count
+    const maxVoteResult = await db
       .prepare(`
-        SELECT rs.name, COUNT(rv.id) as vote_count
-        FROM restaurant_suggestions rs
-        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
-        GROUP BY rs.id
-        ORDER BY vote_count DESC
-        LIMIT 1
+        SELECT MAX(vote_count) as max_votes
+        FROM (
+          SELECT COUNT(rv.id) as vote_count
+          FROM restaurant_suggestions rs
+          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
+          GROUP BY rs.id
+        )
       `)
       .bind((activePoll as any).id)
       .first();
+
+    const maxVotes = (maxVoteResult as any)?.max_votes || 0;
+
+    // Get all restaurants with the max vote count
+    if (maxVotes > 0) {
+      const topRestaurantsResult = await db
+        .prepare(`
+          SELECT rs.name, COUNT(rv.id) as vote_count
+          FROM restaurant_suggestions rs
+          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
+          GROUP BY rs.id
+          HAVING vote_count = ?
+          ORDER BY rs.name ASC
+        `)
+        .bind((activePoll as any).id, maxVotes)
+        .all();
+      topRestaurants = topRestaurantsResult.results || [];
+    }
 
     // Get user's restaurant vote for this poll
     userRestaurantVote = await db
@@ -56,21 +77,41 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .first();
   }
 
-  // Get top date for active poll and user's vote count
-  let topDate = null;
+  // Get top date(s) for active poll and user's vote count
+  let topDates: any[] = [];
   let userDateVoteCount = 0;
   if (activePoll) {
-    topDate = await db
+    // First get the max vote count
+    const maxDateVoteResult = await db
       .prepare(`
-        SELECT ds.suggested_date, COUNT(dv.id) as vote_count
-        FROM date_suggestions ds
-        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
-        GROUP BY ds.id
-        ORDER BY vote_count DESC
-        LIMIT 1
+        SELECT MAX(vote_count) as max_votes
+        FROM (
+          SELECT COUNT(dv.id) as vote_count
+          FROM date_suggestions ds
+          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
+          GROUP BY ds.id
+        )
       `)
       .bind((activePoll as any).id)
       .first();
+
+    const maxDateVotes = (maxDateVoteResult as any)?.max_votes || 0;
+
+    // Get all dates with the max vote count
+    if (maxDateVotes > 0) {
+      const topDatesResult = await db
+        .prepare(`
+          SELECT ds.suggested_date, COUNT(dv.id) as vote_count
+          FROM date_suggestions ds
+          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
+          GROUP BY ds.id
+          HAVING vote_count = ?
+          ORDER BY ds.suggested_date ASC
+        `)
+        .bind((activePoll as any).id, maxDateVotes)
+        .all();
+      topDates = topDatesResult.results || [];
+    }
 
     // Get count of user's date votes for this poll
     const userDateVoteResult = await db
@@ -104,8 +145,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     memberCount,
     isAdmin,
     activePoll,
-    topRestaurant,
-    topDate,
+    topRestaurants,
+    topDates,
     nextEvent,
     userRsvp,
     content: contentResult.results || [],
@@ -115,7 +156,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, memberCount, isAdmin, activePoll, topRestaurant, topDate, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
+  const { user, memberCount, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
 
@@ -224,17 +265,27 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {userRestaurantVote ? (
                   <>
                     <p className="font-bold text-green-900">✓ You voted: {(userRestaurantVote as any).name}</p>
-                    {topRestaurant && (topRestaurant as any).vote_count > 0 && (
+                    {topRestaurants.length > 0 && (
                       <p className="text-xs text-green-700 mt-1">
-                        Leading: {(topRestaurant as any).name} ({(topRestaurant as any).vote_count} vote{(topRestaurant as any).vote_count !== 1 ? 's' : ''})
+                        {topRestaurants.length > 1 ? (
+                          <>Tied ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''} each): {topRestaurants.map(r => r.name).join(', ')}</>
+                        ) : (
+                          <>Leading: {topRestaurants[0].name} ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''})</>
+                        )}
                       </p>
                     )}
                   </>
-                ) : topRestaurant && (topRestaurant as any).vote_count > 0 ? (
+                ) : topRestaurants.length > 0 ? (
                   <>
-                    <p className="font-bold text-green-900">{(topRestaurant as any).name}</p>
+                    <p className="font-bold text-green-900">
+                      {topRestaurants.length > 1 ? (
+                        <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
+                      ) : (
+                        topRestaurants[0].name
+                      )}
+                    </p>
                     <p className="text-xs text-green-700 mt-1">
-                      {(topRestaurant as any).vote_count} vote{(topRestaurant as any).vote_count !== 1 ? 's' : ''}
+                      {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
                     </p>
                     <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
                   </>
@@ -248,26 +299,27 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {userDateVoteCount > 0 ? (
                   <>
                     <p className="font-bold text-green-900">✓ You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}</p>
-                    {topDate && (topDate as any).vote_count > 0 && (
+                    {topDates.length > 0 && (
                       <p className="text-xs text-green-700 mt-1">
-                        Leading: {new Date((topDate as any).suggested_date).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })} ({(topDate as any).vote_count} vote{(topDate as any).vote_count !== 1 ? 's' : ''})
+                        {topDates.length > 1 ? (
+                          <>Tied ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''} each): {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
+                        ) : (
+                          <>Leading: {formatDateForDisplay(topDates[0].suggested_date, { month: 'short', day: 'numeric' })} ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''})</>
+                        )}
                       </p>
                     )}
                   </>
-                ) : topDate && (topDate as any).vote_count > 0 ? (
+                ) : topDates.length > 0 ? (
                   <>
                     <p className="font-bold text-green-900">
-                      {new Date((topDate as any).suggested_date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
+                      {topDates.length > 1 ? (
+                        <>Tied: {topDates.map(d => formatDateForDisplay(d.suggested_date)).join(', ')}</>
+                      ) : (
+                        formatDateForDisplay(topDates[0].suggested_date)
+                      )}
                     </p>
                     <p className="text-xs text-green-700 mt-1">
-                      {(topDate as any).vote_count} vote{(topDate as any).vote_count !== 1 ? 's' : ''}
+                      {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
                     </p>
                     <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
                   </>
@@ -304,7 +356,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wide mb-1">Date</p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {new Date((nextEvent as any).event_date).toLocaleDateString('en-US', {
+                {formatDateForDisplay((nextEvent as any).event_date, {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
@@ -359,7 +411,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 </div>
                 <h3 className="text-lg font-bold mb-1">Vote on Polls</h3>
                 <p className="text-sm text-white/80">
-                  {activePoll && `${(topRestaurant as any)?.vote_count || 0} restaurant votes, ${(topDate as any)?.vote_count || 0} date votes`}
+                  {activePoll && `${topRestaurants[0]?.vote_count || 0} restaurant votes, ${topDates[0]?.vote_count || 0} date votes`}
                 </p>
               </div>
             </Link>
@@ -436,7 +488,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <a
-              href="https://github.com/jspahr/meatup-club/issues/new?template=bug_report.md"
+              href="https://github.com/jeffspahr/meatup-club/issues/new?template=bug_report.md"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
@@ -444,7 +496,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               🐛 Report a Bug
             </a>
             <a
-              href="https://github.com/jspahr/meatup-club/issues/new?template=feature_request.md"
+              href="https://github.com/jeffspahr/meatup-club/issues/new?template=feature_request.md"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
@@ -452,7 +504,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               💡 Request a Feature
             </a>
             <a
-              href="https://github.com/jspahr/meatup-club/issues"
+              href="https://github.com/jeffspahr/meatup-club/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"

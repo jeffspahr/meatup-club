@@ -90,13 +90,39 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Breakdown</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* All Activities Card */}
+          <button
+            onClick={() => setFilterType('all')}
+            className={`border rounded p-3 text-left transition-all ${
+              filterType === 'all'
+                ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
+                : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
+            }`}
+          >
+            <div className="text-xs text-gray-600 mb-1">All Activities</div>
+            <div className={`text-2xl font-bold ${filterType === 'all' ? 'text-meat-red' : 'text-gray-900'}`}>
+              {stats.total}
+            </div>
+          </button>
+
+          {/* Individual Action Type Cards */}
           {stats.byType.map((item: any) => (
-            <div key={item.action_type} className="border border-gray-100 rounded p-3">
+            <button
+              key={item.action_type}
+              onClick={() => setFilterType(item.action_type)}
+              className={`border rounded p-3 text-left transition-all ${
+                filterType === item.action_type
+                  ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
+                  : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
+              }`}
+            >
               <div className="text-xs text-gray-600 mb-1">
                 {formatActionType(item.action_type)}
               </div>
-              <div className="text-2xl font-bold text-gray-900">{item.count}</div>
-            </div>
+              <div className={`text-2xl font-bold ${filterType === item.action_type ? 'text-meat-red' : 'text-gray-900'}`}>
+                {item.count}
+              </div>
+            </button>
           ))}
         </div>
       </div>
@@ -120,23 +146,25 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       {/* Recent Activity Log */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            {filterType !== 'all' && (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-meat-red/10 text-meat-red border border-meat-red/20">
+                  Filtered: {formatActionType(filterType)}
+                </span>
+                <button
+                  onClick={() => setFilterType('all')}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter" className="text-sm text-gray-600">Filter:</label>
-            <select
-              id="filter"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-1.5 text-sm"
-            >
-              <option value="all">All Actions</option>
-              {actionTypes.map((type) => (
-                <option key={type} value={type}>
-                  {formatActionType(type)}
-                </option>
-              ))}
-            </select>
+          <div className="text-sm text-gray-600">
+            Click cards above to filter
           </div>
         </div>
 

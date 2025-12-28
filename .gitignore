@@ -60,3 +60,6 @@ resources/
 # Terraform plan files
 *.tfplan
 tfplan
+
+# Code review and planning documents
+CODE_REVIEW_PLAN.md

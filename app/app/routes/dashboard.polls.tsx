@@ -5,7 +5,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
-import { RestaurantAutocomplete } from "../components/RestaurantAutocomplete";
+import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { isDateInPastUTC } from "../lib/dateUtils";
 import { logActivity } from "../lib/activity.server";
 import { getComments, createComment, deleteComment } from "../lib/comments.server";
@@ -281,10 +281,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant name is required' };
     }
 
-    // Check for duplicate by place_id or name
+    // Check for duplicate by google_place_id or name
     if (placeId) {
       const existing = await db
-        .prepare('SELECT id FROM restaurant_suggestions WHERE place_id = ?')
+        .prepare('SELECT id FROM restaurant_suggestions WHERE google_place_id = ?')
         .bind(placeId)
         .first();
 
@@ -296,10 +296,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     await db
       .prepare(`
         INSERT INTO restaurant_suggestions
-        (user_id, place_id, name, address, cuisine, photo_url)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (user_id, poll_id, google_place_id, name, address, cuisine, photo_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
-      .bind(user.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
+      .bind(user.id, activePoll.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
       .run();
 
     await logActivity({
@@ -684,8 +684,7 @@ function CommentThread({
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, comments, currentUser } = loaderData;
   const submit = useSubmit();
-  const [showRestaurantSearch, setShowRestaurantSearch] = useState(false);
-  const [restaurantName, setRestaurantName] = useState("");
+  const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
 
   // Calendar date click handler
@@ -719,19 +718,17 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
     submit(formData, { method: 'post' });
   }
 
-  // Restaurant selection handler
-  function handleRestaurantSelect(place: any) {
+  // Restaurant submission handler
+  function handleRestaurantSubmit(placeDetails: any) {
     const formData = new FormData();
     formData.append('_action', 'suggest_restaurant');
-    formData.append('place_id', place.placeId);
-    formData.append('name', place.name);
-    formData.append('address', place.address || '');
-    formData.append('cuisine', place.cuisine || '');
-    formData.append('photo_url', place.photoUrl || '');
+    formData.append('place_id', placeDetails.placeId);
+    formData.append('name', placeDetails.name);
+    formData.append('address', placeDetails.address || '');
+    formData.append('cuisine', placeDetails.cuisine || '');
+    formData.append('photo_url', placeDetails.photoUrl || '');
 
     submit(formData, { method: 'post' });
-    setShowRestaurantSearch(false);
-    setRestaurantName("");
   }
 
   function handleRestaurantVote(suggestionId: number) {
@@ -805,42 +802,20 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowRestaurantSearch(true)}
+                  onClick={() => setShowRestaurantModal(true)}
                   className="px-4 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
                 >
                   + Add Restaurant
                 </button>
               </div>
 
-              {/* Restaurant Search Modal */}
-              {showRestaurantSearch && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Search for a Restaurant</h3>
-
-                    <div className="mb-4">
-                      <RestaurantAutocomplete
-                        value={restaurantName}
-                        onChange={setRestaurantName}
-                        onSelect={handleRestaurantSelect}
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        Start typing to search Google Places
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setShowRestaurantSearch(false);
-                        setRestaurantName("");
-                      }}
-                      className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Restaurant Modal */}
+              <AddRestaurantModal
+                isOpen={showRestaurantModal}
+                onClose={() => setShowRestaurantModal(false)}
+                onSubmit={handleRestaurantSubmit}
+                title="Search for a Restaurant"
+              />
 
               {/* Restaurant Suggestions List */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
