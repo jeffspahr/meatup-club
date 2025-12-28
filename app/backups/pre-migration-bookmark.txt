@@ -1,0 +1,37 @@
+D1 Time Travel Backup Information
+==================================
+
+Database: meatup-club-db
+Migration: Refactor restaurants to global schema
+Date: 2025-12-28
+
+Pre-Migration Bookmark:
+000000ca-00000000-00004fe2-bdb1af75e25219e22eaafc3e00b7481d
+
+Post-Migration Bookmark:
+000000cb-00000008-00004fe2-58293c87a3e13d1db498ca9da59c68bc
+
+To restore to PRE-migration state if needed:
+wrangler d1 time-travel restore meatup-club-db --bookmark=000000ca-00000000-00004fe2-bdb1af75e25219e22eaafc3e00b7481d
+
+Migration Results:
+✅ SUCCESS - Migration completed successfully
+- 17 queries executed
+- 1,249 rows read
+- 172 rows written
+- 14 restaurants migrated (deduplicated by name)
+- 11 votes migrated to new schema
+- Views updated: current_poll_restaurant_votes
+- New tables: restaurants, restaurant_votes, poll_excluded_restaurants
+
+Verification:
+✅ Restaurants table created with 14 records
+✅ Restaurant votes table created with 11 records
+✅ JOINs working correctly with new schema
+✅ View recreated successfully
+
+Notes:
+- Old tables (restaurant_suggestions) have been dropped
+- Restaurants are now global and available across all polls
+- Votes use new structure: (poll_id, restaurant_id, user_id)
+- D1 Time Travel provides automatic point-in-time recovery

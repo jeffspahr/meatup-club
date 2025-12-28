@@ -46,22 +46,24 @@ export async function getActivePollLeaders(db: any): Promise<VoteLeaders> {
 
   if (activePoll) {
     // Fetch top restaurant for active poll
+    // All restaurants are available in all polls (unless explicitly excluded)
     topRestaurant = await db
       .prepare(`
         SELECT
-          rs.id,
-          rs.name,
-          rs.address,
-          COUNT(rv.id) as vote_count
-        FROM restaurant_suggestions rs
-        LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id
-        WHERE rs.poll_id = ?
-        GROUP BY rs.id
+          r.id,
+          r.name,
+          r.address,
+          COUNT(rv.user_id) as vote_count
+        FROM restaurants r
+        LEFT JOIN restaurant_votes rv ON rv.restaurant_id = r.id AND rv.poll_id = ?
+        LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
+        WHERE per.id IS NULL
+        GROUP BY r.id
         HAVING vote_count > 0
         ORDER BY vote_count DESC
         LIMIT 1
       `)
-      .bind(activePoll.id)
+      .bind(activePoll.id, activePoll.id)
       .first();
 
     // Fetch top date for active poll

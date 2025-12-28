@@ -39,12 +39,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         SELECT MAX(vote_count) as max_votes
         FROM (
           SELECT COUNT(rv.id) as vote_count
-          FROM restaurant_suggestions rs
-          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
-          GROUP BY rs.id
+          FROM restaurants r
+          LEFT JOIN restaurant_votes rv ON r.id = rv.restaurant_id AND rv.poll_id = ?
+          LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
+          WHERE per.id IS NULL
+          GROUP BY r.id
         )
       `)
-      .bind((activePoll as any).id)
+      .bind((activePoll as any).id, (activePoll as any).id)
       .first();
 
     const maxVotes = (maxVoteResult as any)?.max_votes || 0;
@@ -53,14 +55,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     if (maxVotes > 0) {
       const topRestaurantsResult = await db
         .prepare(`
-          SELECT rs.name, COUNT(rv.id) as vote_count
-          FROM restaurant_suggestions rs
-          LEFT JOIN restaurant_votes rv ON rs.id = rv.suggestion_id AND rv.poll_id = ?
-          GROUP BY rs.id
+          SELECT r.name, COUNT(rv.id) as vote_count
+          FROM restaurants r
+          LEFT JOIN restaurant_votes rv ON r.id = rv.restaurant_id AND rv.poll_id = ?
+          LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
+          WHERE per.id IS NULL
+          GROUP BY r.id
           HAVING vote_count = ?
-          ORDER BY rs.name ASC
+          ORDER BY r.name ASC
         `)
-        .bind((activePoll as any).id, maxVotes)
+        .bind((activePoll as any).id, (activePoll as any).id, maxVotes)
         .all();
       topRestaurants = topRestaurantsResult.results || [];
     }
@@ -68,9 +72,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     // Get user's restaurant vote for this poll
     userRestaurantVote = await db
       .prepare(`
-        SELECT rs.name
+        SELECT r.name
         FROM restaurant_votes rv
-        JOIN restaurant_suggestions rs ON rv.suggestion_id = rs.id
+        JOIN restaurants r ON rv.restaurant_id = r.id
         WHERE rv.poll_id = ? AND rv.user_id = ?
       `)
       .bind((activePoll as any).id, user.id)

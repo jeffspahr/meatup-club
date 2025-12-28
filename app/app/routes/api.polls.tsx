@@ -71,7 +71,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     // If creating an event, get the winner details and create event
     if (createEvent && winningRestaurantId && winningDateId) {
       const restaurant = await db
-        .prepare(`SELECT * FROM restaurant_suggestions WHERE id = ?`)
+        .prepare(`SELECT * FROM restaurants WHERE id = ?`)
         .bind(winningRestaurantId)
         .first();
 

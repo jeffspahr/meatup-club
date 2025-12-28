@@ -10,6 +10,14 @@ import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { isDateInPastUTC } from "../lib/dateUtils";
 import { logActivity } from "../lib/activity.server";
 import { getComments, createComment, deleteComment } from "../lib/comments.server";
+import {
+  getRestaurantsForPoll,
+  createRestaurant,
+  findRestaurantByPlaceId,
+  voteForRestaurant,
+  removeVote,
+  deleteRestaurant,
+} from "../lib/restaurants.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -42,21 +50,24 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1, user.id, activePoll?.id || -1, activePoll?.id || -1)
     .all();
 
-  // Get restaurant suggestions for active poll
-  const restaurantSuggestionsResult = await db
-    .prepare(`
-      SELECT
-        rs.*,
-        u.name as suggested_by_name,
-        u.email as suggested_by_email,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND poll_id = ?) as vote_count,
-        (SELECT COUNT(*) FROM restaurant_votes WHERE suggestion_id = rs.id AND user_id = ? AND poll_id = ?) as user_has_voted
-      FROM restaurant_suggestions rs
-      JOIN users u ON rs.user_id = u.id
-      ORDER BY vote_count DESC, rs.created_at DESC
-    `)
-    .bind(activePoll?.id || -1, user.id, activePoll?.id || -1)
-    .all();
+  // Get restaurants for active poll (all global restaurants available unless excluded)
+  const restaurantSuggestionsRaw = activePoll
+    ? await getRestaurantsForPoll(db, activePoll.id, user.id)
+    : [];
+
+  // Enrich with user details for UI compatibility
+  const restaurantSuggestions = await Promise.all(
+    restaurantSuggestionsRaw.map(async (r: any) => {
+      const creator = r.created_by
+        ? await db.prepare('SELECT name, email FROM users WHERE id = ?').bind(r.created_by).first()
+        : null;
+      return {
+        ...r,
+        suggested_by_name: creator?.name || null,
+        suggested_by_email: creator?.email || null,
+      };
+    })
+  );
 
   // Get previous polls with winners
   const previousPollsResult = await db
@@ -98,7 +109,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   return {
     dateSuggestions: dateSuggestionsResult.results || [],
-    restaurantSuggestions: restaurantSuggestionsResult.results || [],
+    restaurantSuggestions,
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
     dateVotes: dateVotesResult.results || [],
@@ -282,26 +293,23 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant name is required' };
     }
 
-    // Check for duplicate by google_place_id or name
+    // Check for duplicate by google_place_id
     if (placeId) {
-      const existing = await db
-        .prepare('SELECT id FROM restaurant_suggestions WHERE google_place_id = ?')
-        .bind(placeId)
-        .first();
-
+      const existing = await findRestaurantByPlaceId(db, placeId as string);
       if (existing) {
         return { error: 'This restaurant has already been added' };
       }
     }
 
-    await db
-      .prepare(`
-        INSERT INTO restaurant_suggestions
-        (user_id, poll_id, google_place_id, name, address, cuisine, photo_url)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `)
-      .bind(user.id, activePoll.id, placeId || null, name, address || null, cuisine || null, photoUrl || null)
-      .run();
+    // Create global restaurant
+    await createRestaurant(db, {
+      name: name as string,
+      address: address as string | undefined,
+      google_place_id: placeId as string | undefined,
+      cuisine: cuisine as string | undefined,
+      photo_url: photoUrl as string | undefined,
+      created_by: user.id,
+    });
 
     await logActivity({
       db,
@@ -316,62 +324,39 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (action === 'vote_restaurant') {
-    const suggestionId = formData.get('suggestion_id');
+    const restaurantId = formData.get('suggestion_id');
 
-    if (!suggestionId) {
-      return { error: 'Suggestion ID is required' };
+    if (!restaurantId) {
+      return { error: 'Restaurant ID is required' };
     }
 
-    // Check if user already voted in this poll
+    // Check if user already voted for this restaurant
     const existingVote = await db
-      .prepare('SELECT id, suggestion_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
+      .prepare('SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
       .bind(activePoll.id, user.id)
       .first();
 
-    if (existingVote) {
-      if (existingVote.suggestion_id === parseInt(suggestionId as string)) {
-        // Unvote
-        await db
-          .prepare('DELETE FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
-          .bind(activePoll.id, user.id)
-          .run();
+    if (existingVote && existingVote.restaurant_id === parseInt(restaurantId as string)) {
+      // Unvote - user clicked the same restaurant
+      await removeVote(db, activePoll.id, user.id);
 
-        await logActivity({
-          db,
-          userId: user.id,
-          actionType: 'unvote_restaurant',
-          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
-          route: '/dashboard/polls',
-          request,
-        });
-      } else {
-        // Change vote
-        await db
-          .prepare('UPDATE restaurant_votes SET suggestion_id = ? WHERE poll_id = ? AND user_id = ?')
-          .bind(suggestionId, activePoll.id, user.id)
-          .run();
-
-        await logActivity({
-          db,
-          userId: user.id,
-          actionType: 'vote_restaurant',
-          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id, changed: true },
-          route: '/dashboard/polls',
-          request,
-        });
-      }
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'unvote_restaurant',
+        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id },
+        route: '/dashboard/polls',
+        request,
+      });
     } else {
-      // New vote
-      await db
-        .prepare('INSERT INTO restaurant_votes (poll_id, suggestion_id, user_id) VALUES (?, ?, ?)')
-        .bind(activePoll.id, suggestionId, user.id)
-        .run();
+      // New vote or change vote (voteForRestaurant replaces existing vote)
+      await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
 
       await logActivity({
         db,
         userId: user.id,
         actionType: 'vote_restaurant',
-        actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
         route: '/dashboard/polls',
         request,
       });
@@ -381,30 +366,32 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (action === 'delete_restaurant') {
-    const suggestionId = formData.get('suggestion_id');
+    const restaurantId = formData.get('suggestion_id');
 
-    if (!suggestionId) {
-      return { error: 'Suggestion ID is required' };
+    if (!restaurantId) {
+      return { error: 'Restaurant ID is required' };
     }
 
-    const suggestion = await db
-      .prepare('SELECT user_id FROM restaurant_suggestions WHERE id = ?')
-      .bind(suggestionId)
+    const restaurant = await db
+      .prepare('SELECT created_by FROM restaurants WHERE id = ?')
+      .bind(restaurantId)
       .first();
 
-    if (!suggestion || (suggestion.user_id !== user.id && user.is_admin !== 1)) {
+    if (!restaurant || (restaurant.created_by !== user.id && user.is_admin !== 1)) {
       return { error: 'Permission denied' };
     }
 
-    await db
-      .prepare('DELETE FROM restaurant_votes WHERE suggestion_id = ?')
-      .bind(suggestionId)
-      .run();
+    // Delete restaurant (cascades to votes via foreign key)
+    await deleteRestaurant(db, parseInt(restaurantId as string));
 
-    await db
-      .prepare('DELETE FROM restaurant_suggestions WHERE id = ?')
-      .bind(suggestionId)
-      .run();
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'delete_restaurant',
+      actionDetails: { restaurant_id: restaurantId },
+      route: '/dashboard/polls',
+      request,
+    });
 
     return redirect('/dashboard/polls');
   }

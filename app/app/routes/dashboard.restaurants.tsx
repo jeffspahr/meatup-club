@@ -4,11 +4,15 @@ import type { Route } from "./+types/dashboard.restaurants";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
+import {
+  createRestaurant,
+  findRestaurantByPlaceId,
+  deleteRestaurant,
+} from "../lib/restaurants.server";
 
-interface Suggestion {
+interface RestaurantDisplay {
   id: number;
-  user_id: number;
-  event_id: number;
+  created_by: number;
   name: string;
   address: string | null;
   cuisine: string | null;
@@ -32,21 +36,21 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
 
-  // Get all restaurants
-  const suggestionsResult = await db
+  // Get all global restaurants
+  const restaurantsResult = await db
     .prepare(`
       SELECT
-        rs.*,
+        r.*,
         u.name as suggested_by_name,
         u.email as suggested_by_email
-      FROM restaurant_suggestions rs
-      JOIN users u ON rs.user_id = u.id
-      ORDER BY rs.created_at DESC
+      FROM restaurants r
+      LEFT JOIN users u ON r.created_by = u.id
+      ORDER BY r.created_at DESC
     `)
     .all();
 
   return {
-    suggestions: suggestionsResult.results || [],
+    suggestions: restaurantsResult.results || [],
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -80,67 +84,57 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant name is required' };
     }
 
-    // Get active poll (optional - suggestions can exist without a poll)
-    const activePoll = await db
-      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
-      .first();
+    // Check for duplicate by google_place_id
+    if (googlePlaceId) {
+      const existing = await findRestaurantByPlaceId(db, googlePlaceId as string);
+      if (existing) {
+        return { error: 'This restaurant has already been added' };
+      }
+    }
 
-    await db
-      .prepare(`
-        INSERT INTO restaurant_suggestions (
-          user_id, poll_id, name, address, cuisine, url,
-          google_place_id, google_rating, rating_count, price_level,
-          phone_number, reservation_url, menu_url, photo_url, google_maps_url, opening_hours
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        user.id,
-        activePoll?.id || null,
-        name,
-        address || null,
-        cuisine || null,
-        url || null,
-        googlePlaceId || null,
-        googleRating ? parseFloat(googleRating as string) : null,
-        ratingCount ? parseInt(ratingCount as string) : null,
-        priceLevel ? parseInt(priceLevel as string) : null,
-        phoneNumber || null,
-        reservationUrl || null,
-        menuUrl || null,
-        photoUrl || null,
-        googleMapsUrl || null,
-        openingHours || null
-      )
-      .run();
+    // Create global restaurant
+    await createRestaurant(db, {
+      name: name as string,
+      address: address as string | undefined,
+      google_place_id: googlePlaceId as string | undefined,
+      google_rating: googleRating ? parseFloat(googleRating as string) : undefined,
+      rating_count: ratingCount ? parseInt(ratingCount as string) : undefined,
+      price_level: priceLevel ? parseInt(priceLevel as string) : undefined,
+      cuisine: cuisine as string | undefined,
+      phone_number: phoneNumber as string | undefined,
+      reservation_url: reservationUrl as string | undefined,
+      menu_url: menuUrl as string | undefined,
+      photo_url: photoUrl as string | undefined,
+      google_maps_url: googleMapsUrl as string | undefined,
+      opening_hours: openingHours as string | undefined,
+      created_by: user.id,
+    });
 
     return redirect('/dashboard/restaurants');
   }
 
   if (action === 'delete') {
-    const suggestionId = formData.get('suggestion_id');
+    const restaurantId = formData.get('suggestion_id');
 
-    if (!suggestionId) {
-      return { error: 'Suggestion ID is required' };
+    if (!restaurantId) {
+      return { error: 'Restaurant ID is required' };
     }
 
-    // Check if user owns this suggestion or is admin
-    const suggestion = await db
-      .prepare('SELECT user_id FROM restaurant_suggestions WHERE id = ?')
-      .bind(suggestionId)
+    // Check if user owns this restaurant or is admin
+    const restaurant = await db
+      .prepare('SELECT created_by FROM restaurants WHERE id = ?')
+      .bind(restaurantId)
       .first();
 
-    if (!suggestion) {
-      return { error: 'Suggestion not found' };
+    if (!restaurant) {
+      return { error: 'Restaurant not found' };
     }
 
-    // Allow deletion if user is admin or owns the suggestion
-    if (user.is_admin || suggestion.user_id === user.id) {
-      await db
-        .prepare('DELETE FROM restaurant_suggestions WHERE id = ?')
-        .bind(suggestionId)
-        .run();
+    // Allow deletion if user is admin or owns the restaurant
+    if (user.is_admin || restaurant.created_by === user.id) {
+      await deleteRestaurant(db, parseInt(restaurantId as string));
     } else {
-      return { error: 'You do not have permission to delete this suggestion' };
+      return { error: 'You do not have permission to delete this restaurant' };
     }
 
     return redirect('/dashboard/restaurants');
@@ -367,7 +361,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                       </div>
 
                       {/* Delete button - shown if user owns or is admin */}
-                      {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
+                      {(currentUser.isAdmin || suggestion.created_by === currentUser.id) && (
                         <div className="ml-6 flex items-start">
                           <button
                             onClick={() => handleDelete(suggestion.id, suggestion.name)}
