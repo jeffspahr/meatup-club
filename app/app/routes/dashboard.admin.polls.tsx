@@ -107,12 +107,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     const winningDateId = formData.get('winning_date_id');
     const createEvent = formData.get('create_event') === 'true';
     const sendInvites = formData.get('send_invites') === 'true';
+    const eventTime = (formData.get('event_time') as string) || '18:00';
 
     if (!pollId) {
       return { error: 'Poll ID is required' };
     }
 
-    let createdEventId = null;
+    let createdEventId: number | null = null;
 
     // If creating an event, validate and create
     if (createEvent && winningRestaurantId && winningDateId) {
@@ -165,10 +166,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       // Create the event
       const eventResult = await db
         .prepare(`
-          INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
-          VALUES (?, ?, ?, 'upcoming')
+          INSERT INTO events (restaurant_name, restaurant_address, event_date, event_time, status)
+          VALUES (?, ?, ?, ?, 'upcoming')
         `)
-        .bind(restaurant.name, restaurant.address, date.suggested_date)
+        .bind(restaurant.name, restaurant.address, date.suggested_date, eventTime)
         .run();
 
       createdEventId = eventResult.meta.last_row_id;
@@ -192,6 +193,7 @@ export async function action({ request, context }: Route.ActionArgs) {
             restaurantName: restaurant.name,
             restaurantAddress: restaurant.address,
             eventDate: date.suggested_date,
+            eventTime: eventTime,
             recipientEmails: usersResult.results.map((u: any) => u.email),
             resendApiKey,
           }).then(result => {
@@ -400,6 +402,22 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
                   <strong>Votes:</strong> {topRestaurant.vote_count} for restaurant, {topDate.vote_count} for date
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Time
+                </label>
+                <input
+                  type="time"
+                  name="event_time"
+                  defaultValue="18:00"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-meat-red focus:border-meat-red"
+                  required
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  Time for the event (defaults to 6:00 PM)
                 </p>
               </div>
 
