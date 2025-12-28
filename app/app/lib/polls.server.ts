@@ -3,12 +3,14 @@
  */
 
 interface VoteLeader {
+  id: number;
   name: string;
   address: string | null;
   vote_count: number;
 }
 
 interface DateLeader {
+  id: number;
   suggested_date: string;
   vote_count: number;
 }
@@ -47,6 +49,7 @@ export async function getActivePollLeaders(db: any): Promise<VoteLeaders> {
     topRestaurant = await db
       .prepare(`
         SELECT
+          rs.id,
           rs.name,
           rs.address,
           COUNT(rv.id) as vote_count
@@ -64,6 +67,7 @@ export async function getActivePollLeaders(db: any): Promise<VoteLeaders> {
     topDate = await db
       .prepare(`
         SELECT
+          ds.id,
           ds.suggested_date,
           COUNT(dv.id) as vote_count
         FROM date_suggestions ds
