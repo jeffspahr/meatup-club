@@ -32,8 +32,8 @@ export default function MembersPage({ loaderData }: Route.ComponentProps) {
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Members</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">Members</h1>
+        <p className="text-muted-foreground mt-1">
           Active Meatup.Club members ({members.length})
         </p>
       </div>
@@ -43,7 +43,7 @@ export default function MembersPage({ loaderData }: Route.ComponentProps) {
         {members.map((member: any) => (
           <div
             key={member.id}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-md transition"
+            className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition"
           >
             <div className="flex items-center gap-4">
               {member.picture ? (
@@ -59,7 +59,7 @@ export default function MembersPage({ loaderData }: Route.ComponentProps) {
               )}
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="font-semibold text-foreground">
                     {member.name || 'No name'}
                   </h3>
                   {member.is_admin ? (
@@ -68,8 +68,8 @@ export default function MembersPage({ loaderData }: Route.ComponentProps) {
                     </span>
                   ) : null}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{member.email}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground">{member.email}</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Joined {formatDateForDisplay(member.created_at)}
                 </p>
               </div>

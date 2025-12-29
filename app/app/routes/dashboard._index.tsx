@@ -177,10 +177,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
       <div className="mb-6">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+        <h1 className="text-4xl font-bold text-foreground mb-2">
           Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">
+        <p className="text-xl text-muted-foreground">
           Your quarterly steakhouse meetup headquarters
         </p>
       </div>
@@ -192,10 +192,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <div className="flex items-center gap-3">
               <span className="text-3xl">🥩</span>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                <h2 className="text-2xl font-bold text-foreground">
                   About Meatup.Club
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Everything you need to know about our quarterly steakhouse adventures
                 </p>
               </div>
@@ -211,8 +211,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           {showContent && (
             <div className="space-y-4 mt-6">
               {content.map((item: any) => (
-                <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg p-5 shadow-sm">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <div key={item.id} className="bg-card rounded-lg p-5 shadow-sm">
+                  <h3 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
                     {item.key === 'description' && '📖'}
                     {item.key === 'goals' && '🎯'}
                     {item.key === 'guidelines' && '📋'}
@@ -220,16 +220,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     {item.key === 'safety' && '🚗'}
                     {item.title}
                   </h3>
-                  <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                  <div className="prose prose-sm max-w-none text-foreground">
                     <ReactMarkdown
                       components={{
                         ul: ({ children }) => <ul className="space-y-1 list-disc ml-6">{children}</ul>,
                         ol: ({ children }) => <ol className="space-y-1 list-decimal ml-6">{children}</ol>,
-                        li: ({ children }) => <li className="text-gray-700 dark:text-gray-300">{children}</li>,
+                        li: ({ children }) => <li className="text-foreground">{children}</li>,
                         p: ({ children }) => <p className="mb-2">{children}</p>,
-                        strong: ({ children }) => <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>,
+                        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                         em: ({ children }) => <em className="italic">{children}</em>,
-                        h3: ({ children }) => <h3 className="text-base font-semibold mb-1 text-gray-900 dark:text-gray-100">{children}</h3>,
+                        h3: ({ children }) => <h3 className="text-base font-semibold mb-1 text-foreground">{children}</h3>,
                       }}
                     >
                       {item.content}
@@ -350,16 +350,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* At a Glance - Compact Stats */}
       {nextEvent && (
-        <div className="mb-8 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">📍 Next Meetup</h2>
+        <div className="mb-8 bg-card rounded-lg border border-border p-6">
+          <h2 className="text-lg font-bold text-foreground mb-4">📍 Next Meetup</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wide mb-1">Restaurant</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{(nextEvent as any).restaurant_name}</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Restaurant</p>
+              <p className="text-xl font-bold text-foreground">{(nextEvent as any).restaurant_name}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wide mb-1">Date</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date</p>
+              <p className="text-xl font-bold text-foreground">
                 {formatDateForDisplay((nextEvent as any).event_date, {
                   weekday: 'short',
                   month: 'short',
@@ -368,7 +368,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-500 uppercase tracking-wide mb-1">Your RSVP</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Your RSVP</p>
               <div className="flex items-center gap-2">
                 {userRsvp ? (
                   <>
@@ -404,7 +404,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">🎯 Quick Actions</h2>
+        <h2 className="text-lg font-bold text-foreground mb-4">🎯 Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
@@ -482,12 +482,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* Feedback Section */}
-      <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <div className="mt-12 pt-8 border-t border-border">
+        <div className="bg-muted rounded-lg p-6 text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             Have feedback or found a bug?
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             Help us improve Meatup.Club by reporting issues or suggesting new features
           </p>
           <div className="flex flex-wrap gap-3 justify-center">

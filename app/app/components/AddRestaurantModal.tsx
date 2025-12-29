@@ -54,14 +54,14 @@ export function AddRestaurantModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <h3 className="text-xl font-semibold text-foreground">
             {title}
           </h3>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
+            className="text-muted-foreground hover:text-foreground text-2xl leading-none"
             aria-label="Close"
           >
             ×
@@ -70,7 +70,7 @@ export function AddRestaurantModal({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Search for Restaurant
             </label>
             <RestaurantAutocomplete
@@ -78,7 +78,7 @@ export function AddRestaurantModal({
               onChange={setRestaurantName}
               onSelect={handleSelect}
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Start typing to search Google Places
             </p>
           </div>
@@ -99,28 +99,28 @@ export function AddRestaurantModal({
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    <p className="font-semibold text-foreground">
                       {placeDetails.name}
                     </p>
                     {placeDetails.address && (
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <p className="text-sm text-foreground">
                         {placeDetails.address}
                       </p>
                     )}
                     {placeDetails.cuisine && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         Cuisine: {placeDetails.cuisine}
                       </p>
                     )}
                     <div className="flex items-center gap-3 mt-1">
                       {placeDetails.rating > 0 && (
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-sm text-foreground">
                           ⭐ {placeDetails.rating} ({placeDetails.ratingCount}{" "}
                           reviews)
                         </span>
                       )}
                       {placeDetails.priceLevel > 0 && (
-                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                        <span className="text-sm text-foreground">
                           {"$".repeat(placeDetails.priceLevel)}
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function AddRestaurantModal({
             </button>
             <button
               onClick={handleClose}
-              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
             >
               Cancel
             </button>

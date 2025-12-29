@@ -170,7 +170,7 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">RSVP to Events</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-8">RSVP to Events</h1>
 
       {actionData?.error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
@@ -179,8 +179,8 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
       )}
 
       {events.length === 0 ? (
-        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
+        <div className="bg-muted border border-border rounded-lg p-8 text-center">
+          <p className="text-muted-foreground">
             No upcoming events at the moment. Check back soon!
           </p>
         </div>
@@ -189,16 +189,16 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
           {events.map((event: any) => (
             <div
               key={event.id}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6"
+              className="bg-card border border-border rounded-lg p-6"
             >
               <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <h2 className="text-2xl font-semibold text-foreground mb-2">
                   {event.restaurant_name}
                 </h2>
                 {event.restaurant_address && (
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">{event.restaurant_address}</p>
+                  <p className="text-muted-foreground mb-1">{event.restaurant_address}</p>
                 )}
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-muted-foreground">
                   Date:{' '}
                   {formatDateForDisplay(event.event_date, {
                     weekday: 'long',
@@ -210,8 +210,8 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
               </div>
 
               {/* RSVP Form */}
-              <div className="mb-6 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Your RSVP</h3>
+              <div className="mb-6 bg-muted p-4 rounded-lg">
+                <h3 className="font-semibold text-foreground mb-3">Your RSVP</h3>
                 <Form method="post" className="space-y-4">
                   <input type="hidden" name="event_id" value={event.id} />
 
@@ -271,7 +271,7 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
               {/* Attendee List */}
               {event.allRsvps.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                  <h3 className="font-semibold text-foreground mb-3">
                     Attendees ({event.allRsvps.filter((r: RSVP) => r.status === 'yes').length})
                   </h3>
                   <div className="space-y-2">
@@ -280,7 +280,7 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
                       .map((rsvp: RSVP) => (
                         <div
                           key={rsvp.id}
-                          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-md"
+                          className="flex items-center gap-3 p-3 bg-muted rounded-md"
                         >
                           {rsvp.picture && (
                             <img
@@ -290,9 +290,9 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
                             />
                           )}
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{rsvp.name || rsvp.email}</p>
+                            <p className="font-medium text-foreground">{rsvp.name || rsvp.email}</p>
                             {rsvp.comments && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="text-sm text-muted-foreground">
                                 {rsvp.comments}
                               </p>
                             )}
@@ -303,14 +303,14 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
 
                   {event.allRsvps.filter((r: RSVP) => r.status === 'maybe').length > 0 && (
                     <>
-                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mt-4 mb-2">Maybe</h4>
+                      <h4 className="font-semibold text-foreground mt-4 mb-2">Maybe</h4>
                       <div className="space-y-2">
                         {event.allRsvps
                           .filter((rsvp: RSVP) => rsvp.status === 'maybe')
                           .map((rsvp: RSVP) => (
                             <div
                               key={rsvp.id}
-                              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-md opacity-60"
+                              className="flex items-center gap-3 p-3 bg-muted rounded-md opacity-60"
                             >
                               {rsvp.picture && (
                                 <img
@@ -319,7 +319,7 @@ export default function RSVPPage({ loaderData, actionData }: Route.ComponentProp
                                   className="w-10 h-10 rounded-full"
                                 />
                               )}
-                              <p className="font-medium text-gray-900 dark:text-gray-100">
+                              <p className="font-medium text-foreground">
                                 {rsvp.name || rsvp.email}
                               </p>
                             </div>
