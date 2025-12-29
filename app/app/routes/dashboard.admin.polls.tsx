@@ -44,7 +44,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .prepare(`
         SELECT ds.id, ds.suggested_date, COUNT(dv.id) as vote_count
         FROM date_suggestions ds
-        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
+        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
+        WHERE ds.poll_id = ?
         GROUP BY ds.id
         HAVING vote_count > 0
         ORDER BY vote_count DESC, ds.suggested_date ASC
