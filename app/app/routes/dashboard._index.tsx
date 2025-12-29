@@ -392,7 +392,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     )}
                   </>
                 ) : (
-                  <Link to="/dashboard/rsvp" className="text-meat-red hover:text-meat-brown font-semibold">
+                  <Link to="/dashboard/events" className="text-meat-red hover:text-meat-brown font-semibold">
                     Set RSVP →
                   </Link>
                 )}
@@ -422,7 +422,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           )}
 
           {nextEvent && (
-            <Link to="/dashboard/rsvp">
+            <Link to="/dashboard/events">
               <div className="bg-gradient-to-br from-meat-red to-meat-brown text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-3xl">✋</span>

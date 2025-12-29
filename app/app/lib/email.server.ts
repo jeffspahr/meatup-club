@@ -321,7 +321,7 @@ export async function sendEventInvites({
                           <table role="presentation" style="width: 100%; border-collapse: collapse;">
                             <tr>
                               <td align="center" style="padding: 0 0 24px;">
-                                <a href="https://meatup.club/dashboard/rsvp" style="display: inline-block; background-color: #991b1b; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(153, 27, 27, 0.2);">
+                                <a href="https://meatup.club/dashboard/events" style="display: inline-block; background-color: #991b1b; color: #ffffff; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 6px; box-shadow: 0 2px 4px rgba(153, 27, 27, 0.2);">
                                   RSVP Now
                                 </a>
                               </td>
@@ -354,7 +354,7 @@ You're invited to our next quarterly meatup!
 📍 ${restaurantName}
 ${restaurantAddress ? restaurantAddress + '\n' : ''}📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
 
-RSVP at: https://meatup.club/dashboard/rsvp
+RSVP at: https://meatup.club/dashboard/events
 
 A calendar invite is attached to this email.
           `,
@@ -453,7 +453,7 @@ export async function sendCalendarUpdate({
       ? `${restaurantName}, ${restaurantAddress}`
       : restaurantName;
 
-    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/rsvp`;
+    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
 
     // Map website RSVP status to calendar PARTSTAT
     const partstatMap: Record<string, string> = {

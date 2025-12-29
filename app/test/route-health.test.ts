@@ -85,7 +85,6 @@ describe('Route Health - All Routes Should Load Without 404', () => {
       { path: '/dashboard/polls', file: '../app/routes/dashboard.polls' },
       { path: '/dashboard/profile', file: '../app/routes/dashboard.profile' },
       { path: '/dashboard/restaurants', file: '../app/routes/dashboard.restaurants' },
-      { path: '/dashboard/rsvp', file: '../app/routes/dashboard.rsvp' },
     ];
 
     dashboardRoutes.forEach(({ path, file }) => {
@@ -94,6 +93,13 @@ describe('Route Health - All Routes Should Load Without 404', () => {
         expect(route.default).toBeDefined(); // Component exists
         expect(route.loader).toBeDefined(); // Loader exists (required for auth check)
       });
+    });
+
+    // Redirect routes (backward compatibility)
+    it('/dashboard/rsvp should have loader (redirect-only route)', async () => {
+      const route = await import('../app/routes/dashboard.rsvp');
+      expect(route.loader).toBeDefined(); // Loader exists for redirect
+      // No component required - this is a redirect-only route
     });
   });
 

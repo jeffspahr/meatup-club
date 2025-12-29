@@ -51,14 +51,14 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 Polls
               </Link>
               <Link
-                to="/dashboard/rsvp"
+                to="/dashboard/events"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  isActive('/dashboard/rsvp')
+                  isActive('/dashboard/events') || isActive('/dashboard/rsvp')
                     ? 'bg-meat-red text-white'
                     : 'text-foreground hover:bg-muted'
                 }`}
               >
-                RSVP
+                Events
               </Link>
               <Link
                 to="/dashboard/restaurants"
@@ -69,16 +69,6 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
                 }`}
               >
                 Restaurants
-              </Link>
-              <Link
-                to="/dashboard/events"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  isActive('/dashboard/events')
-                    ? 'bg-meat-red text-white'
-                    : 'text-foreground hover:bg-muted'
-                }`}
-              >
-                Events
               </Link>
               <Link
                 to="/dashboard/members"

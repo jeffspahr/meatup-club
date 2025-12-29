@@ -929,7 +929,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Closed {formatDateForDisplay(poll.created_at)}
+                    Closed {formatDateForDisplay(poll.closed_at)}
                   </span>
                 </div>
                 {poll.winner_restaurant && poll.winner_date && (
