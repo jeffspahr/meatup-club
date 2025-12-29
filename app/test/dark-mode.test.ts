@@ -177,25 +177,29 @@ describe('Dark Mode CSS System', () => {
   });
 
   describe('Component Best Practices', () => {
-    it('DoodleView should use gray classes without manual dark: prefixes', () => {
+    it('DoodleView should use semantic color classes', () => {
       // Read the DoodleView component
       const doodleViewPath = join(__dirname, '../app/components/DoodleView.tsx');
       const content = readFileSync(doodleViewPath, 'utf-8');
 
-      // Should use plain gray classes for colors handled by CSS variables
-      expect(content).toContain('text-gray-700');
-      expect(content).toContain('bg-gray-50');
-      expect(content).toContain('border-gray-300');
+      // Should use semantic color classes instead of hardcoded gray values
+      expect(content).toContain('text-foreground');
+      expect(content).toContain('bg-muted');
+      expect(content).toContain('border-border');
+      expect(content).toContain('text-muted-foreground');
 
-      // Should NOT have manual dark: overrides for gray colors
-      // (Color-specific ones like blue/green are ok)
-      const grayDarkClasses = content.match(/dark:text-gray-/g) || [];
-      const grayBgDarkClasses = content.match(/dark:bg-gray-/g) || [];
-      const grayBorderDarkClasses = content.match(/dark:border-gray-/g) || [];
+      // Should NOT have manual dark: overrides for semantic gray/neutral colors
+      // (Color-specific ones like blue/green are ok for specific highlights)
+      const semanticDarkClasses = content.match(/dark:text-foreground|dark:bg-muted|dark:border-border/g) || [];
 
-      expect(grayDarkClasses.length).toBe(0);
-      expect(grayBgDarkClasses.length).toBe(0);
-      expect(grayBorderDarkClasses.length).toBe(0);
+      // Semantic classes should not need dark: overrides since CSS variables handle it
+      expect(semanticDarkClasses.length).toBe(0);
+
+      // But color-specific dark: classes for highlights are allowed
+      expect(content).toContain('dark:bg-blue-900/30');
+      expect(content).toContain('dark:text-blue-400');
+      expect(content).toContain('dark:bg-green-900/30');
+      expect(content).toContain('dark:text-green-400');
     });
   });
 });
