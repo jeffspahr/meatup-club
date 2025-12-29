@@ -749,7 +749,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               <span className="px-3 py-1 bg-meat-red text-white text-sm font-semibold rounded-full">
                 Active Poll
               </span>
-              <h2 className="text-2xl font-bold text-foreground">{activePoll.name}</h2>
+              <h2 className="text-2xl font-bold text-foreground">{activePoll.title}</h2>
             </div>
             {activePoll.description && (
               <p className="text-muted-foreground mb-6">{activePoll.description}</p>
@@ -923,7 +923,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               <div key={poll.id} className="bg-card border border-border rounded-lg p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-foreground">{poll.name}</h3>
+                    <h3 className="text-lg font-semibold text-foreground">{poll.title}</h3>
                     {poll.description && (
                       <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>
                     )}
