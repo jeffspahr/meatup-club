@@ -18,6 +18,43 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Get vote leaders from shared utility
   const { activePoll, topRestaurant, topDate } = await getActivePollLeaders(db);
 
+  // Get ALL restaurants with votes for the active poll (for override dropdown)
+  let allRestaurants: any[] = [];
+  let allDates: any[] = [];
+
+  if (activePoll) {
+    const restaurantsResult = await db
+      .prepare(`
+        SELECT r.id, r.name, r.address, COUNT(rv.user_id) as vote_count
+        FROM restaurants r
+        LEFT JOIN restaurant_votes rv ON rv.restaurant_id = r.id AND rv.poll_id = ?
+        LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
+        WHERE per.id IS NULL
+        GROUP BY r.id
+        HAVING vote_count > 0
+        ORDER BY vote_count DESC, r.name ASC
+      `)
+      .bind(activePoll.id, activePoll.id)
+      .all();
+
+    allRestaurants = restaurantsResult.results || [];
+
+    // Get ALL date suggestions with votes for the active poll (for override dropdown)
+    const datesResult = await db
+      .prepare(`
+        SELECT ds.id, ds.suggested_date, COUNT(dv.id) as vote_count
+        FROM date_suggestions ds
+        LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
+        GROUP BY ds.id
+        HAVING vote_count > 0
+        ORDER BY vote_count DESC, ds.suggested_date ASC
+      `)
+      .bind(activePoll.id)
+      .all();
+
+    allDates = datesResult.results || [];
+  }
+
   // Get recent closed polls
   const closedPolls = await db
     .prepare(`
@@ -44,6 +81,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     activePoll,
     topRestaurant,
     topDate,
+    allRestaurants,
+    allDates,
     closedPolls: closedPolls.results || [],
   };
 }
@@ -201,7 +240,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function AdminPollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { activePoll, topRestaurant, topDate, closedPolls } = loaderData;
+  const { activePoll, topRestaurant, topDate, allRestaurants, allDates, closedPolls } = loaderData;
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -257,8 +296,58 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
               <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
               <input type="hidden" name="_action" value="close" />
               <input type="hidden" name="poll_id" value={activePoll.id} />
-              <input type="hidden" name="winning_restaurant_id" value={topRestaurant.id} />
-              <input type="hidden" name="winning_date_id" value={topDate.id} />
+
+              {/* Restaurant & Date Override Selects */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Restaurant
+                  </label>
+                  <select
+                    name="winning_restaurant_id"
+                    defaultValue={topRestaurant.id}
+                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red bg-card text-foreground"
+                    required
+                  >
+                    {allRestaurants.map((restaurant: any) => (
+                      <option key={restaurant.id} value={restaurant.id}>
+                        {restaurant.name} - {restaurant.vote_count} vote{restaurant.vote_count !== 1 ? 's' : ''}
+                        {restaurant.id === topRestaurant.id ? ' (Leader)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Defaulted to vote leader, but you can override
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Date
+                  </label>
+                  <select
+                    name="winning_date_id"
+                    defaultValue={topDate.id}
+                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red bg-card text-foreground"
+                    required
+                  >
+                    {allDates.map((date: any) => (
+                      <option key={date.id} value={date.id}>
+                        {formatDateForDisplay(date.suggested_date, {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })} - {date.vote_count} vote{date.vote_count !== 1 ? 's' : ''}
+                        {date.id === topDate.id ? ' (Leader)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Defaulted to vote leader, but you can override
+                  </p>
+                </div>
+              </div>
 
               <div className="space-y-4 mb-4">
                 <label className="flex items-center gap-2">
@@ -291,35 +380,6 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 </label>
                 <p className="text-xs text-muted-foreground mt-1 ml-6">
                   Sends personalized calendar invites to all active members
-                </p>
-              </div>
-
-              <div className="bg-card border border-border rounded-lg p-4 mb-4">
-                <h4 className="font-semibold text-foreground mb-2">Event Preview:</h4>
-                <p className="text-sm text-foreground">
-                  <strong>Restaurant:</strong> {topRestaurant.name}
-                  {!topRestaurant.address && (
-                    <span className="ml-2 text-yellow-600 text-xs">
-                      ⚠️ Missing address (calendar invites will be limited)
-                    </span>
-                  )}
-                </p>
-                {topRestaurant.address && (
-                  <p className="text-sm text-foreground">
-                    <strong>Address:</strong> {topRestaurant.address}
-                  </p>
-                )}
-                <p className="text-sm text-foreground">
-                  <strong>Date:</strong>{' '}
-                  {formatDateForDisplay(topDate.suggested_date, {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  <strong>Votes:</strong> {topRestaurant.vote_count} for restaurant, {topDate.vote_count} for date
                 </p>
               </div>
 
