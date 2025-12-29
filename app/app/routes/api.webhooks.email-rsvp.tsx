@@ -103,7 +103,20 @@ export async function action({ request, context }: Route.ActionArgs) {
       }, { status: 400 });
     }
 
-    const eventId = parseInt(uidMatch[1]);
+    let eventId = parseInt(uidMatch[1]);
+
+    // HOTFIX: Redirect duplicate event RSVPs to canonical event
+    // Event 2 was a duplicate of Event 3 created due to a bug
+    // Both calendar invites were sent, so we transparently redirect to Event 3
+    const EVENT_REDIRECTS: Record<number, number> = {
+      2: 3, // Redirect event-2@meatup.club RSVPs to event 3
+    };
+
+    const originalEventId = eventId;
+    if (EVENT_REDIRECTS[eventId]) {
+      eventId = EVENT_REDIRECTS[eventId];
+      console.log(`Redirecting RSVP from event ${originalEventId} to event ${eventId}`);
+    }
 
     // Verify event exists
     const event = await db
@@ -115,7 +128,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       console.log(`Event not found: ${eventId}`);
       return Response.json({
         message: 'Event not found',
-        eventId
+        eventId: originalEventId
       }, { status: 404 });
     }
 

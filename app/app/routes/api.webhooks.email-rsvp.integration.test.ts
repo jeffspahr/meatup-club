@@ -709,4 +709,78 @@ describe('Webhook Handler - Database Operations', () => {
       expect(data.message).toContain('Database connection failed');
     });
   });
+
+  describe('Event Redirect (Duplicate Events)', () => {
+    it('should redirect RSVP from event 2 to event 3 transparently', async () => {
+      // Mock user lookup
+      mockDb.first
+        .mockResolvedValueOnce({ id: 123, email: 'user@example.com', name: 'Test User' }) // User
+        .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' }) // Event 3 (redirect target)
+        .mockResolvedValueOnce(null); // No existing RSVP
+
+      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+        method: 'POST',
+        headers: {
+          'svix-id': 'msg_123',
+          'svix-timestamp': '1234567890',
+          'svix-signature': 'v1,valid-signature',
+        },
+        body: JSON.stringify({
+          type: 'email.received',
+          data: {
+            from: 'user@example.com',
+            subject: 'RSVP',
+            text: 'UID:event-2@meatup.club\nPARTSTAT:ACCEPTED', // Event 2 (deleted duplicate)
+          },
+        }),
+      });
+
+      const context = {
+        cloudflare: { env: mockEnv },
+      } as any;
+
+      const response = await action({ request, context, params: {} });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.status).toBe('yes');
+      // The redirect is verified by the log test below
+    });
+
+    it('should log the redirect from event 2 to event 3', async () => {
+      const consoleSpy = vi.spyOn(console, 'log');
+
+      mockDb.first
+        .mockResolvedValueOnce({ id: 123, email: 'user@example.com', name: 'Test User' })
+        .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' })
+        .mockResolvedValueOnce(null);
+
+      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+        method: 'POST',
+        headers: {
+          'svix-id': 'msg_123',
+          'svix-timestamp': '1234567890',
+          'svix-signature': 'v1,valid-signature',
+        },
+        body: JSON.stringify({
+          type: 'email.received',
+          data: {
+            from: 'user@example.com',
+            subject: 'RSVP',
+            text: 'UID:event-2@meatup.club\nPARTSTAT:ACCEPTED',
+          },
+        }),
+      });
+
+      const context = {
+        cloudflare: { env: mockEnv },
+      } as any;
+
+      await action({ request, context, params: {} });
+
+      expect(consoleSpy).toHaveBeenCalledWith('Redirecting RSVP from event 2 to event 3');
+      consoleSpy.mockRestore();
+    });
+  });
 });
