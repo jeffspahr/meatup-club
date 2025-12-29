@@ -5,7 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "deploy": "npm run build && wrangler pages deploy ./build/client",
+    "deploy": "npm run test:run && npm run build && wrangler deploy",
     "preview": "npm run build && wrangler pages dev ./build/client",
     "typecheck": "react-router typegen && tsc",
     "cf-typegen": "wrangler types",
