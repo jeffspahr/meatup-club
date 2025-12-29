@@ -40,15 +40,15 @@ export default function AdminSetupPage({ actionData }: Route.ComponentProps) {
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold">System Setup</h1>
-        <p className="text-gray-600 mt-1">Configure external integrations and services</p>
+        <p className="text-muted-foreground mt-1">Configure external integrations and services</p>
       </div>
 
       {/* Resend Inbound Email Setup */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold mb-2">📧 Resend Inbound Email</h2>
-            <p className="text-gray-600 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Configure automatic email routing for calendar RSVP responses
             </p>
           </div>
@@ -116,9 +116,9 @@ export default function AdminSetupPage({ actionData }: Route.ComponentProps) {
       </div>
 
       {/* Future Setup Options */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-2 text-gray-400">Coming Soon</h2>
-        <p className="text-gray-500 text-sm">
+      <div className="bg-muted border border-border rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-2 text-muted-foreground">Coming Soon</h2>
+        <p className="text-muted-foreground text-sm">
           Additional integrations and setup options will appear here
         </p>
       </div>

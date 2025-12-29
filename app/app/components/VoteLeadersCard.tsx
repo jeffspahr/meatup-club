@@ -40,9 +40,9 @@ export default function VoteLeadersCard({
   const badgeText = variant === 'blue' ? 'text-blue-800' : 'text-blue-900';
   const restaurantBadgeBg = variant === 'blue' ? 'bg-blue-100' : 'bg-amber-200';
   const restaurantBadgeText = variant === 'blue' ? 'text-blue-800' : 'text-amber-900';
-  const restaurantLabelColor = variant === 'blue' ? 'text-gray-600' : 'text-amber-900';
-  const restaurantTextColor = variant === 'blue' ? 'text-gray-900' : 'text-amber-900';
-  const restaurantAddressColor = variant === 'blue' ? 'text-gray-600' : 'text-amber-800';
+  const restaurantLabelColor = variant === 'blue' ? 'text-muted-foreground' : 'text-amber-900';
+  const restaurantTextColor = variant === 'blue' ? 'text-foreground' : 'text-amber-900';
+  const restaurantAddressColor = variant === 'blue' ? 'text-muted-foreground' : 'text-amber-800';
 
   return (
     <div className={`${bgColor} border ${borderColor} rounded-lg p-6 mb-8`}>
@@ -52,7 +52,7 @@ export default function VoteLeadersCard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Restaurant Leader */}
         {topRestaurant ? (
-          <div className={variant === 'blue' ? 'bg-white rounded-lg p-4' : ''}>
+          <div className={variant === 'blue' ? 'bg-card rounded-lg p-4' : ''}>
             <div className="flex items-center justify-between mb-2">
               <span className={`text-sm font-medium ${restaurantLabelColor}`}>
                 {variant === 'blue' ? 'Restaurant' : ''}
@@ -71,29 +71,29 @@ export default function VoteLeadersCard({
             )}
           </div>
         ) : (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-gray-600 text-center">No restaurant suggestions yet</p>
+          <div className="bg-muted border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-center">No restaurant suggestions yet</p>
           </div>
         )}
 
         {/* Date Leader */}
         {topDate ? (
-          <div className={variant === 'blue' ? 'bg-white rounded-lg p-4' : `${bgColor} border ${borderColor} rounded-lg p-4`}>
+          <div className={variant === 'blue' ? 'bg-card rounded-lg p-4' : `${bgColor} border ${borderColor} rounded-lg p-4`}>
             <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-medium ${variant === 'blue' ? 'text-gray-600' : textColor}`}>
+              <span className={`text-sm font-medium ${variant === 'blue' ? 'text-muted-foreground' : textColor}`}>
                 {variant === 'blue' ? 'Date' : 'Leading Date'}
               </span>
               <span className={`px-2 py-1 ${badgeBg} ${badgeText} text-xs font-${variant === 'blue' ? 'semibold' : 'bold'} rounded`}>
                 {topDate.vote_count} votes
               </span>
             </div>
-            <p className={`font-${variant === 'blue' ? 'semibold' : 'bold'} ${variant === 'blue' ? 'text-gray-900' : textColor} ${variant === 'blue' ? '' : 'text-lg'}`}>
+            <p className={`font-${variant === 'blue' ? 'semibold' : 'bold'} ${variant === 'blue' ? 'text-foreground' : textColor} ${variant === 'blue' ? '' : 'text-lg'}`}>
               {formatDateForDisplay(topDate.suggested_date)}
             </p>
           </div>
         ) : (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-gray-600 text-center">No date suggestions yet</p>
+          <div className="bg-muted border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-center">No date suggestions yet</p>
           </div>
         )}
       </div>

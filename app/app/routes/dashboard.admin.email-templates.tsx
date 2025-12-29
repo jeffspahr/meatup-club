@@ -188,7 +188,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Email Templates</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Manage invitation email templates. Use {'{{inviteeName}}'}, {'{{inviterName}}'}, and {'{{acceptLink}}'} as variables.
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
 
       {/* Template Form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <div className="bg-card border border-border rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">
             {editingTemplate ? 'Edit Template' : 'Create New Template'}
           </h2>
@@ -223,7 +223,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">
                 Template Name *
               </label>
               <input
@@ -234,12 +234,12 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Default Invitation"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
             <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-1">
                 Email Subject *
               </label>
               <input
@@ -250,12 +250,12 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="🥩 You're invited to join Meatup.Club!"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
             <div>
-              <label htmlFor="html_body" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="html_body" className="block text-sm font-medium text-foreground mb-1">
                 HTML Body *
               </label>
               <textarea
@@ -266,12 +266,12 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, html_body: e.target.value })}
                 rows={15}
                 placeholder="HTML email template..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
               />
             </div>
 
             <div>
-              <label htmlFor="text_body" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="text_body" className="block text-sm font-medium text-foreground mb-1">
                 Plain Text Body *
               </label>
               <textarea
@@ -282,7 +282,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
                 rows={10}
                 placeholder="Plain text email template..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
               />
             </div>
 
@@ -294,9 +294,9 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
                 value="true"
-                className="w-4 h-4 text-meat-red border-gray-300 rounded focus:ring-meat-red"
+                className="w-4 h-4 text-meat-red border-border rounded focus:ring-meat-red"
               />
-              <label htmlFor="is_default" className="ml-2 text-sm text-gray-700">
+              <label htmlFor="is_default" className="ml-2 text-sm text-foreground">
                 Set as default template
               </label>
             </div>
@@ -311,7 +311,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
               <button
                 type="button"
                 onClick={cancelForm}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
               >
                 Cancel
               </button>
@@ -325,7 +325,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
         {templates.map((template: any) => (
           <div
             key={template.id}
-            className="bg-white border border-gray-200 rounded-lg p-6"
+            className="bg-card border border-border rounded-lg p-6"
           >
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -337,10 +337,10 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Subject: {template.subject}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Last updated: {new Date(template.updated_at).toLocaleString()}
                 </p>
               </div>
@@ -384,20 +384,20 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
             </div>
 
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-meat-red">
+              <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-meat-red">
                 Preview Template
               </summary>
               <div className="mt-3 space-y-3">
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-600 mb-1">HTML Preview:</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-1">HTML Preview:</h4>
                   <div
-                    className="border border-gray-200 rounded p-3 bg-gray-50 max-h-64 overflow-auto text-xs"
+                    className="border border-border rounded p-3 bg-muted max-h-64 overflow-auto text-xs"
                     dangerouslySetInnerHTML={{ __html: template.html_body }}
                   />
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-gray-600 mb-1">Plain Text:</h4>
-                  <pre className="border border-gray-200 rounded p-3 bg-gray-50 max-h-64 overflow-auto text-xs whitespace-pre-wrap">
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-1">Plain Text:</h4>
+                  <pre className="border border-border rounded p-3 bg-muted max-h-64 overflow-auto text-xs whitespace-pre-wrap">
                     {template.text_body}
                   </pre>
                 </div>

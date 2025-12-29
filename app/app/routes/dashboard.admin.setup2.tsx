@@ -83,7 +83,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Site Content Management</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           Edit the club's description, goals, guidelines, and other information
         </p>
       </div>
@@ -96,7 +96,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
 
       <div className="space-y-6">
         {content.map((item: any) => (
-          <div key={item.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div key={item.id} className="bg-card border border-border rounded-lg overflow-hidden">
             {editingId === item.id ? (
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-4">{item.title}</h2>
@@ -106,7 +106,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-foreground">
                         Content *
                       </label>
                       <button
@@ -119,18 +119,18 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                     </div>
 
                     {showPreview ? (
-                      <div className="w-full px-4 py-3 border border-gray-300 rounded-md bg-gray-50 min-h-[240px]">
+                      <div className="w-full px-4 py-3 border border-border rounded-md bg-muted min-h-[240px]">
                         <ReactMarkdown
                           components={{
                             ul: ({ children }) => <ul className="space-y-2 list-disc ml-6">{children}</ul>,
                             ol: ({ children }) => <ol className="space-y-2 list-decimal ml-6">{children}</ol>,
-                            li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                            li: ({ children }) => <li className="text-foreground">{children}</li>,
                             p: ({ children }) => <p className="mb-3">{children}</p>,
-                            strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                            strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                             em: ({ children }) => <em className="italic">{children}</em>,
-                            h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
-                            h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-gray-900">{children}</h2>,
-                            h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-gray-900">{children}</h3>,
+                            h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-foreground">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-foreground">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-foreground">{children}</h3>,
                           }}
                         >
                           {editContent}
@@ -143,11 +143,11 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         rows={10}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
                         placeholder="Enter content here..."
                       />
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Full markdown support: **bold**, *italic*, lists, headings, etc.
                     </p>
                   </div>
@@ -162,7 +162,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                     <button
                       type="button"
                       onClick={cancelEditing}
-                      className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                      className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                     >
                       Cancel
                     </button>
@@ -173,8 +173,8 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">{item.title}</h2>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <h2 className="text-xl font-semibold text-foreground">{item.title}</h2>
+                    <p className="text-xs text-muted-foreground mt-1">
                       Last updated: {formatDateForDisplay(item.updated_at)}
                     </p>
                   </div>
@@ -186,19 +186,19 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   </button>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="prose prose-gray max-w-none text-gray-700">
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="prose prose-gray max-w-none text-foreground">
                     <ReactMarkdown
                       components={{
                         ul: ({ children }) => <ul className="space-y-2 list-disc ml-6">{children}</ul>,
                         ol: ({ children }) => <ol className="space-y-2 list-decimal ml-6">{children}</ol>,
-                        li: ({ children }) => <li className="text-gray-700">{children}</li>,
+                        li: ({ children }) => <li className="text-foreground">{children}</li>,
                         p: ({ children }) => <p className="mb-3">{children}</p>,
-                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                         em: ({ children }) => <em className="italic">{children}</em>,
-                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-gray-900">{children}</h1>,
-                        h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-gray-900">{children}</h2>,
-                        h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-gray-900">{children}</h3>,
+                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-foreground">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-xl font-bold mb-2 text-foreground">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-lg font-semibold mb-2 text-foreground">{children}</h3>,
                       }}
                     >
                       {item.content}

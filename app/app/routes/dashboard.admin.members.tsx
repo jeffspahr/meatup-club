@@ -263,7 +263,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Member Management</h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Total members: {members.length}
           </p>
         </div>
@@ -303,7 +303,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
       {/* Invite User Form */}
       {showAddForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <div className="bg-card border border-border rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Invite New User</h2>
           <Form method="post" className="space-y-4">
             <input type="hidden" name="_action" value="invite" />
@@ -311,7 +311,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Email *
               </label>
@@ -321,14 +321,14 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 type="email"
                 required
                 placeholder="member@example.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
             <div>
               <label
                 htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Name (Optional)
               </label>
@@ -337,21 +337,21 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 name="name"
                 type="text"
                 placeholder="John Doe"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
             <div>
               <label
                 htmlFor="template_id"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Email Template
               </label>
               <select
                 id="template_id"
                 name="template_id"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               >
                 {templates.map((template: any) => (
                   <option
@@ -363,7 +363,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Choose which email template to send. <Link to="/dashboard/admin/email-templates" className="text-meat-red hover:underline">Manage templates</Link>
               </p>
             </div>
@@ -379,31 +379,31 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       )}
 
       {/* Members List */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Member
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Email
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Role
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Joined
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {members.map((member: any) => (
               <tr key={member.id}>
                 {editingId === member.id ? (
@@ -414,7 +414,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Name
                           </label>
                           <input
@@ -424,12 +424,12 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, name: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Role
                           </label>
                           <select
@@ -438,7 +438,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, is_admin: e.target.value === 'true' })
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                           >
                             <option value="false">Member</option>
                             <option value="true">Admin</option>
@@ -456,7 +456,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         <button
                           type="button"
                           onClick={cancelEditing}
-                          className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                          className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                         >
                           Cancel
                         </button>
@@ -474,16 +474,16 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             className="w-10 h-10 rounded-full mr-3"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-300 mr-3 flex items-center justify-center text-gray-600 font-semibold">
+                          <div className="w-10 h-10 rounded-full bg-muted mr-3 flex items-center justify-center text-muted-foreground font-semibold">
                             {(member.name || member.email)[0].toUpperCase()}
                           </div>
                         )}
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {member.name || 'No name'}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -492,7 +492,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                           Admin
                         </span>
                       ) : (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-700">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
                           Member
                         </span>
                       )}
@@ -508,7 +508,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateForDisplay(member.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">

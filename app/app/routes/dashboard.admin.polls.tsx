@@ -215,7 +215,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Poll Management</h1>
-          <p className="text-gray-600 mt-1">Manage voting polls and close with winners</p>
+          <p className="text-muted-foreground mt-1">Manage voting polls and close with winners</p>
         </div>
       </div>
 
@@ -227,13 +227,13 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
 
       {/* Active Poll Section */}
       {activePoll ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <div className="bg-card border border-border rounded-lg p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-foreground">
                 🗳️ {activePoll.title}
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Started {formatDateForDisplay(activePoll.created_at)}
               </p>
             </div>
@@ -253,7 +253,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
 
           {/* Close Poll Form */}
           {topRestaurant && topDate && (
-            <Form method="post" className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <Form method="post" className="bg-muted border border-border rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
               <input type="hidden" name="_action" value="close" />
               <input type="hidden" name="poll_id" value={activePoll.id} />
@@ -269,11 +269,11 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     defaultChecked
                     className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Create event from winners
                   </span>
                 </label>
-                <p className="text-xs text-gray-600 mt-1 ml-6">
+                <p className="text-xs text-muted-foreground mt-1 ml-6">
                   This will create an upcoming event with the winning restaurant and date
                 </p>
 
@@ -285,18 +285,18 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     defaultChecked
                     className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
                   />
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-foreground">
                     Send calendar invites to all members
                   </span>
                 </label>
-                <p className="text-xs text-gray-600 mt-1 ml-6">
+                <p className="text-xs text-muted-foreground mt-1 ml-6">
                   Sends personalized calendar invites to all active members
                 </p>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-                <h4 className="font-semibold text-gray-900 mb-2">Event Preview:</h4>
-                <p className="text-sm text-gray-700">
+              <div className="bg-card border border-border rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-foreground mb-2">Event Preview:</h4>
+                <p className="text-sm text-foreground">
                   <strong>Restaurant:</strong> {topRestaurant.name}
                   {!topRestaurant.address && (
                     <span className="ml-2 text-yellow-600 text-xs">
@@ -305,11 +305,11 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   )}
                 </p>
                 {topRestaurant.address && (
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-foreground">
                     <strong>Address:</strong> {topRestaurant.address}
                   </p>
                 )}
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-foreground">
                   <strong>Date:</strong>{' '}
                   {formatDateForDisplay(topDate.suggested_date, {
                     weekday: 'long',
@@ -318,23 +318,23 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     day: 'numeric',
                   })}
                 </p>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   <strong>Votes:</strong> {topRestaurant.vote_count} for restaurant, {topDate.vote_count} for date
                 </p>
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Event Time
                 </label>
                 <input
                   type="time"
                   name="event_time"
                   defaultValue="18:00"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-meat-red focus:border-meat-red"
+                  className="w-full px-4 py-2 border border-border rounded-md focus:ring-meat-red focus:border-meat-red"
                   required
                 />
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Time for the event (defaults to 6:00 PM)
                 </p>
               </div>
@@ -358,45 +358,45 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
       )}
 
       {/* Closed Polls History */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">Closed Polls History</h2>
         </div>
 
         {closedPolls.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">
+          <div className="p-8 text-center text-muted-foreground">
             No closed polls yet.
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {closedPolls.map((poll: any) => (
               <div key={poll.id} className="p-6">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{poll.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <h3 className="font-semibold text-foreground">{poll.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Closed {formatDateForDisplay(poll.closed_at)} by{' '}
                       {poll.closed_by_name}
                     </p>
                   </div>
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded-full">
+                  <span className="px-3 py-1 bg-muted text-foreground text-sm font-semibold rounded-full">
                     Closed
                   </span>
                 </div>
 
                 {poll.winning_restaurant_name && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-600 mb-1">Winning Restaurant</p>
-                      <p className="font-medium text-gray-900">
+                    <div className="bg-muted rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-1">Winning Restaurant</p>
+                      <p className="font-medium text-foreground">
                         {poll.winning_restaurant_name}
                       </p>
                     </div>
 
                     {poll.winning_date && (
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-600 mb-1">Winning Date</p>
-                        <p className="font-medium text-gray-900">
+                      <div className="bg-muted rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Winning Date</p>
+                        <p className="font-medium text-foreground">
                           {formatDateForDisplay(poll.winning_date, {
                             month: 'short',
                             day: 'numeric',

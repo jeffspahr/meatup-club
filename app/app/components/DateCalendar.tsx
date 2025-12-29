@@ -148,29 +148,29 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3">
+    <div className="bg-card border border-border rounded-lg p-3">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-gray-900">
+        <h2 className="text-sm font-bold text-foreground">
           {monthNames[month]} {year}
         </h2>
         <div className="flex gap-1">
           <button
             onClick={goToPreviousMonth}
-            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-xs"
+            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-xs"
             title="Previous month"
           >
             ←
           </button>
           <button
             onClick={goToToday}
-            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-[10px] font-medium"
+            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-[10px] font-medium"
           >
             Today
           </button>
           <button
             onClick={goToNextMonth}
-            className="px-1.5 py-0.5 border border-gray-300 rounded hover:bg-gray-50 transition-colors text-xs"
+            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-xs"
             title="Next month"
           >
             →
@@ -183,7 +183,7 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
         {dayNames.map(name => (
           <div
             key={name}
-            className="text-center text-[10px] font-semibold text-gray-600 py-0.5"
+            className="text-center text-[10px] font-semibold text-muted-foreground py-0.5"
           >
             {name}
           </div>
@@ -234,14 +234,14 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
               disabled={isDisabled}
               className={`
                 aspect-square p-0.5 rounded border transition-all text-[10px]
-                ${isOtherMonth ? 'bg-gray-50 text-gray-400 border-transparent opacity-60' : ''}
-                ${isPast && !canInteractWithPastDate ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-transparent' : 'cursor-pointer'}
+                ${isOtherMonth ? 'bg-muted text-muted-foreground border-transparent opacity-60' : ''}
+                ${isPast && !canInteractWithPastDate ? 'bg-muted text-muted-foreground cursor-not-allowed border-transparent' : 'cursor-pointer'}
                 ${canInteractWithPastDate ? 'bg-red-50 border-red-300 hover:bg-red-100' : ''}
                 ${isToday && !isPast ? 'border-blue-500 font-bold' : ''}
                 ${suggestion && isInActivePoll && !isPast ? 'bg-blue-100 border-blue-400 hover:bg-blue-200' : ''}
-                ${suggestion && !isInActivePoll && !isPast ? 'bg-gray-100 border-gray-300' : ''}
-                ${!suggestion && !isPast && !isToday && !isOtherMonth ? 'border-gray-200 hover:bg-gray-50 hover:border-blue-300' : ''}
-                ${!suggestion && !isPast && isOtherMonth ? 'border-gray-200 hover:bg-gray-100 hover:border-blue-300' : ''}
+                ${suggestion && !isInActivePoll && !isPast ? 'bg-muted border-border' : ''}
+                ${!suggestion && !isPast && !isToday && !isOtherMonth ? 'border-border hover:bg-muted hover:border-blue-300' : ''}
+                ${!suggestion && !isPast && isOtherMonth ? 'border-border hover:bg-muted hover:border-blue-300' : ''}
                 relative
               `}
               title={
@@ -267,7 +267,7 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
                     {suggestion.user_has_voted > 0 && (
                       <span className="text-[10px]">✓</span>
                     )}
-                    <span className={`text-[10px] font-bold ${isInActivePoll ? 'text-blue-700' : 'text-gray-600'}`}>
+                    <span className={`text-[10px] font-bold ${isInActivePoll ? 'text-blue-700' : 'text-muted-foreground'}`}>
                       {suggestion.vote_count}
                     </span>
                   </div>
@@ -279,23 +279,23 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       </div>
 
       {/* Legend */}
-      <div className="mt-2 pt-2 border-t border-gray-200">
+      <div className="mt-2 pt-2 border-t border-border">
         <div className="grid grid-cols-2 gap-1.5 text-[10px]">
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 border border-blue-500 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Today</span>
+            <span className="text-muted-foreground">Today</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 bg-blue-100 border border-blue-400 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Active</span>
+            <span className="text-muted-foreground">Active</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-gray-100 border border-gray-300 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Not Active</span>
+            <div className="w-2 h-2 bg-muted border border-border rounded flex-shrink-0"></div>
+            <span className="text-muted-foreground">Not Active</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-gray-50 rounded flex-shrink-0"></div>
-            <span className="text-gray-600">Past</span>
+            <div className="w-2 h-2 bg-muted rounded flex-shrink-0"></div>
+            <span className="text-muted-foreground">Past</span>
           </div>
         </div>
       </div>

@@ -282,7 +282,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Event Management</h1>
-          <p className="text-gray-600 mt-1">Create and manage meetup events</p>
+          <p className="text-muted-foreground mt-1">Create and manage meetup events</p>
         </div>
         <div className="flex gap-3">
           {topRestaurant && topDate && (
@@ -328,7 +328,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
 
       {/* Create Event Form */}
       {showCreateForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <div className="bg-card border border-border rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Create New Event</h2>
           <Form method="post" id="create-form" className="space-y-4">
             <input type="hidden" name="_action" value="create" />
@@ -336,7 +336,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
             <div>
               <label
                 htmlFor="restaurant_name"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Restaurant Name *
               </label>
@@ -346,14 +346,14 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 type="text"
                 required
                 placeholder="e.g., Ruth's Chris Steak House"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
             <div>
               <label
                 htmlFor="restaurant_address"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 Restaurant Address (Optional)
               </label>
@@ -362,7 +362,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 name="restaurant_address"
                 type="text"
                 placeholder="e.g., 123 Main St, San Francisco, CA"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
               />
             </div>
 
@@ -370,7 +370,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
               <div>
                 <label
                   htmlFor="event_date"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-foreground mb-1"
                 >
                   Event Date *
                 </label>
@@ -379,14 +379,14 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   name="event_date"
                   type="date"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="event_time"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-foreground mb-1"
                 >
                   Event Time
                 </label>
@@ -395,7 +395,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   name="event_time"
                   type="time"
                   defaultValue="18:00"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                 />
               </div>
             </div>
@@ -407,9 +407,9 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 type="checkbox"
                 value="true"
                 defaultChecked={true}
-                className="h-4 w-4 text-meat-red focus:ring-meat-red border-gray-300 rounded"
+                className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
               />
-              <label htmlFor="send_invites" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="send_invites" className="ml-2 block text-sm text-foreground">
                 Send calendar invites to all active members
               </label>
             </div>
@@ -425,16 +425,16 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       )}
 
       {/* Events List */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">All Events</h2>
         </div>
         {events.length === 0 ? (
-          <div className="p-8 text-center text-gray-600">
+          <div className="p-8 text-center text-muted-foreground">
             No events created yet. Create your first event above!
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {events.map((event: any) => (
               <div key={event.id} className="p-6">
                 {editingId === event.id ? (
@@ -443,7 +443,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                     <input type="hidden" name="id" value={editData.id} />
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-foreground mb-1">
                         Restaurant Name *
                       </label>
                       <input
@@ -454,12 +454,12 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         onChange={(e) =>
                           setEditData({ ...editData, restaurant_name: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-foreground mb-1">
                         Restaurant Address
                       </label>
                       <input
@@ -469,13 +469,13 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         onChange={(e) =>
                           setEditData({ ...editData, restaurant_address: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                           Event Date *
                         </label>
                         <input
@@ -486,12 +486,12 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           onChange={(e) =>
                             setEditData({ ...editData, event_date: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-foreground mb-1">
                           Event Time
                         </label>
                         <input
@@ -501,13 +501,13 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           onChange={(e) =>
                             setEditData({ ...editData, event_time: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-foreground mb-1">
                         Status *
                       </label>
                       <select
@@ -516,7 +516,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         onChange={(e) =>
                           setEditData({ ...editData, status: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
                       >
                         <option value="upcoming">Upcoming</option>
                         <option value="completed">Completed</option>
@@ -530,9 +530,9 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         name="send_updates"
                         type="checkbox"
                         value="true"
-                        className="h-4 w-4 text-meat-red focus:ring-meat-red border-gray-300 rounded"
+                        className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
                       />
-                      <label htmlFor="send_updates" className="ml-2 block text-sm text-gray-700">
+                      <label htmlFor="send_updates" className="ml-2 block text-sm text-foreground">
                         Send calendar updates to all attendees who have RSVP'd
                       </label>
                     </div>
@@ -547,7 +547,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                       <button
                         type="button"
                         onClick={cancelEditing}
-                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                        className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                       >
                         Cancel
                       </button>
@@ -557,7 +557,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-foreground">
                           {event.restaurant_name}
                         </h3>
                         <span
@@ -573,11 +573,11 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         </span>
                       </div>
                       {event.restaurant_address && (
-                        <p className="text-sm text-gray-600 mb-1">
+                        <p className="text-sm text-muted-foreground mb-1">
                           {event.restaurant_address}
                         </p>
                       )}
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {formatDateForDisplay(event.event_date, {
                           weekday: 'long',
                           year: 'numeric',
@@ -585,7 +585,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           day: 'numeric',
                         })}
                       </p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Created {formatDateForDisplay(event.created_at)}
                       </p>
                     </div>

@@ -133,7 +133,7 @@ export function RestaurantAutocomplete({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Start typing restaurant name..."
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
         autoComplete="off"
       />
 
@@ -144,21 +144,21 @@ export function RestaurantAutocomplete({
       )}
 
       {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((place, index) => (
             <button
               key={place.id}
               type="button"
               onClick={() => handleSelect(place)}
-              className={`w-full text-left px-4 py-3 hover:bg-amber-50 border-b border-gray-100 last:border-b-0 transition-colors ${
+              className={`w-full text-left px-4 py-3 hover:bg-amber-50 border-b border-border last:border-b-0 transition-colors ${
                 index === selectedIndex ? "bg-amber-50" : ""
               }`}
               onMouseEnter={() => setSelectedIndex(index)}
             >
-              <div className="font-medium text-gray-900">
+              <div className="font-medium text-foreground">
                 {place.displayName.text}
               </div>
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 {place.formattedAddress}
               </div>
             </button>
@@ -167,7 +167,7 @@ export function RestaurantAutocomplete({
       )}
 
       {showDropdown && !isLoading && suggestions.length === 0 && value.length >= 2 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-600">
+        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg p-4 text-center text-muted-foreground">
           No restaurants found. Try a different search term.
         </div>
       )}

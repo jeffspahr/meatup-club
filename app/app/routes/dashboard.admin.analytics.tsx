@@ -64,31 +64,31 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">User Analytics</h1>
-        <p className="text-gray-600">Track user activity and engagement</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">User Analytics</h1>
+        <p className="text-muted-foreground">Track user activity and engagement</p>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-600 mb-1">Total Activities</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-sm text-muted-foreground mb-1">Total Activities</div>
+          <div className="text-3xl font-bold text-foreground">{stats.total}</div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-600 mb-1">Logins (Last 7 Days)</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.recentLogins}</div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-sm text-muted-foreground mb-1">Logins (Last 7 Days)</div>
+          <div className="text-3xl font-bold text-foreground">{stats.recentLogins}</div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm text-gray-600 mb-1">Active Users (30d)</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.mostActiveUsers.length}</div>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <div className="text-sm text-muted-foreground mb-1">Active Users (30d)</div>
+          <div className="text-3xl font-bold text-foreground">{stats.mostActiveUsers.length}</div>
         </div>
       </div>
 
       {/* Activity Breakdown */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Breakdown</h2>
+      <div className="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Activity Breakdown</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* All Activities Card */}
           <button
@@ -96,11 +96,11 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             className={`border rounded p-3 text-left transition-all ${
               filterType === 'all'
                 ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
-                : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
+                : 'border-muted hover:border-border hover:shadow-sm'
             }`}
           >
-            <div className="text-xs text-gray-600 mb-1">All Activities</div>
-            <div className={`text-2xl font-bold ${filterType === 'all' ? 'text-meat-red' : 'text-gray-900'}`}>
+            <div className="text-xs text-muted-foreground mb-1">All Activities</div>
+            <div className={`text-2xl font-bold ${filterType === 'all' ? 'text-meat-red' : 'text-foreground'}`}>
               {stats.total}
             </div>
           </button>
@@ -113,13 +113,13 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
               className={`border rounded p-3 text-left transition-all ${
                 filterType === item.action_type
                   ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
-                  : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'
+                  : 'border-muted hover:border-border hover:shadow-sm'
               }`}
             >
-              <div className="text-xs text-gray-600 mb-1">
+              <div className="text-xs text-muted-foreground mb-1">
                 {formatActionType(item.action_type)}
               </div>
-              <div className={`text-2xl font-bold ${filterType === item.action_type ? 'text-meat-red' : 'text-gray-900'}`}>
+              <div className={`text-2xl font-bold ${filterType === item.action_type ? 'text-meat-red' : 'text-foreground'}`}>
                 {item.count}
               </div>
             </button>
@@ -128,26 +128,26 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       </div>
 
       {/* Most Active Users */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Most Active Users (Last 30 Days)</h2>
+      <div className="bg-card border border-border rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Most Active Users (Last 30 Days)</h2>
         <div className="space-y-2">
           {stats.mostActiveUsers.map((user: any) => (
-            <div key={user.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            <div key={user.id} className="flex items-center justify-between py-2 border-b border-muted last:border-0">
               <div>
-                <div className="font-medium text-gray-900">{user.name || user.email}</div>
-                <div className="text-sm text-gray-500">{user.email}</div>
+                <div className="font-medium text-foreground">{user.name || user.email}</div>
+                <div className="text-sm text-muted-foreground">{user.email}</div>
               </div>
-              <div className="text-lg font-semibold text-gray-700">{user.activity_count} actions</div>
+              <div className="text-lg font-semibold text-foreground">{user.activity_count} actions</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Recent Activity Log */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-card border border-border rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
             {filterType !== 'all' && (
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-meat-red/10 text-meat-red border border-meat-red/20">
@@ -155,7 +155,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
                 </span>
                 <button
                   onClick={() => setFilterType('all')}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  className="text-sm text-muted-foreground hover:text-foreground underline"
                 >
                   Clear
                 </button>
@@ -163,36 +163,36 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             )}
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Click cards above to filter
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-border">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+              <tr className="bg-muted">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Timestamp
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Action
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Details
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   IP Address
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {filteredActivities.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No activity found
                   </td>
                 </tr>
@@ -201,36 +201,36 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
                   const details = parseActionDetails(activity.action_details);
 
                   return (
-                    <tr key={activity.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                    <tr key={activity.id} className="hover:bg-muted">
+                      <td className="px-4 py-3 text-sm text-foreground whitespace-nowrap">
                         {formatTimestamp(activity.created_at)}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {activity.user_name || activity.user_email}
                         </div>
-                        <div className="text-xs text-gray-500">{activity.user_email}</div>
+                        <div className="text-xs text-muted-foreground">{activity.user_email}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                           {formatActionType(activity.action_type)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {details ? (
                           typeof details === 'object' ? (
-                            <pre className="text-xs bg-gray-50 p-2 rounded max-w-md overflow-x-auto">
+                            <pre className="text-xs bg-muted p-2 rounded max-w-md overflow-x-auto">
                               {JSON.stringify(details, null, 2)}
                             </pre>
                           ) : (
                             <span>{details}</span>
                           )
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
-                        {activity.ip_address || <span className="text-gray-400">—</span>}
+                      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                        {activity.ip_address || <span className="text-muted-foreground">—</span>}
                       </td>
                     </tr>
                   );
@@ -242,14 +242,14 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
 
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             Page {page} · Showing {filteredActivities.length} of {activities.length} activities
           </div>
           <div className="flex gap-2">
             {page > 1 && (
               <a
                 href={`/dashboard/admin/analytics?page=${page - 1}`}
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium"
+                className="px-4 py-2 border border-border rounded hover:bg-muted text-sm font-medium"
               >
                 Previous
               </a>
@@ -257,7 +257,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             {activities.length === 50 && (
               <a
                 href={`/dashboard/admin/analytics?page=${page + 1}`}
-                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium"
+                className="px-4 py-2 border border-border rounded hover:bg-muted text-sm font-medium"
               >
                 Next
               </a>
