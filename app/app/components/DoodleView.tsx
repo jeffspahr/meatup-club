@@ -81,12 +81,12 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
 
   return (
     <div className="mt-6">
-      <h4 className="text-sm font-semibold text-gray-700 mb-3">Availability Grid</h4>
+      <h4 className="text-sm font-semibold text-foreground mb-3">Availability Grid</h4>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead>
             <tr>
-              <th className="border border-gray-300 bg-gray-50 px-3 py-2 text-left text-xs font-medium text-gray-600">
+              <th className="border border-border bg-muted px-3 py-2 text-left text-xs font-medium text-muted-foreground">
                 Name
               </th>
               {votedDates.map(date => {
@@ -97,7 +97,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                 return (
                   <th
                     key={date.id}
-                    className="border border-gray-300 bg-gray-50 px-2 py-2 text-center text-xs font-medium text-gray-600 min-w-[80px]"
+                    className="border border-border bg-muted px-2 py-2 text-center text-xs font-medium text-muted-foreground min-w-[80px]"
                   >
                     <div className="flex flex-col">
                       <span className="font-semibold">
@@ -106,7 +106,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                           day: 'numeric'
                         })}
                       </span>
-                      <span className="text-[10px] text-gray-500">
+                      <span className="text-[10px] text-muted-foreground">
                         {localDate.toLocaleDateString('en-US', {
                           weekday: 'short'
                         })}
@@ -115,7 +115,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                   </th>
                 );
               })}
-              <th className="border border-gray-300 bg-gray-50 px-3 py-2 text-center text-xs font-medium text-gray-600">
+              <th className="border border-border bg-muted px-3 py-2 text-center text-xs font-medium text-muted-foreground">
                 Total
               </th>
             </tr>
@@ -127,7 +127,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
 
               return (
                 <tr key={user.id} className={user.id === currentUserId ? 'bg-blue-50 dark:bg-blue-900/30' : ''}>
-                  <td className="border border-gray-300 px-3 py-2 text-xs font-medium text-gray-900">
+                  <td className="border border-border px-3 py-2 text-xs font-medium text-foreground">
                     {user.name}
                     {user.id === currentUserId && (
                       <span className="ml-1 text-[10px] text-blue-600 dark:text-blue-400">(you)</span>
@@ -136,7 +136,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                   {votedDates.map(date => (
                     <td
                       key={date.id}
-                      className={`border border-gray-300 text-center ${
+                      className={`border border-border text-center ${
                         userVotes.has(date.suggested_date)
                           ? 'bg-green-100 dark:bg-green-900/30'
                           : ''
@@ -147,25 +147,25 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                       )}
                     </td>
                   ))}
-                  <td className="border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-gray-700">
+                  <td className="border border-border px-3 py-2 text-center text-xs font-semibold text-foreground">
                     {voteCount}
                   </td>
                 </tr>
               );
             })}
-            <tr className="bg-gray-100">
-              <td className="border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700">
+            <tr className="bg-muted">
+              <td className="border border-border px-3 py-2 text-xs font-semibold text-foreground">
                 Total Votes
               </td>
               {votedDates.map(date => (
                 <td
                   key={date.id}
-                  className="border border-gray-300 px-3 py-2 text-center text-xs font-semibold text-gray-700"
+                  className="border border-border px-3 py-2 text-center text-xs font-semibold text-foreground"
                 >
                   {dateVoteCounts.get(date.suggested_date) || 0}
                 </td>
               ))}
-              <td className="border border-gray-300"></td>
+              <td className="border border-border"></td>
             </tr>
           </tbody>
         </table>
