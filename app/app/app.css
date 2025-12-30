@@ -105,6 +105,47 @@ body {
     --card-shadow-hover: 0 10px 30px rgba(15, 23, 42, 0.12);
     --card-hover-y: -2px;
     --card-radius: 1rem;
+    --preview-ambient: none;
+    --preview-pattern: none;
+    --preview-pattern-size: auto;
+    --preview-pattern-opacity: 0.5;
+    --kicker-bg: var(--card);
+    --kicker-border: var(--border);
+    --kicker-text: var(--muted-foreground);
+    --hero-color: rgb(var(--foreground));
+    --hero-gradient: none;
+    --hero-shadow: none;
+    --hero-letter-spacing: -0.02em;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .dashboard-preview::before {
+    content: "";
+    position: absolute;
+    inset: -24px;
+    border-radius: 2rem;
+    background-image: var(--preview-ambient);
+    background-repeat: no-repeat;
+    background-position: center -260px;
+    z-index: -2;
+    pointer-events: none;
+  }
+
+  .dashboard-preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 1.5rem;
+    background-image: var(--preview-pattern);
+    background-size: var(--preview-pattern-size);
+    opacity: var(--preview-pattern-opacity);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .dashboard-hero {
+    animation: hero-fade 720ms ease-out both;
   }
 
   .dashboard-preview[data-variant="minimal"] {
@@ -116,6 +157,16 @@ body {
     --card-hover-y: -1px;
     --accent: 84 104 255; /* periwinkle */
     --accent-strong: 60 79 220; /* deep periwinkle */
+    --preview-ambient: radial-gradient(1200px 420px at 12% -10%, rgba(84, 104, 255, 0.18), transparent 60%),
+      radial-gradient(800px 360px at 90% 0%, rgba(22, 27, 43, 0.08), transparent 65%);
+    --preview-pattern: linear-gradient(transparent 0, transparent 94%, rgba(84, 104, 255, 0.12) 95%, transparent 100%),
+      linear-gradient(90deg, transparent 0, transparent 94%, rgba(84, 104, 255, 0.12) 95%, transparent 100%);
+    --preview-pattern-size: 120px 120px;
+    --preview-pattern-opacity: 0.35;
+    --kicker-bg: var(--background);
+    --kicker-border: var(--border);
+    --kicker-text: 66 74 92;
+    --hero-letter-spacing: -0.04em;
   }
 
   .dashboard-preview[data-variant="editorial"] {
@@ -128,6 +179,19 @@ body {
     --card-hover-y: -2px;
     --accent: 179 72 52; /* roasted clay */
     --accent-strong: 137 51 36; /* burnt clay */
+    --preview-ambient: radial-gradient(1100px 480px at 10% -15%, rgba(179, 72, 52, 0.16), transparent 60%),
+      radial-gradient(820px 320px at 88% 4%, rgba(120, 70, 52, 0.14), transparent 65%);
+    --preview-pattern: linear-gradient(0deg, rgba(120, 70, 52, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 70, 52, 0.06) 1px, transparent 1px);
+    --preview-pattern-size: 140px 140px;
+    --preview-pattern-opacity: 0.35;
+    --kicker-bg: 255 242 232;
+    --kicker-border: 230 210 198;
+    --kicker-text: 108 70 54;
+    --hero-color: transparent;
+    --hero-gradient: linear-gradient(120deg, rgb(var(--accent)), rgb(var(--accent-strong)));
+    --hero-shadow: 0 18px 32px rgba(90, 62, 48, 0.2);
+    --hero-letter-spacing: -0.03em;
   }
 
   .dashboard-preview[data-variant="product"] {
@@ -140,6 +204,16 @@ body {
     --card-radius: 0.875rem;
     --accent: 54 111 255; /* electric blue */
     --accent-strong: 35 85 214; /* deep blue */
+    --preview-ambient: radial-gradient(1000px 420px at 14% -12%, rgba(54, 111, 255, 0.2), transparent 60%),
+      radial-gradient(700px 320px at 90% 0%, rgba(22, 38, 78, 0.16), transparent 65%);
+    --preview-pattern: repeating-linear-gradient(135deg, rgba(54, 111, 255, 0.1) 0 1px, transparent 1px 16px);
+    --preview-pattern-opacity: 0.3;
+    --kicker-bg: 238 242 255;
+    --kicker-border: 207 217 244;
+    --kicker-text: 52 78 156;
+    --hero-color: transparent;
+    --hero-gradient: linear-gradient(120deg, rgb(var(--accent)), rgb(var(--accent-strong)));
+    --hero-shadow: 0 18px 36px rgba(17, 38, 96, 0.28);
   }
 
   .dashboard-preview[data-variant="calm"] {
@@ -151,6 +225,14 @@ body {
     --card-hover-y: -1px;
     --accent: 44 112 134; /* teal slate */
     --accent-strong: 32 86 104; /* deep teal */
+    --preview-ambient: radial-gradient(1200px 420px at 12% -10%, rgba(44, 112, 134, 0.2), transparent 60%),
+      radial-gradient(800px 360px at 90% 0%, rgba(32, 86, 104, 0.12), transparent 65%);
+    --preview-pattern: radial-gradient(circle, rgba(44, 112, 134, 0.1) 1px, transparent 1px);
+    --preview-pattern-size: 90px 90px;
+    --preview-pattern-opacity: 0.3;
+    --kicker-bg: 232 239 242;
+    --kicker-border: 198 214 220;
+    --kicker-text: 46 82 98;
   }
 
   .dashboard-preview[data-variant="polished"] {
@@ -160,8 +242,18 @@ body {
     --card-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
     --card-shadow-hover: 0 18px 40px rgba(15, 23, 42, 0.16);
     --card-hover-y: -2px;
-    --accent: 142 76 255; /* violet */
-    --accent-strong: 112 52 212; /* deep violet */
+    --accent: 190 138 42; /* honey */
+    --accent-strong: 155 108 30; /* deep honey */
+    --preview-ambient: radial-gradient(1100px 420px at 12% -10%, rgba(190, 138, 42, 0.2), transparent 60%),
+      radial-gradient(700px 320px at 90% 0%, rgba(92, 68, 24, 0.14), transparent 65%);
+    --preview-pattern: linear-gradient(120deg, rgba(190, 138, 42, 0.12) 0%, transparent 45%);
+    --preview-pattern-opacity: 0.25;
+    --kicker-bg: 255 249 238;
+    --kicker-border: 224 201 164;
+    --kicker-text: 118 86 28;
+    --hero-color: transparent;
+    --hero-gradient: linear-gradient(120deg, rgb(var(--accent)), rgb(var(--accent-strong)));
+    --hero-shadow: 0 18px 36px rgba(96, 68, 24, 0.22);
   }
 
   .dashboard-preview[data-variant="crisp"] {
@@ -173,6 +265,15 @@ body {
     --card-hover-y: -2px;
     --accent: 0 128 120; /* jade */
     --accent-strong: 0 96 90; /* deep jade */
+    --preview-ambient: radial-gradient(1100px 420px at 12% -10%, rgba(0, 128, 120, 0.18), transparent 60%),
+      radial-gradient(700px 320px at 90% 0%, rgba(0, 96, 90, 0.14), transparent 65%);
+    --preview-pattern: repeating-linear-gradient(135deg, rgba(0, 128, 120, 0.1) 0 1px, transparent 1px 18px);
+    --preview-pattern-opacity: 0.35;
+    --kicker-bg: 230 246 245;
+    --kicker-border: 186 220 216;
+    --kicker-text: 0 90 84;
+    --hero-color: transparent;
+    --hero-gradient: linear-gradient(120deg, rgb(var(--accent)), rgb(var(--accent-strong)));
   }
 
   .dashboard-preview[data-variant="warm"] {
@@ -185,6 +286,17 @@ body {
     --card-hover-y: -2px;
     --accent: 204 102 51; /* cinnamon */
     --accent-strong: 162 76 36; /* deep cinnamon */
+    --preview-ambient: radial-gradient(1000px 420px at 12% -10%, rgba(204, 102, 51, 0.2), transparent 60%),
+      radial-gradient(700px 320px at 88% 0%, rgba(162, 76, 36, 0.14), transparent 65%);
+    --preview-pattern: radial-gradient(circle, rgba(204, 102, 51, 0.12) 1px, transparent 1px);
+    --preview-pattern-size: 80px 80px;
+    --preview-pattern-opacity: 0.35;
+    --kicker-bg: 255 238 224;
+    --kicker-border: 232 198 176;
+    --kicker-text: 124 64 36;
+    --hero-color: transparent;
+    --hero-gradient: linear-gradient(120deg, rgb(var(--accent)), rgb(var(--accent-strong)));
+    --hero-shadow: 0 16px 34px rgba(120, 70, 52, 0.2);
   }
 
   .card-shell {
@@ -223,10 +335,58 @@ body {
   .border-accent {
     border-color: rgb(var(--accent) / 0.3);
   }
+
+  .dashboard-kicker {
+    border-color: rgb(var(--kicker-border) / 0.6);
+    background-color: rgb(var(--kicker-bg) / 0.82);
+    color: rgb(var(--kicker-text));
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  }
+
+  .dashboard-hero-title {
+    color: var(--hero-color);
+    background-image: var(--hero-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: var(--hero-color);
+    letter-spacing: var(--hero-letter-spacing);
+    text-shadow: var(--hero-shadow);
+  }
+
+  .dashboard-hero-subtitle {
+    max-width: 40rem;
+  }
+
+  .dashboard-section {
+    animation: section-rise 620ms ease-out both;
+    animation-delay: var(--section-delay, 0ms);
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@keyframes hero-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes section-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import { formatDateForDisplay } from '../lib/dateUtils';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -192,22 +192,25 @@ export function DashboardContent({
       data-variant={variant}
     >
       {/* Hero Section */}
-      <div className="mb-10">
-        <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+      <div className="mb-10 dashboard-hero">
+        <div className="dashboard-kicker inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
           <span className="h-2 w-2 rounded-full bg-accent" />
           Quarterly meetup hub
         </div>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+        <h1 className="dashboard-hero-title mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
           Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
         </h1>
-        <p className="mt-3 text-base text-muted-foreground">
+        <p className="dashboard-hero-subtitle mt-3 text-base text-muted-foreground">
           Everything you need to plan the next steakhouse meetup.
         </p>
       </div>
 
       {/* Site Content Section - Front and Center */}
       {content.length > 0 && (
-        <div className="card-shell mb-8 p-6">
+        <div
+          className="card-shell mb-8 p-6 dashboard-section"
+          style={{ '--section-delay': '60ms' } as CSSProperties}
+        >
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
@@ -267,7 +270,10 @@ export function DashboardContent({
       {/* Active Poll Banner */}
       {activePoll ? (
         <Link to="/dashboard/polls">
-          <div className="card-shell card-hover mb-8 p-6">
+          <div
+            className="card-shell card-hover mb-8 p-6 dashboard-section"
+            style={{ '--section-delay': '110ms' } as CSSProperties}
+          >
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
@@ -359,7 +365,10 @@ export function DashboardContent({
           </div>
         </Link>
       ) : (
-        <div className="card-shell mb-8 p-6">
+        <div
+          className="card-shell mb-8 p-6 dashboard-section"
+          style={{ '--section-delay': '110ms' } as CSSProperties}
+        >
           <div className="flex items-center gap-3">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">⚠️</span>
             <div>
@@ -374,7 +383,10 @@ export function DashboardContent({
 
       {/* At a Glance - Compact Stats */}
       {nextEvent && (
-        <div className="card-shell mb-8 p-6">
+        <div
+          className="card-shell mb-8 p-6 dashboard-section"
+          style={{ '--section-delay': '150ms' } as CSSProperties}
+        >
           <h2 className="text-lg font-semibold text-foreground mb-4">📍 Next Meetup</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
@@ -416,7 +428,7 @@ export function DashboardContent({
                     )}
                   </>
                 ) : (
-                  <Link to="/dashboard/events" className="text-meat-red hover:text-meat-brown font-semibold">
+                  <Link to="/dashboard/events" className="text-accent hover:text-accent-strong font-semibold">
                     Set RSVP →
                   </Link>
                 )}
@@ -427,7 +439,10 @@ export function DashboardContent({
       )}
 
       {/* Quick Actions */}
-      <div className="mb-10">
+      <div
+        className="mb-10 dashboard-section"
+        style={{ '--section-delay': '190ms' } as CSSProperties}
+      >
         <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
           <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
