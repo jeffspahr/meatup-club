@@ -191,7 +191,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Site Content Section - Front and Center */}
       {content.length > 0 && (
-        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
+        <div className="mb-8 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
@@ -217,7 +217,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           {showContent && (
             <div className="space-y-4 mt-6">
               {content.map((item: any) => (
-                <div key={item.id} className="rounded-xl border border-border/60 bg-background/70 p-5">
+                <div key={item.id} className="rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm">
                   <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
                     {item.key === 'description' && '📖'}
                     {item.key === 'goals' && '🎯'}
@@ -251,7 +251,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Active Poll Banner */}
       {activePoll ? (
         <Link to="/dashboard/polls">
-        <div className="mb-8 rounded-2xl border border-meat-red/20 bg-card/80 p-6 shadow-sm transition hover:shadow-md">
+          <div className="mb-8 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
@@ -272,7 +272,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+              <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Restaurant</p>
                 {userRestaurantVote ? (
                   <>
@@ -306,7 +306,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+              <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Dates</p>
                 {userDateVoteCount > 0 ? (
                   <>
@@ -343,7 +343,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
         </Link>
       ) : (
-        <div className="mb-8 rounded-2xl border border-meat-brown/20 bg-meat-brown/10 p-6">
+        <div className="mb-8 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-brown/10 text-2xl">⚠️</span>
             <div>
@@ -358,7 +358,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* At a Glance - Compact Stats */}
       {nextEvent && (
-        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
+        <div className="mb-8 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-foreground mb-4">📍 Next Meetup</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
@@ -419,7 +419,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
-              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                     🗳️
@@ -438,7 +438,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
           {nextEvent && (
             <Link to="/dashboard/events">
-              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ✋
@@ -458,7 +458,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           )}
 
           <Link to="/dashboard/restaurants">
-            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   🍖
@@ -470,7 +470,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </Link>
 
           <Link to="/dashboard/events">
-            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                   📜
@@ -482,7 +482,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </Link>
 
           <Link to="/dashboard/members">
-            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   👥
@@ -495,7 +495,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
           {isAdmin && (
             <Link to="/dashboard/admin">
-              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ⚙️
@@ -514,7 +514,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* Feedback Section */}
       <div className="mt-12 pt-8 border-t border-border/60">
-        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 text-center shadow-sm">
+        <div className="rounded-2xl border border-border/70 bg-card/90 p-6 text-center shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-2">
             Have feedback or found a bug?
           </h3>
