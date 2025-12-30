@@ -3,33 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --background: 249 250 251; /* gray-50 */
-  --foreground: 17 24 39; /* gray-900 */
+  --background: 248 246 242; /* warm parchment */
+  --foreground: 19 20 22; /* ink */
   --card: 255 255 255; /* white */
-  --card-foreground: 17 24 39; /* gray-900 */
-  --muted: 243 244 246; /* gray-100 */
-  --muted-foreground: 107 114 128; /* gray-500 */
-  --border: 229 231 235; /* gray-200 */
-  --input: 229 231 235; /* gray-200 */
+  --card-foreground: 22 23 26; /* near black */
+  --muted: 242 238 231; /* warm sand */
+  --muted-foreground: 108 108 120; /* warm gray */
+  --border: 228 221 210; /* soft clay */
+  --input: 228 221 210; /* soft clay */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 17 24 39; /* gray-900 */
-    --foreground: 243 244 246; /* gray-100 */
-    --card: 31 41 55; /* gray-800 */
-    --card-foreground: 243 244 246; /* gray-100 */
-    --muted: 55 65 81; /* gray-700 */
-    --muted-foreground: 156 163 175; /* gray-400 */
-    --border: 55 65 81; /* gray-700 */
-    --input: 55 65 81; /* gray-700 */
+    --background: 12 13 16; /* charcoal */
+    --foreground: 236 236 240; /* off white */
+    --card: 20 22 27; /* slate */
+    --card-foreground: 236 236 240; /* off white */
+    --muted: 30 32 39; /* deep slate */
+    --muted-foreground: 169 173 182; /* cool gray */
+    --border: 45 48 57; /* graphite */
+    --input: 45 48 57; /* graphite */
   }
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Sora", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background-color: rgb(var(--background));
   color: rgb(var(--foreground));
+  text-rendering: optimizeLegibility;
 }
 
 @layer base {

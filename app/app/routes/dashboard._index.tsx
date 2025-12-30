@@ -176,33 +176,39 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Hero Section */}
-      <div className="mb-6">
-        <h1 className="text-4xl font-bold text-foreground mb-2">
+      <div className="mb-10">
+        <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-meat-red" />
+          Quarterly meetup hub
+        </div>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
         </h1>
-        <p className="text-xl text-muted-foreground">
-          Your quarterly steakhouse meetup headquarters
+        <p className="mt-3 text-lg text-muted-foreground">
+          Everything you need to plan the next steakhouse meetup.
         </p>
       </div>
 
       {/* Site Content Section - Front and Center */}
       {content.length > 0 && (
-        <div className="mb-8 bg-gradient-to-r from-meat-red/10 to-meat-brown/10 border-2 border-meat-red/30 rounded-xl p-6">
-          <div className="flex items-start justify-between mb-4">
+        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <span className="text-3xl">🥩</span>
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
+                🥩
+              </span>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">
+                <h2 className="text-2xl font-semibold text-foreground">
                   About Meatup.Club
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Everything you need to know about our quarterly steakhouse adventures
+                  Everything you need to know about our quarterly steakhouse adventures.
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowContent(!showContent)}
-              className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-meat-red/10 rounded-lg transition"
+              className="rounded-full border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground hover:bg-foreground/5"
             >
               {showContent ? 'Hide' : 'Show'} Details
             </button>
@@ -211,8 +217,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           {showContent && (
             <div className="space-y-4 mt-6">
               {content.map((item: any) => (
-                <div key={item.id} className="bg-card rounded-lg p-5 shadow-sm">
-                  <h3 className="text-lg font-bold text-foreground mb-3 flex items-center gap-2">
+                <div key={item.id} className="rounded-xl border border-border/60 bg-background/70 p-5">
+                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
                     {item.key === 'description' && '📖'}
                     {item.key === 'goals' && '🎯'}
                     {item.key === 'guidelines' && '📋'}
@@ -245,32 +251,34 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Active Poll Banner */}
       {activePoll ? (
         <Link to="/dashboard/polls">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-8 rounded-2xl border border-emerald-200/60 bg-card/80 p-6 shadow-sm transition hover:shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">🗳️</span>
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl">
+                  🗳️
+                </span>
                 <div>
-                  <h3 className="text-lg font-bold text-green-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     {(activePoll as any).title}
                   </h3>
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-muted-foreground">
                     Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
                   </p>
                 </div>
               </div>
-              <span className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-full">
+              <span className="rounded-full border border-emerald-200/70 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                 Voting Open
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-xs text-green-700 font-medium mb-1">Restaurant</p>
+              <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Restaurant</p>
                 {userRestaurantVote ? (
                   <>
-                    <p className="font-bold text-green-900">✓ You voted: {(userRestaurantVote as any).name}</p>
+                    <p className="font-semibold text-foreground">✓ You voted: {(userRestaurantVote as any).name}</p>
                     {topRestaurants.length > 0 && (
-                      <p className="text-xs text-green-700 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {topRestaurants.length > 1 ? (
                           <>Tied ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''} each): {topRestaurants.map(r => r.name).join(', ')}</>
                         ) : (
@@ -281,30 +289,30 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   </>
                 ) : topRestaurants.length > 0 ? (
                   <>
-                    <p className="font-bold text-green-900">
+                    <p className="font-semibold text-foreground">
                       {topRestaurants.length > 1 ? (
                         <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
                       ) : (
                         topRestaurants[0].name
                       )}
                     </p>
-                    <p className="text-xs text-green-700 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-amber-700 mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
-                  <p className="text-sm text-green-700">No votes yet - be the first!</p>
+                  <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
                 )}
               </div>
 
-              <div className="bg-white/60 rounded-lg p-4">
-                <p className="text-xs text-green-700 font-medium mb-1">Dates</p>
+              <div className="rounded-xl border border-border/60 bg-background/70 p-4">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Dates</p>
                 {userDateVoteCount > 0 ? (
                   <>
-                    <p className="font-bold text-green-900">✓ You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}</p>
+                    <p className="font-semibold text-foreground">✓ You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}</p>
                     {topDates.length > 0 && (
-                      <p className="text-xs text-green-700 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {topDates.length > 1 ? (
                           <>Tied ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''} each): {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
                         ) : (
@@ -315,32 +323,32 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   </>
                 ) : topDates.length > 0 ? (
                   <>
-                    <p className="font-bold text-green-900">
+                    <p className="font-semibold text-foreground">
                       {topDates.length > 1 ? (
                         <>Tied: {topDates.map(d => formatDateForDisplay(d.suggested_date)).join(', ')}</>
                       ) : (
                         formatDateForDisplay(topDates[0].suggested_date)
                       )}
                     </p>
-                    <p className="text-xs text-green-700 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-amber-600 mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-amber-700 mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
-                  <p className="text-sm text-green-700">No votes yet - be the first!</p>
+                  <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
                 )}
               </div>
             </div>
           </div>
         </Link>
       ) : (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+        <div className="mb-8 rounded-2xl border border-amber-200/60 bg-amber-50/70 p-6">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">⚠️</span>
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">⚠️</span>
             <div>
-              <h3 className="font-semibold text-yellow-900">No Active Poll</h3>
-              <p className="text-sm text-yellow-700 mt-1">
+              <h3 className="font-semibold text-foreground">No Active Poll</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 Start a new poll to begin voting on the next meetup location and date.
               </p>
             </div>
@@ -350,16 +358,16 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* At a Glance - Compact Stats */}
       {nextEvent && (
-        <div className="mb-8 bg-card rounded-lg border border-border p-6">
-          <h2 className="text-lg font-bold text-foreground mb-4">📍 Next Meetup</h2>
+        <div className="mb-8 rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-foreground mb-4">📍 Next Meetup</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Restaurant</p>
-              <p className="text-xl font-bold text-foreground">{(nextEvent as any).restaurant_name}</p>
+              <p className="text-xl font-semibold text-foreground">{(nextEvent as any).restaurant_name}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date</p>
-              <p className="text-xl font-bold text-foreground">
+              <p className="text-xl font-semibold text-foreground">
                 {formatDateForDisplay((nextEvent as any).event_date, {
                   weekday: 'short',
                   month: 'short',
@@ -375,19 +383,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     {(userRsvp as any).status === 'yes' && (
                       <>
                         <span className="text-2xl">✅</span>
-                        <span className="text-xl font-bold text-green-600">Going</span>
+                        <span className="text-xl font-semibold text-emerald-600">Going</span>
                       </>
                     )}
                     {(userRsvp as any).status === 'no' && (
                       <>
                         <span className="text-2xl">❌</span>
-                        <span className="text-xl font-bold text-red-600">Not Going</span>
+                        <span className="text-xl font-semibold text-rose-600">Not Going</span>
                       </>
                     )}
                     {(userRsvp as any).status === 'maybe' && (
                       <>
                         <span className="text-2xl">❔</span>
-                        <span className="text-xl font-bold text-yellow-600">Maybe</span>
+                        <span className="text-xl font-semibold text-amber-600">Maybe</span>
                       </>
                     )}
                   </>
@@ -403,18 +411,25 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       )}
 
       {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-foreground mb-4">🎯 Quick Actions</h2>
+      <div className="mb-10">
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
+          <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-3xl">🗳️</span>
-                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Active</span>
+              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-xl text-amber-700">
+                    🗳️
+                  </span>
+                  <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Active
+                  </span>
                 </div>
-                <h3 className="text-lg font-bold mb-1">Vote on Polls</h3>
-                <p className="text-sm text-white/80">
+                <h3 className="mt-4 text-base font-semibold text-foreground">Vote on Polls</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {activePoll && `${topRestaurants[0]?.vote_count || 0} restaurant votes, ${topDates[0]?.vote_count || 0} date votes`}
                 </p>
               </div>
@@ -423,13 +438,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
           {nextEvent && (
             <Link to="/dashboard/events">
-              <div className="bg-gradient-to-br from-meat-red to-meat-brown text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-3xl">✋</span>
-                  {!userRsvp && <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Action Needed</span>}
+              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
+                    ✋
+                  </span>
+                  {!userRsvp && (
+                    <span className="rounded-full bg-meat-red/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-meat-red">
+                      Action Needed
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-lg font-bold mb-1">RSVP</h3>
-                <p className="text-sm text-white/80">
+                <h3 className="mt-4 text-base font-semibold text-foreground">RSVP</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
                 </p>
               </div>
@@ -437,44 +458,54 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           )}
 
           <Link to="/dashboard/restaurants">
-            <div className="bg-gradient-to-br from-green-600 to-emerald-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-3xl">🍖</span>
+            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-xl text-emerald-600">
+                  🍖
+                </span>
               </div>
-              <h3 className="text-lg font-bold mb-1">Restaurants</h3>
-              <p className="text-sm text-white/80">Browse and add steakhouses</p>
+              <h3 className="mt-4 text-base font-semibold text-foreground">Restaurants</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Browse and add steakhouses</p>
             </div>
           </Link>
 
           <Link to="/dashboard/events">
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-3xl">📜</span>
+            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/10 text-xl text-indigo-600">
+                  📜
+                </span>
               </div>
-              <h3 className="text-lg font-bold mb-1">Events</h3>
-              <p className="text-sm text-white/80">View past and upcoming meetups</p>
+              <h3 className="mt-4 text-base font-semibold text-foreground">Events</h3>
+              <p className="mt-1 text-sm text-muted-foreground">View past and upcoming meetups</p>
             </div>
           </Link>
 
           <Link to="/dashboard/members">
-            <div className="bg-gradient-to-br from-blue-600 to-cyan-700 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-3xl">👥</span>
+            <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 text-xl text-sky-600">
+                  👥
+                </span>
               </div>
-              <h3 className="text-lg font-bold mb-1">Members</h3>
-              <p className="text-sm text-white/80">{memberCount} active members</p>
+              <h3 className="mt-4 text-base font-semibold text-foreground">Members</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{memberCount} active members</p>
             </div>
           </Link>
 
           {isAdmin && (
             <Link to="/dashboard/admin">
-              <div className="bg-gradient-to-br from-gray-700 to-gray-900 text-white rounded-lg p-6 hover:shadow-lg transition cursor-pointer group">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-3xl">⚙️</span>
-                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">Admin</span>
+              <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-500/10 text-xl text-slate-600">
+                    ⚙️
+                  </span>
+                  <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Admin
+                  </span>
                 </div>
-                <h3 className="text-lg font-bold mb-1">Admin Panel</h3>
-                <p className="text-sm text-white/80">Manage polls, events, and members</p>
+                <h3 className="mt-4 text-base font-semibold text-foreground">Admin Panel</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Manage polls, events, and members</p>
               </div>
             </Link>
           )}
@@ -482,8 +513,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* Feedback Section */}
-      <div className="mt-12 pt-8 border-t border-border">
-        <div className="bg-muted rounded-lg p-6 text-center">
+      <div className="mt-12 pt-8 border-t border-border/60">
+        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 text-center shadow-sm">
           <h3 className="text-lg font-semibold text-foreground mb-2">
             Have feedback or found a bug?
           </h3>
@@ -495,7 +526,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=bug_report.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-meat-red/30 bg-meat-red/10 px-5 py-2.5 text-sm font-semibold text-meat-red transition hover:bg-meat-red/20"
             >
               🐛 Report a Bug
             </a>
@@ -503,7 +534,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=feature_request.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/5 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground/10"
             >
               💡 Request a Feature
             </a>
@@ -511,7 +542,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               href="https://github.com/jeffspahr/meatup-club/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/5 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground/10"
             >
               📋 View All Issues
             </a>
