@@ -11,6 +11,8 @@
   --muted-foreground: 95 102 116; /* steel */
   --border: 216 223 234; /* pale slate */
   --input: 216 223 234; /* pale slate */
+  --accent: 214 69 51; /* terracotta */
+  --accent-strong: 168 44 31; /* deep terracotta */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +25,8 @@
     --muted-foreground: 167 174 186; /* cool gray */
     --border: 42 48 61; /* graphite */
     --input: 42 48 61; /* graphite */
+    --accent: 227 99 78; /* warm coral */
+    --accent-strong: 244 120 99; /* coral */
   }
 }
 
@@ -110,6 +114,8 @@ body {
     --card-shadow: none;
     --card-shadow-hover: 0 6px 16px rgba(15, 23, 42, 0.08);
     --card-hover-y: -1px;
+    --accent: 84 104 255; /* periwinkle */
+    --accent-strong: 60 79 220; /* deep periwinkle */
   }
 
   .dashboard-preview[data-variant="editorial"] {
@@ -120,6 +126,8 @@ body {
     --card-shadow: 0 8px 24px rgba(90, 62, 48, 0.16);
     --card-shadow-hover: 0 14px 36px rgba(90, 62, 48, 0.2);
     --card-hover-y: -2px;
+    --accent: 179 72 52; /* roasted clay */
+    --accent-strong: 137 51 36; /* burnt clay */
   }
 
   .dashboard-preview[data-variant="product"] {
@@ -130,6 +138,53 @@ body {
     --card-shadow-hover: 0 12px 28px rgba(15, 23, 42, 0.18);
     --card-hover-y: -2px;
     --card-radius: 0.875rem;
+    --accent: 54 111 255; /* electric blue */
+    --accent-strong: 35 85 214; /* deep blue */
+  }
+
+  .dashboard-preview[data-variant="calm"] {
+    --card-surface: var(--background);
+    --card-surface-alpha: 0.68;
+    --card-border-alpha: 0.22;
+    --card-shadow: none;
+    --card-shadow-hover: 0 6px 14px rgba(15, 23, 42, 0.08);
+    --card-hover-y: -1px;
+    --accent: 44 112 134; /* teal slate */
+    --accent-strong: 32 86 104; /* deep teal */
+  }
+
+  .dashboard-preview[data-variant="polished"] {
+    --card-surface: var(--card);
+    --card-surface-alpha: 0.92;
+    --card-border-alpha: 0.32;
+    --card-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    --card-shadow-hover: 0 18px 40px rgba(15, 23, 42, 0.16);
+    --card-hover-y: -2px;
+    --accent: 142 76 255; /* violet */
+    --accent-strong: 112 52 212; /* deep violet */
+  }
+
+  .dashboard-preview[data-variant="crisp"] {
+    --card-surface: var(--card);
+    --card-surface-alpha: 0.78;
+    --card-border-alpha: 0.6;
+    --card-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    --card-shadow-hover: 0 10px 24px rgba(15, 23, 42, 0.16);
+    --card-hover-y: -2px;
+    --accent: 0 128 120; /* jade */
+    --accent-strong: 0 96 90; /* deep jade */
+  }
+
+  .dashboard-preview[data-variant="warm"] {
+    --card-surface: 255 246 238;
+    --card-surface-alpha: 0.9;
+    --card-border: 238 209 192;
+    --card-border-alpha: 0.4;
+    --card-shadow: 0 10px 24px rgba(120, 70, 52, 0.18);
+    --card-shadow-hover: 0 16px 34px rgba(120, 70, 52, 0.22);
+    --card-hover-y: -2px;
+    --accent: 204 102 51; /* cinnamon */
+    --accent-strong: 162 76 36; /* deep cinnamon */
   }
 
   .card-shell {
@@ -146,6 +201,27 @@ body {
   .card-hover:hover {
     transform: translateY(var(--card-hover-y));
     box-shadow: var(--card-shadow-hover);
+  }
+
+  .text-accent {
+    color: rgb(var(--accent));
+  }
+
+  .text-accent-strong {
+    color: rgb(var(--accent-strong));
+  }
+
+  .bg-accent-soft {
+    background-color: rgb(var(--accent) / 0.12);
+  }
+
+  .bg-accent {
+    background-color: rgb(var(--accent));
+    color: rgb(var(--background));
+  }
+
+  .border-accent {
+    border-color: rgb(var(--accent) / 0.3);
   }
 }
 

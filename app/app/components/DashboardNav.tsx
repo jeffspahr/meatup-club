@@ -17,16 +17,16 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/dashboard" className="flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-meat-red/10 text-lg">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft text-lg">
                 🥩
               </span>
               <div className="leading-tight">
                 <span className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
                   Meatup
                 </span>
-                <div className="text-lg font-semibold tracking-tight text-foreground">
-                  Dashboard
-                </div>
+              <div className="text-lg font-semibold tracking-tight text-foreground">
+                Dashboard
+              </div>
               </div>
             </Link>
             <div className="hidden md:flex gap-2">

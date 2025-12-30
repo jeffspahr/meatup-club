@@ -159,7 +159,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-type DashboardVariant = 'default' | 'minimal' | 'editorial' | 'product';
+type DashboardVariant =
+  | 'default'
+  | 'minimal'
+  | 'editorial'
+  | 'product'
+  | 'calm'
+  | 'polished'
+  | 'crisp'
+  | 'warm';
 
 export function DashboardContent({
   loaderData,
@@ -186,7 +194,7 @@ export function DashboardContent({
       {/* Hero Section */}
       <div className="mb-10">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-meat-red" />
+          <span className="h-2 w-2 rounded-full bg-accent" />
           Quarterly meetup hub
         </div>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
@@ -202,7 +210,7 @@ export function DashboardContent({
         <div className="card-shell mb-8 p-6">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
                 🥩
               </span>
               <div>
@@ -262,7 +270,7 @@ export function DashboardContent({
           <div className="card-shell card-hover mb-8 p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
                   🗳️
                 </span>
                 <div>
@@ -274,7 +282,7 @@ export function DashboardContent({
                   </p>
                 </div>
             </div>
-            <span className="rounded-full border border-meat-red/20 bg-meat-red/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-meat-red">
+            <span className="rounded-full border border-accent bg-accent-soft px-4 py-2 text-xs font-semibold uppercase tracking-wide text-accent">
               Voting Open
             </span>
           </div>
@@ -307,7 +315,7 @@ export function DashboardContent({
                     <p className="text-xs text-muted-foreground mt-1">
                       {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-meat-brown mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-accent-strong mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
@@ -341,7 +349,7 @@ export function DashboardContent({
                     <p className="text-xs text-muted-foreground mt-1">
                       {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-meat-brown mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-accent-strong mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
@@ -353,7 +361,7 @@ export function DashboardContent({
       ) : (
         <div className="card-shell mb-8 p-6">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-brown/10 text-2xl">⚠️</span>
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">⚠️</span>
             <div>
               <h3 className="text-base font-semibold text-foreground">No Active Poll</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -429,7 +437,7 @@ export function DashboardContent({
             <Link to="/dashboard/polls">
               <div className="group card-shell card-hover p-6">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                     🗳️
                   </span>
                   <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -448,11 +456,11 @@ export function DashboardContent({
             <Link to="/dashboard/events">
               <div className="group card-shell card-hover p-6">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                     ✋
                   </span>
                   {!userRsvp && (
-                    <span className="rounded-full bg-meat-red/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-meat-red">
+                    <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
                       Action Needed
                     </span>
                   )}
@@ -468,7 +476,7 @@ export function DashboardContent({
           <Link to="/dashboard/restaurants">
             <div className="group card-shell card-hover p-6">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                   🍖
                 </span>
               </div>
@@ -480,7 +488,7 @@ export function DashboardContent({
           <Link to="/dashboard/events">
             <div className="group card-shell card-hover p-6">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                   📜
                 </span>
               </div>
@@ -492,7 +500,7 @@ export function DashboardContent({
           <Link to="/dashboard/members">
             <div className="group card-shell card-hover p-6">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                   👥
                 </span>
               </div>
@@ -505,7 +513,7 @@ export function DashboardContent({
             <Link to="/dashboard/admin">
               <div className="group card-shell card-hover p-6">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
                     ⚙️
                   </span>
                   <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -534,7 +542,7 @@ export function DashboardContent({
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=bug_report.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-meat-red/30 bg-meat-red/10 px-5 py-2.5 text-sm font-semibold text-meat-red transition hover:bg-meat-red/20"
+              className="inline-flex items-center gap-2 rounded-full border border-accent bg-accent-soft px-5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent-soft/80"
             >
               🐛 Report a Bug
             </a>
