@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --background: 247 245 241; /* linen */
-  --foreground: 23 24 28; /* deep slate */
+  --background: 244 246 250; /* cool mist */
+  --foreground: 20 23 29; /* deep slate */
   --card: 255 255 255; /* white */
   --card-foreground: 24 25 30; /* ink */
-  --muted: 238 235 229; /* soft sand */
-  --muted-foreground: 98 101 112; /* smoke */
-  --border: 222 216 206; /* warm stone */
-  --input: 222 216 206; /* warm stone */
+  --muted: 235 238 244; /* cool fog */
+  --muted-foreground: 95 102 116; /* steel */
+  --border: 216 223 234; /* pale slate */
+  --input: 216 223 234; /* pale slate */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 13 14 17; /* charcoal */
-    --foreground: 234 234 238; /* moonlight */
-    --card: 20 21 26; /* graphite */
-    --card-foreground: 234 234 238; /* moonlight */
-    --muted: 29 31 38; /* deep slate */
-    --muted-foreground: 170 173 182; /* cool gray */
-    --border: 44 47 57; /* graphite */
-    --input: 44 47 57; /* graphite */
+    --background: 12 14 19; /* midnight */
+    --foreground: 232 235 240; /* moonlight */
+    --card: 20 23 30; /* graphite */
+    --card-foreground: 232 235 240; /* moonlight */
+    --muted: 29 33 42; /* deep slate */
+    --muted-foreground: 167 174 186; /* cool gray */
+    --border: 42 48 61; /* graphite */
+    --input: 42 48 61; /* graphite */
   }
 }
 
