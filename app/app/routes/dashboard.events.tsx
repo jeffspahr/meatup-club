@@ -2,7 +2,7 @@ import { Form, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
-import { formatDateForDisplay } from "../lib/dateUtils";
+import { formatDateForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -35,13 +35,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const events = eventsResult.results || [];
 
-  // Separate upcoming and past events
-  const now = new Date();
+  // Separate upcoming and past events using timezone-safe YYYY-MM-DD comparison.
+  const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const today = getTodayDateStringInTimeZone(appTimeZone);
   const upcomingEventsRaw = events.filter(
-    (e: any) => new Date(e.event_date) >= now && e.status === 'upcoming'
+    (e: any) => e.event_date >= today && e.status === 'upcoming'
   );
   const pastEvents = events.filter(
-    (e: any) => new Date(e.event_date) < now || e.status !== 'upcoming'
+    (e: any) => e.event_date < today || e.status !== 'upcoming'
   );
 
   // Fetch all active members

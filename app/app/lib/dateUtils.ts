@@ -10,6 +10,46 @@
  * Use these for data validation and consistency checks
  */
 
+const DEFAULT_APP_TIMEZONE = 'UTC';
+
+/**
+ * Get the app's configured timezone or fall back to UTC.
+ */
+export function getAppTimeZone(timeZone?: string): string {
+  const trimmed = timeZone?.trim();
+  return trimmed ? trimmed : DEFAULT_APP_TIMEZONE;
+}
+
+/**
+ * Get today's date as a YYYY-MM-DD string in a specific timezone.
+ * Useful for server-side comparisons when dates represent a local calendar day.
+ */
+export function getTodayDateStringInTimeZone(timeZone: string): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+}
+
+/**
+ * Check if a date string (YYYY-MM-DD) is in the past for a specific timezone.
+ */
+export function isDateInPastInTimeZone(dateString: string, timeZone: string): boolean {
+  const today = getTodayDateStringInTimeZone(timeZone);
+  return dateString < today;
+}
+
+/**
+ * Check if a date string (YYYY-MM-DD) is today or in the future for a specific timezone.
+ */
+export function isDateTodayOrFutureInTimeZone(dateString: string, timeZone: string): boolean {
+  const today = getTodayDateStringInTimeZone(timeZone);
+  return dateString >= today;
+}
+
 /**
  * Get today's date as a YYYY-MM-DD string in UTC timezone.
  * Use this for server-side validation only.

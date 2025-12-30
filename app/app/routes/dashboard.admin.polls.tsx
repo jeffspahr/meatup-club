@@ -4,7 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
-import { formatDateForDisplay } from "../lib/dateUtils";
+import { formatDateForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -144,10 +144,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
 
       // Validation 1: Check if date is in the past
-      const selectedDate = new Date(date.suggested_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
+      const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+      if (isDateInPastInTimeZone(date.suggested_date, appTimeZone)) {
         return { error: 'Cannot create event for a date in the past' };
       }
 

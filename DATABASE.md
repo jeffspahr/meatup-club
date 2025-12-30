@@ -346,7 +346,7 @@ PRAGMA foreign_keys = ON;
 - **Database**: `DATE` type stores YYYY-MM-DD
 - **Application**: Custom `dateUtils.ts` performs string comparisons
 - **Client**: Displays dates in user's local timezone
-- **Server**: Validates dates using string comparison (no Date objects)
+- **Server**: Validates dates using string comparison in `APP_TIMEZONE` (no Date objects)
 
 Example:
 ```typescript

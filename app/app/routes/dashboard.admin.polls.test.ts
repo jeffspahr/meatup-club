@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { parseLocalDate } from '../lib/dateUtils';
 
 /**
  * Integration tests for Admin Polls page
@@ -149,7 +150,7 @@ describe('Admin Polls Data Consistency', () => {
         if (b.vote_count !== a.vote_count) {
           return b.vote_count - a.vote_count;
         }
-        return new Date(a.suggested_date).getTime() - new Date(b.suggested_date).getTime();
+        return parseLocalDate(a.suggested_date).getTime() - parseLocalDate(b.suggested_date).getTime();
       });
 
       expect(sorted[0].suggested_date).toBe('2025-02-01'); // 5 votes, earliest date

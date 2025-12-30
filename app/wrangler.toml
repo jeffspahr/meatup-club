@@ -14,3 +14,4 @@ database_id = "3a6fb3b4-0322-4ab0-b8df-09b5d19af1c1"
 
 [vars]
 NODE_VERSION = "20"
+APP_TIMEZONE = "America/New_York"
