@@ -251,25 +251,25 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {/* Active Poll Banner */}
       {activePoll ? (
         <Link to="/dashboard/polls">
-          <div className="mb-8 rounded-2xl border border-emerald-200/60 bg-card/80 p-6 shadow-sm transition hover:shadow-md">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-2xl">
-                  🗳️
-                </span>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {(activePoll as any).title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
-                  </p>
-                </div>
-              </div>
-              <span className="rounded-full border border-emerald-200/70 bg-emerald-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                Voting Open
+        <div className="mb-8 rounded-2xl border border-meat-red/20 bg-card/80 p-6 shadow-sm transition hover:shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
+                🗳️
               </span>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  {(activePoll as any).title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
+                </p>
+              </div>
             </div>
+            <span className="rounded-full border border-meat-red/20 bg-meat-red/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-meat-red">
+              Voting Open
+            </span>
+          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-xl border border-border/60 bg-background/70 p-4">
@@ -299,7 +299,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     <p className="text-xs text-muted-foreground mt-1">
                       {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-amber-700 mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-meat-brown mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
@@ -333,7 +333,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     <p className="text-xs text-muted-foreground mt-1">
                       {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-amber-700 mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-xs text-meat-brown mt-1">⚠️ You haven't voted yet</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
@@ -343,9 +343,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </div>
         </Link>
       ) : (
-        <div className="mb-8 rounded-2xl border border-amber-200/60 bg-amber-50/70 p-6">
+        <div className="mb-8 rounded-2xl border border-meat-brown/20 bg-meat-brown/10 p-6">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl">⚠️</span>
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-brown/10 text-2xl">⚠️</span>
             <div>
               <h3 className="font-semibold text-foreground">No Active Poll</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -421,7 +421,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/polls">
               <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-xl text-amber-700">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                     🗳️
                   </span>
                   <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -440,7 +440,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/events">
               <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ✋
                   </span>
                   {!userRsvp && (
@@ -460,7 +460,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/restaurants">
             <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-xl text-emerald-600">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   🍖
                 </span>
               </div>
@@ -472,7 +472,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/events">
             <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/10 text-xl text-indigo-600">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                   📜
                 </span>
               </div>
@@ -484,7 +484,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/members">
             <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/10 text-xl text-sky-600">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   👥
                 </span>
               </div>
@@ -497,7 +497,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/admin">
               <div className="group rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-slate-500/10 text-xl text-slate-600">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ⚙️
                   </span>
                   <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">

@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --background: 248 246 242; /* warm parchment */
-  --foreground: 19 20 22; /* ink */
+  --background: 247 245 241; /* linen */
+  --foreground: 23 24 28; /* deep slate */
   --card: 255 255 255; /* white */
-  --card-foreground: 22 23 26; /* near black */
-  --muted: 242 238 231; /* warm sand */
-  --muted-foreground: 108 108 120; /* warm gray */
-  --border: 228 221 210; /* soft clay */
-  --input: 228 221 210; /* soft clay */
+  --card-foreground: 24 25 30; /* ink */
+  --muted: 238 235 229; /* soft sand */
+  --muted-foreground: 98 101 112; /* smoke */
+  --border: 222 216 206; /* warm stone */
+  --input: 222 216 206; /* warm stone */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: 12 13 16; /* charcoal */
-    --foreground: 236 236 240; /* off white */
-    --card: 20 22 27; /* slate */
-    --card-foreground: 236 236 240; /* off white */
-    --muted: 30 32 39; /* deep slate */
-    --muted-foreground: 169 173 182; /* cool gray */
-    --border: 45 48 57; /* graphite */
-    --input: 45 48 57; /* graphite */
+    --background: 13 14 17; /* charcoal */
+    --foreground: 234 234 238; /* moonlight */
+    --card: 20 21 26; /* graphite */
+    --card-foreground: 234 234 238; /* moonlight */
+    --muted: 29 31 38; /* deep slate */
+    --muted-foreground: 170 173 182; /* cool gray */
+    --border: 44 47 57; /* graphite */
+    --input: 44 47 57; /* graphite */
   }
 }
 
