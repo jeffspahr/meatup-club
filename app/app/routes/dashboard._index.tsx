@@ -171,7 +171,7 @@ type DashboardVariant =
 
 export function DashboardContent({
   loaderData,
-  variant = 'default',
+  variant = 'calm',
 }: Route.ComponentProps & { variant?: DashboardVariant }) {
   const { user, memberCount, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
@@ -585,5 +585,5 @@ export function DashboardContent({
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  return <DashboardContent loaderData={loaderData} variant="default" />;
+  return <DashboardContent loaderData={loaderData} variant="calm" />;
 }

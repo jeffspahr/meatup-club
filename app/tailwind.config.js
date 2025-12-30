@@ -7,8 +7,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'meat-red': '#D64533',
-        'meat-brown': '#6B3B2A',
+        'meat-red': '#2C7086',
+        'meat-brown': '#1E4D59',
         background: 'rgb(var(--background) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',
         card: {

@@ -11,8 +11,8 @@
   --muted-foreground: 95 102 116; /* steel */
   --border: 216 223 234; /* pale slate */
   --input: 216 223 234; /* pale slate */
-  --accent: 214 69 51; /* terracotta */
-  --accent-strong: 168 44 31; /* deep terracotta */
+  --accent: 44 112 134; /* teal slate */
+  --accent-strong: 32 86 104; /* deep teal */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,8 +25,8 @@
     --muted-foreground: 167 174 186; /* cool gray */
     --border: 42 48 61; /* graphite */
     --input: 42 48 61; /* graphite */
-    --accent: 227 99 78; /* warm coral */
-    --accent-strong: 244 120 99; /* coral */
+    --accent: 120 199 214; /* misted teal */
+    --accent-strong: 88 163 178; /* deep mist */
   }
 }
 
@@ -217,10 +217,10 @@ body {
   }
 
   .dashboard-preview[data-variant="calm"] {
-    --card-surface: var(--background);
-    --card-surface-alpha: 0.68;
-    --card-border-alpha: 0.22;
-    --card-shadow: none;
+    --card-surface: var(--card);
+    --card-surface-alpha: 0.82;
+    --card-border-alpha: 0.32;
+    --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     --card-shadow-hover: 0 6px 14px rgba(15, 23, 42, 0.08);
     --card-hover-y: -1px;
     --accent: 44 112 134; /* teal slate */
