@@ -184,7 +184,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
         </h1>
-        <p className="mt-3 text-lg text-muted-foreground">
+        <p className="mt-3 text-base text-muted-foreground">
           Everything you need to plan the next steakhouse meetup.
         </p>
       </div>
@@ -198,7 +198,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 🥩
               </span>
               <div>
-                <h2 className="text-2xl font-semibold text-foreground">
+                <h2 className="text-lg font-semibold text-foreground">
                   About Meatup.Club
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -252,19 +252,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       {activePoll ? (
         <Link to="/dashboard/polls">
           <div className="mb-8 rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
-                🗳️
-              </span>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  {(activePoll as any).title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-red/10 text-2xl">
+                  🗳️
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {(activePoll as any).title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
+                  </p>
+                </div>
             </div>
             <span className="rounded-full border border-meat-red/20 bg-meat-red/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-meat-red">
               Voting Open
@@ -347,7 +347,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <div className="flex items-center gap-3">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-meat-brown/10 text-2xl">⚠️</span>
             <div>
-              <h3 className="font-semibold text-foreground">No Active Poll</h3>
+              <h3 className="text-base font-semibold text-foreground">No Active Poll</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Start a new poll to begin voting on the next meetup location and date.
               </p>
@@ -363,11 +363,11 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Restaurant</p>
-              <p className="text-xl font-semibold text-foreground">{(nextEvent as any).restaurant_name}</p>
+              <p className="text-base font-semibold text-foreground">{(nextEvent as any).restaurant_name}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date</p>
-              <p className="text-xl font-semibold text-foreground">
+              <p className="text-base font-semibold text-foreground">
                 {formatDateForDisplay((nextEvent as any).event_date, {
                   weekday: 'short',
                   month: 'short',
@@ -383,19 +383,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     {(userRsvp as any).status === 'yes' && (
                       <>
                         <span className="text-2xl">✅</span>
-                        <span className="text-xl font-semibold text-emerald-600">Going</span>
+                        <span className="text-base font-semibold text-emerald-600">Going</span>
                       </>
                     )}
                     {(userRsvp as any).status === 'no' && (
                       <>
                         <span className="text-2xl">❌</span>
-                        <span className="text-xl font-semibold text-rose-600">Not Going</span>
+                        <span className="text-base font-semibold text-rose-600">Not Going</span>
                       </>
                     )}
                     {(userRsvp as any).status === 'maybe' && (
                       <>
                         <span className="text-2xl">❔</span>
-                        <span className="text-xl font-semibold text-amber-600">Maybe</span>
+                        <span className="text-base font-semibold text-amber-600">Maybe</span>
                       </>
                     )}
                   </>
@@ -419,7 +419,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
-              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                     🗳️
@@ -429,7 +429,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   </span>
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">Vote on Polls</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {activePoll && `${topRestaurants[0]?.vote_count || 0} restaurant votes, ${topDates[0]?.vote_count || 0} date votes`}
                 </p>
               </div>
@@ -438,7 +438,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
           {nextEvent && (
             <Link to="/dashboard/events">
-              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ✋
@@ -450,7 +450,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   )}
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">RSVP</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
                 </p>
               </div>
@@ -458,44 +458,44 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           )}
 
           <Link to="/dashboard/restaurants">
-            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   🍖
                 </span>
               </div>
               <h3 className="mt-4 text-base font-semibold text-foreground">Restaurants</h3>
-              <p className="mt-1 text-sm text-muted-foreground">Browse and add steakhouses</p>
+              <p className="mt-2 text-sm text-muted-foreground">Browse and add steakhouses</p>
             </div>
           </Link>
 
           <Link to="/dashboard/events">
-            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                   📜
                 </span>
               </div>
               <h3 className="mt-4 text-base font-semibold text-foreground">Events</h3>
-              <p className="mt-1 text-sm text-muted-foreground">View past and upcoming meetups</p>
+              <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
             </div>
           </Link>
 
           <Link to="/dashboard/members">
-            <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+            <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-center justify-between">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-red/10 text-xl text-meat-red">
                   👥
                 </span>
               </div>
               <h3 className="mt-4 text-base font-semibold text-foreground">Members</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{memberCount} active members</p>
+              <p className="mt-2 text-sm text-muted-foreground">{memberCount} active members</p>
             </div>
           </Link>
 
           {isAdmin && (
             <Link to="/dashboard/admin">
-              <div className="group rounded-2xl border border-border/70 bg-card/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <div className="group rounded-2xl border border-border/70 bg-card/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-center justify-between">
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-meat-brown/10 text-xl text-meat-brown">
                     ⚙️
@@ -505,7 +505,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   </span>
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-foreground">Admin Panel</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Manage polls, events, and members</p>
+                <p className="mt-2 text-sm text-muted-foreground">Manage polls, events, and members</p>
               </div>
             </Link>
           )}
