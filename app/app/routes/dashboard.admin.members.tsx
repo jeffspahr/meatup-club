@@ -1,6 +1,6 @@
-import { Form, Link, redirect, useSubmit } from "react-router";
+import { Form, Link, redirect, useNavigation, useSubmit } from "react-router";
 import { formatDateForDisplay } from "../lib/dateUtils";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
 import { sendInviteEmail } from "../lib/email.server";
@@ -211,6 +211,8 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     is_admin: false,
   });
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const submittedActionRef = useRef<string | null>(null);
 
   function startEditing(member: any) {
     setEditingId(member.id);
@@ -229,6 +231,24 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       is_admin: false,
     });
   }
+
+  useEffect(() => {
+    if (navigation.state === 'submitting' && navigation.formData) {
+      const action = navigation.formData.get('_action');
+      if (action === 'update') {
+        submittedActionRef.current = 'update';
+      }
+    }
+  }, [navigation.state, navigation.formData]);
+
+  useEffect(() => {
+    if (navigation.state === 'idle' && submittedActionRef.current === 'update') {
+      submittedActionRef.current = null;
+      if (!actionData?.error) {
+        cancelEditing();
+      }
+    }
+  }, [actionData, navigation.state]);
 
   function handleDelete(memberId: number) {
     if (!confirm('Are you sure you want to remove this member? This will also delete all their votes and suggestions.')) {

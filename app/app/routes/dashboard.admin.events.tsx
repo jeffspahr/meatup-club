@@ -1,10 +1,10 @@
-import { Form, Link, redirect, useSubmit } from "react-router";
-import { useState } from "react";
+import { Form, Link, redirect, useNavigation, useSubmit } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
-import { formatDateForDisplay } from "../lib/dateUtils";
+import { formatDateForDisplay, formatTimeForDisplay } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -231,6 +231,8 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
     status: '',
   });
   const submit = useSubmit();
+  const navigation = useNavigation();
+  const submittedActionRef = useRef<string | null>(null);
 
   function startEditing(event: any) {
     setEditingId(event.id);
@@ -255,6 +257,24 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       status: '',
     });
   }
+
+  useEffect(() => {
+    if (navigation.state === 'submitting' && navigation.formData) {
+      const action = navigation.formData.get('_action');
+      if (action === 'update') {
+        submittedActionRef.current = 'update';
+      }
+    }
+  }, [navigation.state, navigation.formData]);
+
+  useEffect(() => {
+    if (navigation.state === 'idle' && submittedActionRef.current === 'update') {
+      submittedActionRef.current = null;
+      if (!actionData?.error) {
+        cancelEditing();
+      }
+    }
+  }, [actionData, navigation.state]);
 
   function handleDelete(eventId: number, eventName: string, eventDate: string) {
     const dateStr = formatDateForDisplay(eventDate, {
@@ -583,7 +603,8 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric',
-                        })}
+                        })}{' '}
+                        at {formatTimeForDisplay(event.event_time || '18:00')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
                         Created {formatDateForDisplay(event.created_at)}

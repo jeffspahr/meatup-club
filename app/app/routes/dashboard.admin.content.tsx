@@ -1,6 +1,6 @@
-import { Form, Link, redirect } from "react-router";
+import { Form, Link, redirect, useNavigation } from "react-router";
 import { formatDateForDisplay } from "../lib/dateUtils";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
@@ -60,6 +60,8 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const navigation = useNavigation();
+  const submittedActionRef = useRef<string | null>(null);
 
   function startEditing(item: any) {
     setEditingId(item.id);
@@ -72,6 +74,24 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
     setEditContent('');
     setShowPreview(false);
   }
+
+  useEffect(() => {
+    if (navigation.state === 'submitting' && navigation.formData) {
+      const action = navigation.formData.get('_action');
+      if (action === 'update') {
+        submittedActionRef.current = 'update';
+      }
+    }
+  }, [navigation.state, navigation.formData]);
+
+  useEffect(() => {
+    if (navigation.state === 'idle' && submittedActionRef.current === 'update') {
+      submittedActionRef.current = null;
+      if (!actionData?.error) {
+        cancelEditing();
+      }
+    }
+  }, [actionData, navigation.state]);
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

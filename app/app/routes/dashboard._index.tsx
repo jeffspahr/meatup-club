@@ -3,7 +3,7 @@ import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
-import { formatDateForDisplay } from '../lib/dateUtils';
+import { formatDateForDisplay, formatTimeForDisplay } from '../lib/dateUtils';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -400,7 +400,8 @@ export function DashboardContent({
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
-                })}
+                })}{' '}
+                at {formatTimeForDisplay((nextEvent as any).event_time || '18:00')}
               </p>
             </div>
             <div>

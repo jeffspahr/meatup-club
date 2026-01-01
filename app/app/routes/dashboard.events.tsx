@@ -2,7 +2,7 @@ import { Form, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
-import { formatDateForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
+import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -189,7 +189,8 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',
-                    })}
+                    })}{' '}
+                    at {formatTimeForDisplay(event.event_time || '18:00')}
                   </p>
                 </div>
 
@@ -441,7 +442,8 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
-                      })}
+                      })}{' '}
+                      at {formatTimeForDisplay(event.event_time || '18:00')}
                     </p>
                   </div>
                 </div>

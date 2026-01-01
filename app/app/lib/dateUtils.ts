@@ -155,6 +155,16 @@ export function formatDateForDisplay(
 }
 
 /**
+ * Format a time string (HH:mm) for display in the user's locale.
+ */
+export function formatTimeForDisplay(
+  timeString: string,
+  options: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
+): string {
+  return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', options);
+}
+
+/**
  * BACKWARDS COMPATIBILITY (deprecated - will be removed)
  * These use UTC on server, local on client - causes hydration issues
  */

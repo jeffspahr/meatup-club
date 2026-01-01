@@ -1,5 +1,5 @@
-import { Form, Link, redirect } from "react-router";
-import { useState } from "react";
+import { Form, Link, redirect, useNavigation } from "react-router";
+import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.email-templates";
 import { requireAdmin } from "../lib/auth.server";
 
@@ -139,6 +139,8 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
     text_body: '',
     is_default: false,
   });
+  const navigation = useNavigation();
+  const submittedActionRef = useRef<string | null>(null);
 
   function startCreate() {
     setEditingTemplate(null);
@@ -175,6 +177,24 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
       is_default: false,
     });
   }
+
+  useEffect(() => {
+    if (navigation.state === 'submitting' && navigation.formData) {
+      const action = navigation.formData.get('_action');
+      if (action === 'create' || action === 'update') {
+        submittedActionRef.current = action;
+      }
+    }
+  }, [navigation.state, navigation.formData]);
+
+  useEffect(() => {
+    if (navigation.state === 'idle' && submittedActionRef.current) {
+      submittedActionRef.current = null;
+      if (!actionData?.error) {
+        cancelForm();
+      }
+    }
+  }, [actionData, navigation.state]);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
