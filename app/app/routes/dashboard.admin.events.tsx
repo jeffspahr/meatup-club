@@ -141,35 +141,34 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       // Send calendar updates if requested
       if (send_updates) {
-        const { sendCalendarUpdate } = await import('../lib/email.server');
+        const { sendEventUpdate } = await import('../lib/email.server');
 
-        // Get all RSVPs for this event
-        const rsvpsResult = await db
+        // Get all active users and their RSVP status for this event
+        const usersResult = await db
           .prepare(`
-            SELECT r.status, u.email
-            FROM rsvps r
-            JOIN users u ON r.user_id = u.id
-            WHERE r.event_id = ?
+            SELECT u.email, r.status as rsvp_status
+            FROM users u
+            LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = ?
+            WHERE u.status = 'active'
           `)
           .bind(id)
           .all();
 
-        if (rsvpsResult.results && rsvpsResult.results.length > 0) {
+        if (usersResult.results && usersResult.results.length > 0) {
           const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
 
-          // Send calendar update to each attendee
-          const updatePromises = rsvpsResult.results.map((rsvp: any) =>
-            sendCalendarUpdate({
+          const updatePromises = usersResult.results.map((user: any) =>
+            sendEventUpdate({
               eventId: Number(id),
               restaurantName: restaurant_name as string,
               restaurantAddress: restaurant_address as string | null,
               eventDate: event_date as string,
               eventTime: event_time,
-              userEmail: rsvp.email,
-              rsvpStatus: rsvp.status,
+              userEmail: user.email,
+              rsvpStatus: user.rsvp_status || undefined,
               resendApiKey,
             }).catch(err => {
-              console.error(`Failed to send calendar update to ${rsvp.email}:`, err);
+              console.error(`Failed to send event update to ${user.email}:`, err);
               return { success: false, error: err.message };
             })
           );
@@ -530,10 +529,11 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         name="send_updates"
                         type="checkbox"
                         value="true"
+                        defaultChecked={true}
                         className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
                       />
                       <label htmlFor="send_updates" className="ml-2 block text-sm text-foreground">
-                        Send calendar updates to all attendees who have RSVP'd
+                        Send calendar updates to all active members
                       </label>
                     </div>
 
