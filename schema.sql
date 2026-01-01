@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS events (
   restaurant_name TEXT,
   restaurant_address TEXT,
   event_date DATE,
+  calendar_sequence INTEGER DEFAULT 0,
   status TEXT DEFAULT 'upcoming', -- upcoming, completed, cancelled
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

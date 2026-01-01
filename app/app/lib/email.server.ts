@@ -174,6 +174,7 @@ export function generateCalendarInvite({
   eventDate,
   eventTime = '18:00',
   attendeeEmail,
+  sequence = 0,
 }: {
   eventId: number;
   restaurantName: string;
@@ -181,6 +182,7 @@ export function generateCalendarInvite({
   eventDate: string;
   eventTime?: string;
   attendeeEmail: string;
+  sequence?: number;
 }): string {
   // Parse the date and time
   const [year, month, day] = eventDate.split('-').map(Number);
@@ -230,7 +232,7 @@ export function generateCalendarInvite({
     `DESCRIPTION:${description}`,
     `LOCATION:${location}`,
     'STATUS:CONFIRMED',
-    'SEQUENCE:0',
+    `SEQUENCE:${sequence}`,
     'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
     `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${attendeeEmail}:mailto:${attendeeEmail}`,
     'CLASS:PUBLIC',
@@ -277,6 +279,7 @@ export async function sendEventInvites({
         eventDate,
         eventTime,
         attendeeEmail: email,
+        sequence: 0,
       });
 
       const personalizedIcsBase64 = Buffer.from(personalizedIcsContent).toString('base64');
@@ -615,6 +618,7 @@ interface EventUpdateParams {
   eventTime: string;
   userEmail: string;
   rsvpStatus?: 'yes' | 'no' | 'maybe';
+  sequence: number;
   resendApiKey: string;
 }
 
@@ -630,6 +634,7 @@ export async function sendEventUpdate({
   eventTime,
   userEmail,
   rsvpStatus,
+  sequence,
   resendApiKey,
 }: EventUpdateParams): Promise<{ success: boolean; error?: string }> {
   try {
@@ -680,7 +685,7 @@ export async function sendEventUpdate({
       `DESCRIPTION:${description}`,
       `LOCATION:${location}`,
       'STATUS:CONFIRMED',
-      'SEQUENCE:1',
+      `SEQUENCE:${sequence}`,
       'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
       `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=${partstat};RSVP=TRUE;CN=${userEmail}:mailto:${userEmail}`,
       'CLASS:PUBLIC',
@@ -792,6 +797,182 @@ An updated calendar invite is attached. It will update the existing event in you
     return { success: true };
   } catch (error) {
     console.error('Event update error:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+interface EventCancellationParams {
+  eventId: number;
+  restaurantName: string;
+  restaurantAddress: string | null;
+  eventDate: string;
+  eventTime: string;
+  userEmail: string;
+  sequence: number;
+  resendApiKey: string;
+}
+
+/**
+ * Send a calendar cancellation when an event is deleted.
+ * This removes the existing event from the user's calendar.
+ */
+export async function sendEventCancellation({
+  eventId,
+  restaurantName,
+  restaurantAddress,
+  eventDate,
+  eventTime,
+  userEmail,
+  sequence,
+  resendApiKey,
+}: EventCancellationParams): Promise<{ success: boolean; error?: string }> {
+  try {
+    const [year, month, day] = eventDate.split('-').map(Number);
+    const [hours, minutes] = eventTime.split(':').map(Number);
+
+    const startDate = new Date(year, month - 1, day, hours, minutes);
+    const endDate = new Date(startDate);
+    endDate.setHours(startDate.getHours() + 2);
+
+    const formatICalDate = (date: Date) => {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+    };
+
+    const dtStart = formatICalDate(startDate);
+    const dtEnd = formatICalDate(endDate);
+    const dtStamp = formatICalDate(new Date());
+
+    const uid = `event-${eventId}@meatup.club`;
+
+    const location = restaurantAddress
+      ? `${restaurantName}, ${restaurantAddress}`
+      : restaurantName;
+
+    const description = `This event has been cancelled. Please ignore the previous invite.`;
+
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Meatup.Club//Event Cancel//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:CANCEL',
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${dtStamp}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      `SUMMARY:Meatup.Club - ${restaurantName}`,
+      `DESCRIPTION:${description}`,
+      `LOCATION:${location}`,
+      'STATUS:CANCELLED',
+      `SEQUENCE:${sequence}`,
+      'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
+      `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=DECLINED;CN=${userEmail}:mailto:${userEmail}`,
+      'CLASS:PUBLIC',
+      'TRANSP:OPAQUE',
+      'END:VEVENT',
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    const icsBase64 = Buffer.from(icsContent).toString('base64');
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Meatup.Club Events <events@mail.meatup.club>',
+        to: [userEmail],
+        subject: `Event Cancelled: ${restaurantName}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f3f4f6;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td align="center" style="padding: 40px 0;">
+                  <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                      <td style="padding: 40px; text-align: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
+                        <h1 style="margin: 0; font-size: 28px; color: #ffffff;">🥩 Meatup.Club</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 40px;">
+                        <h2 style="margin: 0 0 20px; font-size: 24px; color: #1f2937;">Event Cancelled</h2>
+                        <p style="margin: 0 0 24px; font-size: 16px; color: #4b5563; line-height: 1.6;">
+                          This event has been cancelled and removed from the schedule.
+                        </p>
+                        <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 20px; margin: 0 0 24px; border-radius: 4px;">
+                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${restaurantName}</p>
+                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${restaurantAddress}</p>` : ''}
+                          <p style="margin: 0; font-size: 16px; color: #1f2937;">📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                        </div>
+                        <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                          A cancellation notice is attached to remove the event from your calendar.
+                        </p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 24px 40px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+                        <p style="margin: 0; font-size: 12px; color: #6b7280; text-align: center;">
+                          Meatup.Club - Your Quarterly Steakhouse Society
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `,
+        text: `
+🥩 Meatup.Club - Event Cancelled
+
+This event has been cancelled.
+
+📍 ${restaurantName}
+${restaurantAddress ? restaurantAddress + '\n' : ''}📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+
+A cancellation notice is attached to remove the event from your calendar.
+        `,
+        reply_to: 'rsvp@mail.meatup.club',
+        attachments: [
+          {
+            filename: 'event-cancel.ics',
+            content: icsBase64,
+            content_type: 'text/calendar; method=CANCEL',
+          },
+        ],
+        headers: {
+          'X-Entity-Ref-ID': `event-cancel-${eventId}-${Date.now()}`,
+        },
+        tags: [
+          {
+            name: 'category',
+            value: 'event_cancel',
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Failed to send event cancellation:', error);
+      return { success: false, error: `Failed to send cancellation: ${response.statusText}` };
+    }
+
+    console.log(`Event cancellation sent to ${userEmail} for event ${eventId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Event cancellation error:', error);
     return { success: false, error: String(error) };
   }
 }

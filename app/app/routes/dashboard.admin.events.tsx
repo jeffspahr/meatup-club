@@ -133,10 +133,20 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      // Update the event
+      // Update the event and increment calendar sequence for updates
+      const eventId = Number(id);
       await db
-        .prepare('UPDATE events SET restaurant_name = ?, restaurant_address = ?, event_date = ?, event_time = ?, status = ? WHERE id = ?')
-        .bind(restaurant_name, restaurant_address || null, event_date, event_time, status, id)
+        .prepare(`
+          UPDATE events
+          SET restaurant_name = ?,
+              restaurant_address = ?,
+              event_date = ?,
+              event_time = ?,
+              status = ?,
+              calendar_sequence = COALESCE(calendar_sequence, 0) + 1
+          WHERE id = ?
+        `)
+        .bind(restaurant_name, restaurant_address || null, event_date, event_time, status, eventId)
         .run();
 
       // Send calendar updates if requested
@@ -151,21 +161,27 @@ export async function action({ request, context }: Route.ActionArgs) {
             LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = ?
             WHERE u.status = 'active'
           `)
-          .bind(id)
+          .bind(eventId)
           .all();
 
         if (usersResult.results && usersResult.results.length > 0) {
           const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+          const eventMeta = await db
+            .prepare('SELECT calendar_sequence FROM events WHERE id = ?')
+            .bind(eventId)
+            .first();
+          const calendarSequence = Number((eventMeta as any)?.calendar_sequence ?? 1);
 
           const updatePromises = usersResult.results.map((user: any) =>
             sendEventUpdate({
-              eventId: Number(id),
+              eventId,
               restaurantName: restaurant_name as string,
               restaurantAddress: restaurant_address as string | null,
               eventDate: event_date as string,
               eventTime: event_time,
               userEmail: user.email,
               rsvpStatus: user.rsvp_status || undefined,
+              sequence: calendarSequence,
               resendApiKey,
             }).catch(err => {
               console.error(`Failed to send event update to ${user.email}:`, err);
@@ -204,9 +220,61 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
+      const eventId = Number(id);
+      const event = await db
+        .prepare('SELECT id, restaurant_name, restaurant_address, event_date, event_time, calendar_sequence FROM events WHERE id = ?')
+        .bind(eventId)
+        .first();
+
+      if (event) {
+        const { sendEventCancellation } = await import('../lib/email.server');
+        const usersResult = await db
+          .prepare(`
+            SELECT u.email
+            FROM users u
+            WHERE u.status = 'active'
+          `)
+          .all();
+
+        if (usersResult.results && usersResult.results.length > 0) {
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+          const calendarSequence = Number((event as any).calendar_sequence ?? 0) + 1;
+          const eventTime = (event as any).event_time || '18:00';
+
+          const cancelPromises = usersResult.results.map((user: any) =>
+            sendEventCancellation({
+              eventId,
+              restaurantName: (event as any).restaurant_name,
+              restaurantAddress: (event as any).restaurant_address || null,
+              eventDate: (event as any).event_date,
+              eventTime,
+              userEmail: user.email,
+              sequence: calendarSequence,
+              resendApiKey,
+            }).catch(err => {
+              console.error(`Failed to send cancellation to ${user.email}:`, err);
+              return { success: false, error: err.message };
+            })
+          );
+
+          const allCancellations = Promise.all(cancelPromises).then(results => {
+            const successCount = results.filter((r: { success: boolean }) => r.success).length;
+            const failureCount = results.filter((r: { success: boolean }) => !r.success).length;
+            console.log(`Event cancellations sent: ${successCount} succeeded, ${failureCount} failed`);
+            return results;
+          });
+
+          if (context.cloudflare.ctx?.waitUntil) {
+            context.cloudflare.ctx.waitUntil(allCancellations);
+          } else {
+            await allCancellations;
+          }
+        }
+      }
+
       await db
         .prepare('DELETE FROM events WHERE id = ?')
-        .bind(id)
+        .bind(eventId)
         .run();
 
       return redirect('/dashboard/admin/events');
