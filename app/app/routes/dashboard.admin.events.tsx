@@ -37,6 +37,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare('SELECT * FROM events ORDER BY event_date DESC')
     .all();
 
+  const smsMembersResult = await db
+    .prepare(`
+      SELECT id, name, email
+      FROM users
+      WHERE status = 'active'
+        AND sms_opt_in = 1
+        AND sms_opt_out_at IS NULL
+        AND phone_number IS NOT NULL
+      ORDER BY name ASC, email ASC
+    `)
+    .all();
+
   // Get vote leaders from shared utility
   const { topRestaurant, topDate } = await getActivePollLeaders(db);
 
@@ -44,6 +56,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     events: eventsResult.results || [],
     topRestaurant,
     topDate,
+    smsMembers: smsMembersResult.results || [],
   };
 }
 
@@ -289,6 +302,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     const messageType = formData.get('message_type');
     const customMessage = String(formData.get('custom_message') || '').trim();
     const recipientScope = String(formData.get('recipient_scope') || 'all');
+    const recipientUserIdRaw = String(formData.get('recipient_user_id') || '').trim();
+    const recipientUserId = recipientUserIdRaw ? Number(recipientUserIdRaw) : null;
 
     if (!eventId) {
       return { error: 'Event ID is required for SMS reminders' };
@@ -307,9 +322,13 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Event not found' };
     }
 
-    const validScopes = new Set(['all', 'yes', 'no', 'maybe', 'pending']);
+    const validScopes = new Set(['all', 'yes', 'no', 'maybe', 'pending', 'specific']);
     if (!validScopes.has(recipientScope)) {
       return { error: 'Invalid recipient selection' };
+    }
+
+    if (recipientScope === 'specific' && !recipientUserId) {
+      return { error: 'Select a specific recipient' };
     }
 
     const sendPromise = sendAdhocSmsReminder({
@@ -318,6 +337,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       event: event as any,
       customMessage: messageType === 'custom' ? customMessage : null,
       recipientScope: recipientScope as any,
+      recipientUserId,
     });
 
     if (context.cloudflare.ctx?.waitUntil) {
@@ -337,7 +357,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function AdminEventsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { events, topRestaurant, topDate } = loaderData;
+  const { events, topRestaurant, topDate, smsMembers } = loaderData;
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState({
@@ -764,6 +784,24 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                               <option value="yes">RSVP Yes</option>
                               <option value="no">RSVP No</option>
                               <option value="maybe">RSVP Maybe</option>
+                              <option value="specific">Specific member</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Specific Recipient
+                            </label>
+                            <select
+                              name="recipient_user_id"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              defaultValue=""
+                            >
+                              <option value="">Select a member (optional)</option>
+                              {smsMembers.map((member: any) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.name || member.email}
+                                </option>
+                              ))}
                             </select>
                           </div>
                           <div>
