@@ -49,8 +49,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     `)
     .all();
 
+  const suggestions = (restaurantsResult.results || []).map((suggestion: any) => ({
+    ...suggestion,
+    photo_url: getProxiedPhotoUrl(suggestion.photo_url),
+  }));
+
   return {
-    suggestions: restaurantsResult.results || [],
+    suggestions,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -382,4 +387,34 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
       )}
     </main>
   );
+}
+
+function getProxiedPhotoUrl(photoUrl: string | null): string | null {
+  if (!photoUrl) {
+    return photoUrl;
+  }
+
+  try {
+    const parsed = new URL(photoUrl);
+    if (parsed.hostname !== "places.googleapis.com") {
+      return photoUrl;
+    }
+
+    const path = parsed.pathname;
+    if (!path.startsWith("/v1/") || !path.endsWith("/media")) {
+      return photoUrl;
+    }
+
+    const name = path.replace(/^\/v1\//, "").replace(/\/media$/, "");
+    const maxHeightPx = parsed.searchParams.get("maxHeightPx") || "400";
+    const maxWidthPx = parsed.searchParams.get("maxWidthPx") || "400";
+
+    return `/api/places/photo?${new URLSearchParams({
+      name,
+      maxHeightPx,
+      maxWidthPx,
+    }).toString()}`;
+  } catch {
+    return photoUrl;
+  }
 }
