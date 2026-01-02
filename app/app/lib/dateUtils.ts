@@ -165,6 +165,25 @@ export function formatTimeForDisplay(
 }
 
 /**
+ * Format a datetime string (e.g. YYYY-MM-DD HH:mm:ss) for display.
+ * Assumes bare timestamps are UTC, then renders in the user's locale.
+ */
+export function formatDateTimeForDisplay(
+  dateTimeString: string,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
+): string {
+  if (!dateTimeString) {
+    return '';
+  }
+
+  const trimmed = dateTimeString.trim();
+  const isBareTimestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed);
+  const normalized = isBareTimestamp ? trimmed.replace(' ', 'T') + 'Z' : trimmed;
+  const date = new Date(normalized);
+  return date.toLocaleDateString('en-US', options);
+}
+
+/**
  * BACKWARDS COMPATIBILITY (deprecated - will be removed)
  * These use UTC on server, local on client - causes hydration issues
  */

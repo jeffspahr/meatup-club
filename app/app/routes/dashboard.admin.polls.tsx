@@ -4,7 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
-import { formatDateForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
+import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -434,7 +434,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   <div>
                     <h3 className="font-semibold text-foreground">{poll.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Closed {formatDateForDisplay(poll.closed_at)} by{' '}
+                      Closed {formatDateTimeForDisplay(poll.closed_at)} by{' '}
                       {poll.closed_by_name}
                     </p>
                   </div>

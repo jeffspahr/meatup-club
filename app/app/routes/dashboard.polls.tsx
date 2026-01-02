@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
-import { formatDateForDisplay } from "../lib/dateUtils";
+import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
@@ -929,7 +929,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    Closed {formatDateForDisplay(poll.closed_at)}
+                    Closed {formatDateTimeForDisplay(poll.closed_at)}
                   </span>
                 </div>
                 {poll.winner_restaurant && poll.winner_date && (
