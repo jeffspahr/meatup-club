@@ -14,6 +14,9 @@ export type AuthUser = {
   notify_comment_replies: number;
   notify_poll_updates: number;
   notify_event_updates: number;
+  phone_number: string | null;
+  sms_opt_in: number;
+  sms_opt_out_at: string | null;
 };
 
 // Get current user from session

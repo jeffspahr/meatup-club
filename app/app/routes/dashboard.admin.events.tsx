@@ -5,6 +5,7 @@ import { requireAdmin } from "../lib/auth.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatTimeForDisplay } from "../lib/dateUtils";
+import { sendAdhocSmsReminder } from "../lib/sms.server";
 
 interface Event {
   id: number;
@@ -283,6 +284,48 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   }
 
+  if (actionType === 'send_sms_reminder') {
+    const eventId = Number(formData.get('event_id'));
+    const messageType = formData.get('message_type');
+    const customMessage = String(formData.get('custom_message') || '').trim();
+
+    if (!eventId) {
+      return { error: 'Event ID is required for SMS reminders' };
+    }
+
+    if (messageType === 'custom' && !customMessage) {
+      return { error: 'Custom SMS message cannot be empty' };
+    }
+
+    const event = await db
+      .prepare('SELECT id, restaurant_name, restaurant_address, event_date, event_time FROM events WHERE id = ?')
+      .bind(eventId)
+      .first();
+
+    if (!event) {
+      return { error: 'Event not found' };
+    }
+
+    const sendPromise = sendAdhocSmsReminder({
+      db,
+      env: context.cloudflare.env,
+      event: event as any,
+      customMessage: messageType === 'custom' ? customMessage : null,
+    });
+
+    if (context.cloudflare.ctx?.waitUntil) {
+      context.cloudflare.ctx.waitUntil(sendPromise);
+      return { success: 'SMS reminder sending in the background.' };
+    }
+
+    const result = await sendPromise;
+    if (result.errors.length > 0) {
+      return { error: `Some SMS messages failed: ${result.errors[0]}` };
+    }
+
+    return { success: `Sent ${result.sent} SMS reminders.` };
+  }
+
   return { error: 'Invalid action' };
 }
 
@@ -403,6 +446,12 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       {actionData?.error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
           {actionData.error}
+        </div>
+      )}
+
+      {actionData?.success && (
+        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+          {actionData.success}
         </div>
       )}
 
@@ -677,6 +726,42 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                       <p className="text-xs text-muted-foreground mt-2">
                         Created {formatDateForDisplay(event.created_at)}
                       </p>
+                      <div className="mt-4">
+                        <Form method="post" className="space-y-3">
+                          <input type="hidden" name="_action" value="send_sms_reminder" />
+                          <input type="hidden" name="event_id" value={event.id} />
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              SMS Reminder
+                            </label>
+                            <select
+                              name="message_type"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              defaultValue="default"
+                            >
+                              <option value="default">Use default reminder template</option>
+                              <option value="custom">Send custom message</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Custom Message (Optional)
+                            </label>
+                            <textarea
+                              name="custom_message"
+                              rows={3}
+                              placeholder="Add a custom note (RSVP + opt-out instructions are appended automatically)."
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 text-sm font-medium text-white bg-meat-red rounded-md hover:bg-meat-brown transition-colors"
+                          >
+                            Send SMS Reminder
+                          </button>
+                        </Form>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button

@@ -176,6 +176,7 @@ export function DashboardContent({
   const { user, memberCount, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
+  const [showSmsPrompt, setShowSmsPrompt] = useState(false);
 
   // Show content expanded on first visit
   useEffect(() => {
@@ -185,6 +186,16 @@ export function DashboardContent({
       localStorage.setItem('hasVisitedDashboard', 'true');
     }
   }, []);
+
+  useEffect(() => {
+    if (user.phone_number) {
+      return;
+    }
+    const dismissed = localStorage.getItem('dismissedSmsPrompt');
+    if (!dismissed) {
+      setShowSmsPrompt(true);
+    }
+  }, [user.phone_number]);
 
   return (
     <main
@@ -204,6 +215,35 @@ export function DashboardContent({
           Everything you need to plan the next steakhouse meetup.
         </p>
       </div>
+
+      {showSmsPrompt && (
+        <div className="card-shell mb-8 p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Get SMS reminders + RSVP by text</p>
+            <p className="text-sm text-muted-foreground">
+              Add your mobile number to receive quick Y/N reminders before each meetup.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/dashboard/profile"
+              className="inline-flex items-center justify-center rounded-full bg-meat-red px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-meat-brown transition-colors"
+            >
+              Add Number
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setShowSmsPrompt(false);
+                localStorage.setItem('dismissedSmsPrompt', 'true');
+              }}
+              className="inline-flex items-center justify-center rounded-full border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground hover:bg-foreground/5"
+            >
+              Not now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Site Content Section - Front and Center */}
       {content.length > 0 && (

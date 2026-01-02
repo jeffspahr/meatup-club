@@ -11,6 +11,7 @@ export default [
   route("api/places/details", "routes/api.places.details.tsx"),
   route("api/places/photo", "routes/api.places.photo.tsx"),
   route("api/polls", "routes/api.polls.tsx"),
+  route("api/webhooks/sms", "routes/api.webhooks.sms.tsx"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),
     route("about", "routes/dashboard.about.tsx"),

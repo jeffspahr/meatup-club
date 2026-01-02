@@ -172,6 +172,9 @@ app/
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `SESSION_SECRET` - Random string for session encryption
 - `RESEND_API_KEY` - Resend API key for email sending and calendar invites
+- `TWILIO_ACCOUNT_SID` - Twilio Account SID for SMS sending and webhooks
+- `TWILIO_AUTH_TOKEN` - Twilio Auth Token for SMS sending and webhook signature validation
+- `TWILIO_FROM_NUMBER` - Twilio phone number used for reminders
 
 ### Cloudflare Bindings
 
