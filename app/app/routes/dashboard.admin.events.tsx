@@ -288,6 +288,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const eventId = Number(formData.get('event_id'));
     const messageType = formData.get('message_type');
     const customMessage = String(formData.get('custom_message') || '').trim();
+    const recipientScope = String(formData.get('recipient_scope') || 'all');
 
     if (!eventId) {
       return { error: 'Event ID is required for SMS reminders' };
@@ -306,11 +307,17 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Event not found' };
     }
 
+    const validScopes = new Set(['all', 'yes', 'no', 'maybe', 'pending']);
+    if (!validScopes.has(recipientScope)) {
+      return { error: 'Invalid recipient selection' };
+    }
+
     const sendPromise = sendAdhocSmsReminder({
       db,
       env: context.cloudflare.env,
       event: event as any,
       customMessage: messageType === 'custom' ? customMessage : null,
+      recipientScope: recipientScope as any,
     });
 
     if (context.cloudflare.ctx?.waitUntil) {
@@ -741,6 +748,22 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             >
                               <option value="default">Use default reminder template</option>
                               <option value="custom">Send custom message</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Recipients
+                            </label>
+                            <select
+                              name="recipient_scope"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              defaultValue="all"
+                            >
+                              <option value="all">All SMS-opted members</option>
+                              <option value="pending">No RSVP yet</option>
+                              <option value="yes">RSVP Yes</option>
+                              <option value="no">RSVP No</option>
+                              <option value="maybe">RSVP Maybe</option>
                             </select>
                           </div>
                           <div>

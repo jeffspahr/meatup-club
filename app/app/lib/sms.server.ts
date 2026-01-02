@@ -17,6 +17,8 @@ export type SmsEvent = {
   event_time?: string | null;
 };
 
+export type SmsRecipientScope = "all" | "yes" | "no" | "maybe" | "pending";
+
 const OPT_OUT_KEYWORDS = new Set(["stop", "stopall", "unsubscribe", "cancel", "end", "quit"]);
 const HELP_KEYWORDS = new Set(["help", "info"]);
 const YES_KEYWORDS = new Set(["y", "yes"]);
@@ -240,17 +242,20 @@ export async function sendAdhocSmsReminder({
   env,
   event,
   customMessage,
+  recipientScope = "all",
 }: {
   db: D1Database;
   env: SmsEnv;
   event: SmsEvent;
   customMessage?: string | null;
+  recipientScope?: SmsRecipientScope;
 }): Promise<{ sent: number; errors: string[] }> {
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_FROM_NUMBER) {
     return { sent: 0, errors: ["Twilio credentials are missing."] };
   }
 
   const timeZone = getAppTimeZone(env.APP_TIMEZONE);
+  const recipientQuery = buildRecipientScopeQuery(recipientScope);
   const recipients = await db
     .prepare(`
       SELECT u.id, u.phone_number, r.status as rsvp_status
@@ -260,8 +265,9 @@ export async function sendAdhocSmsReminder({
         AND u.sms_opt_in = 1
         AND u.sms_opt_out_at IS NULL
         AND u.phone_number IS NOT NULL
+        ${recipientQuery.sql}
     `)
-    .bind(event.id)
+    .bind(event.id, ...recipientQuery.bindings)
     .all();
 
   const reminderType = `adhoc:${Date.now()}`;
@@ -391,6 +397,20 @@ function isWithinWindow(diffMs: number, targetMs: number, windowMs: number): boo
 
 function appendSmsInstructions(message: string): string {
   return `${message} Reply YES or NO to RSVP. Reply STOP to opt out.`;
+}
+
+function buildRecipientScopeQuery(scope: SmsRecipientScope): { sql: string; bindings: any[] } {
+  switch (scope) {
+    case "yes":
+    case "no":
+    case "maybe":
+      return { sql: "AND r.status = ?", bindings: [scope] };
+    case "pending":
+      return { sql: "AND r.status IS NULL", bindings: [] };
+    case "all":
+    default:
+      return { sql: "", bindings: [] };
+  }
 }
 
 function formatRsvpStatus(status?: string | null): string {
