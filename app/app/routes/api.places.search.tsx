@@ -10,6 +10,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 
   try {
+    const cache = caches.default;
+    const cacheKey = new Request(url.toString(), { method: "GET" });
+    const cached = await cache.match(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     // Use Google Places API (New) - Text Search
     const response = await fetch(
       "https://places.googleapis.com/v1/places:searchText",
@@ -42,7 +49,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }
 
     const data = await response.json();
-    return Response.json(data);
+    const headers = new Headers({
+      "Cache-Control": "public, max-age=600, stale-while-revalidate=3600",
+    });
+    const jsonResponse = Response.json(data, { headers });
+    context.cloudflare.ctx.waitUntil(cache.put(cacheKey, jsonResponse.clone()));
+    return jsonResponse;
   } catch (error) {
     console.error("Places search error:", error);
     return Response.json(

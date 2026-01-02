@@ -9,6 +9,7 @@ export default [
   route("auth/google/callback", "routes/auth.google.callback.tsx"),
   route("api/places/search", "routes/api.places.search.tsx"),
   route("api/places/details", "routes/api.places.details.tsx"),
+  route("api/places/photo", "routes/api.places.photo.tsx"),
   route("api/polls", "routes/api.polls.tsx"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),

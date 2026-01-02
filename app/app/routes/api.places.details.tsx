@@ -10,6 +10,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 
   try {
+    const cache = caches.default;
+    const cacheKey = new Request(url.toString(), { method: "GET" });
+    const cached = await cache.match(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     // Use Google Places API (New) - Place Details
     const response = await fetch(
       `https://places.googleapis.com/v1/places/${placeId}`,
@@ -42,6 +49,13 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     }
 
     const data = await response.json();
+    const photoUrl = data.photos?.[0]?.name
+      ? `/api/places/photo?${new URLSearchParams({
+          name: data.photos[0].name,
+          maxHeightPx: "400",
+          maxWidthPx: "400",
+        }).toString()}`
+      : "";
     
     // Transform to our format
     const placeData = {
@@ -54,16 +68,19 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       rating: data.rating || 0,
       ratingCount: data.userRatingCount || 0,
       priceLevel: data.priceLevel ? getPriceLevelNumber(data.priceLevel) : 0,
-      photoUrl: data.photos?.[0]?.name
-        ? `https://places.googleapis.com/v1/${data.photos[0].name}/media?maxHeightPx=400&maxWidthPx=400&key=${apiKey}`
-        : "",
+      photoUrl,
       cuisine: getCuisineFromTypes(data.types || []),
       openingHours: data.currentOpeningHours?.weekdayDescriptions
         ? JSON.stringify(data.currentOpeningHours.weekdayDescriptions)
         : null,
     };
 
-    return Response.json(placeData);
+    const headers = new Headers({
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    });
+    const jsonResponse = Response.json(placeData, { headers });
+    context.cloudflare.ctx.waitUntil(cache.put(cacheKey, jsonResponse.clone()));
+    return jsonResponse;
   } catch (error) {
     console.error("Place details error:", error);
     return Response.json(
