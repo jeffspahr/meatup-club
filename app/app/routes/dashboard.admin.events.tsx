@@ -359,6 +359,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function AdminEventsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { events, topRestaurant, topDate, smsMembers } = loaderData;
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [smsScopeByEvent, setSmsScopeByEvent] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState({
     id: 0,
@@ -777,7 +778,13 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             <select
                               name="recipient_scope"
                               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
-                              defaultValue="all"
+                              value={smsScopeByEvent[event.id] || 'all'}
+                              onChange={(eventScope) =>
+                                setSmsScopeByEvent((prev) => ({
+                                  ...prev,
+                                  [event.id]: eventScope.target.value,
+                                }))
+                              }
                             >
                               <option value="all">All SMS-opted members</option>
                               <option value="pending">No RSVP yet</option>
@@ -787,23 +794,25 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                               <option value="specific">Specific member</option>
                             </select>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Specific Recipient
-                            </label>
-                            <select
-                              name="recipient_user_id"
-                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
-                              defaultValue=""
-                            >
-                              <option value="">Select a member (optional)</option>
-                              {smsMembers.map((member: any) => (
-                                <option key={member.id} value={member.id}>
-                                  {member.name || member.email}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                          {(smsScopeByEvent[event.id] || 'all') === 'specific' && (
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">
+                                Specific Recipient
+                              </label>
+                              <select
+                                name="recipient_user_id"
+                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                                defaultValue=""
+                              >
+                                <option value="">Select a member</option>
+                                {smsMembers.map((member: any) => (
+                                  <option key={member.id} value={member.id}>
+                                    {member.name || member.email}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1">
                               Custom Message (Optional)
