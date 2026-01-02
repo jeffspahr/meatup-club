@@ -19,6 +19,7 @@ export type ActivityType =
   | 'delete_restaurant'
   | 'rsvp'
   | 'update_rsvp'
+  | 'admin_override_rsvp'
   | 'comment'
   | 'delete_comment';
 

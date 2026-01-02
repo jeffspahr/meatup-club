@@ -100,12 +100,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (existingRsvp) {
     await db
-      .prepare("UPDATE rsvps SET status = ? WHERE event_id = ? AND user_id = ?")
+      .prepare("UPDATE rsvps SET status = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE event_id = ? AND user_id = ?")
       .bind(replyType, eventId, (user as any).id)
       .run();
   } else {
     await db
-      .prepare("INSERT INTO rsvps (event_id, user_id, status) VALUES (?, ?, ?)")
+      .prepare("INSERT INTO rsvps (event_id, user_id, status, admin_override) VALUES (?, ?, ?, 0)")
       .bind(eventId, (user as any).id, replyType)
       .run();
   }

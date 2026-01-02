@@ -2,6 +2,7 @@ import { Form, Link, redirect, useNavigation, useSubmit } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
+import { logActivity } from "../lib/activity.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatTimeForDisplay } from "../lib/dateUtils";
@@ -49,6 +50,45 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     `)
     .all();
 
+  const rsvpRowsResult = await db
+    .prepare(`
+      SELECT
+        r.event_id,
+        r.user_id,
+        r.status,
+        r.admin_override,
+        u.name,
+        u.email
+      FROM rsvps r
+      JOIN users u ON r.user_id = u.id
+    `)
+    .all();
+
+  const activeMembersResult = await db
+    .prepare('SELECT id, name, email FROM users WHERE status = ? ORDER BY name ASC, email ASC')
+    .bind('active')
+    .all();
+
+  const activeMembers = activeMembersResult.results || [];
+  const rsvpLookup = new Map<string, any>();
+  for (const row of rsvpRowsResult.results || []) {
+    const key = `${(row as any).event_id}:${(row as any).user_id}`;
+    rsvpLookup.set(key, row);
+  }
+
+  const eventMembersById: Record<number, any[]> = {};
+  for (const event of eventsResult.results || []) {
+    eventMembersById[(event as any).id] = activeMembers.map((member: any) => {
+      const key = `${(event as any).id}:${member.id}`;
+      const rsvp = rsvpLookup.get(key) as any;
+      return {
+        ...member,
+        rsvp_status: rsvp?.status || null,
+        admin_override: rsvp?.admin_override || 0,
+      };
+    });
+  }
+
   // Get vote leaders from shared utility
   const { topRestaurant, topDate } = await getActivePollLeaders(db);
 
@@ -57,11 +97,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     topRestaurant,
     topDate,
     smsMembers: smsMembersResult.results || [],
+    eventMembersById,
   };
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  await requireAdmin(request, context);
+  const admin = await requireAdmin(request, context);
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const actionType = formData.get('_action');
@@ -131,6 +172,103 @@ export async function action({ request, context }: Route.ActionArgs) {
       console.error('Event creation error:', err);
       return { error: 'Failed to create event' };
     }
+  }
+
+  if (actionType === 'override_rsvp') {
+    const eventId = Number(formData.get('event_id'));
+    const userId = Number(formData.get('user_id'));
+    const status = String(formData.get('status') || '');
+
+    if (!eventId || !userId || !status) {
+      return { error: 'Event, user, and status are required for RSVP overrides' };
+    }
+
+    const validStatuses = new Set(['yes', 'no', 'maybe']);
+    if (!validStatuses.has(status)) {
+      return { error: 'Invalid RSVP status' };
+    }
+
+    const event = await db
+      .prepare('SELECT id, restaurant_name, event_date, event_time FROM events WHERE id = ?')
+      .bind(eventId)
+      .first();
+
+    const targetUser = await db
+      .prepare('SELECT id, name, email FROM users WHERE id = ?')
+      .bind(userId)
+      .first();
+
+    if (!event || !targetUser) {
+      return { error: 'Event or user not found' };
+    }
+
+    const existing = await db
+      .prepare('SELECT id FROM rsvps WHERE event_id = ? AND user_id = ?')
+      .bind(eventId, userId)
+      .first();
+
+    if (existing) {
+      await db
+        .prepare(`
+          UPDATE rsvps
+          SET status = ?,
+              admin_override = 1,
+              admin_override_by = ?,
+              admin_override_at = CURRENT_TIMESTAMP
+          WHERE event_id = ? AND user_id = ?
+        `)
+        .bind(status, admin.id, eventId, userId)
+        .run();
+    } else {
+      await db
+        .prepare(`
+          INSERT INTO rsvps (event_id, user_id, status, admin_override, admin_override_by, admin_override_at)
+          VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
+        `)
+        .bind(eventId, userId, status, admin.id)
+        .run();
+    }
+
+    await logActivity({
+      db,
+      userId: admin.id,
+      actionType: 'admin_override_rsvp',
+      actionDetails: { event_id: eventId, user_id: userId, status },
+      route: '/dashboard/admin/events',
+      request,
+    });
+
+    const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const { sendRsvpOverrideEmail } = await import('../lib/email.server');
+      const emailPromise = sendRsvpOverrideEmail({
+        to: (targetUser as any).email,
+        recipientName: (targetUser as any).name || null,
+        adminName: admin.name || admin.email,
+        eventName: (event as any).restaurant_name,
+        eventDate: formatDateForDisplay((event as any).event_date, {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+        eventTime: formatTimeForDisplay((event as any).event_time || '18:00'),
+        rsvpStatus: status,
+        eventUrl: 'https://meatup.club/dashboard/events',
+        resendApiKey,
+      }).catch((error: Error) => {
+        console.error('RSVP override email failed:', error);
+        return { success: false, error: error.message };
+      });
+
+      if (context.cloudflare.ctx?.waitUntil) {
+        context.cloudflare.ctx.waitUntil(emailPromise);
+      } else {
+        await emailPromise;
+      }
+    }
+
+    return { success: 'RSVP override saved and user notified.' };
   }
 
   if (actionType === 'update') {
@@ -357,7 +495,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function AdminEventsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { events, topRestaurant, topDate, smsMembers } = loaderData;
+  const { events, topRestaurant, topDate, smsMembers, eventMembersById } = loaderData;
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [smsScopeByEvent, setSmsScopeByEvent] = useState<Record<number, string>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -719,9 +857,9 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                     </div>
                   </Form>
                 ) : (
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-foreground">
                           {event.restaurant_name}
                         </h3>
@@ -833,8 +971,8 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         </Form>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
+                      <div className="flex gap-2">
+                        <button
                         onClick={() => startEditing(event)}
                         className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
                       >
@@ -847,6 +985,50 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         Delete
                       </button>
                     </div>
+                    {event.status === 'upcoming' && (
+                      <div className="mt-6 border-t border-border pt-4">
+                        <h4 className="text-sm font-semibold text-foreground mb-3">RSVP Overrides</h4>
+                        <div className="space-y-3">
+                          {(eventMembersById[event.id] || []).map((member: any) => (
+                            <Form key={member.id} method="post" className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              <input type="hidden" name="_action" value="override_rsvp" />
+                              <input type="hidden" name="event_id" value={event.id} />
+                              <input type="hidden" name="user_id" value={member.id} />
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-foreground">
+                                  {member.name || member.email}
+                                  {member.admin_override === 1 && (
+                                    <span className="ml-2 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                      Admin override
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Current RSVP: {member.rsvp_status || 'pending'}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <select
+                                  name="status"
+                                  defaultValue={member.rsvp_status || 'maybe'}
+                                  className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-meat-red"
+                                >
+                                  <option value="yes">Yes</option>
+                                  <option value="no">No</option>
+                                  <option value="maybe">Maybe</option>
+                                </select>
+                                <button
+                                  type="submit"
+                                  className="px-4 py-2 text-sm font-medium text-white bg-meat-red rounded-md hover:bg-meat-brown transition-colors"
+                                >
+                                  Override
+                                </button>
+                              </div>
+                            </Form>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

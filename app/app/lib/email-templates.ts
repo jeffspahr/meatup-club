@@ -258,3 +258,90 @@ Manage your notification preferences in your profile settings.
     subject: `${data.replierName} replied to your comment`,
   };
 }
+
+interface RsvpOverrideEmailData {
+  recipientName: string | null;
+  adminName: string;
+  eventName: string;
+  eventDate: string;
+  eventTime: string;
+  rsvpStatus: string;
+  eventUrl: string;
+}
+
+export function generateRsvpOverrideEmail(data: RsvpOverrideEmailData) {
+  const displayName = data.recipientName || 'there';
+  const statusLabel = data.rsvpStatus.charAt(0).toUpperCase() + data.rsvpStatus.slice(1);
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSVP Updated</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 0;">
+        <table role="presentation" style="width: 600px; max-width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <tr>
+            <td style="padding: 32px; text-align: center; background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-radius: 8px 8px 0 0;">
+              <h1 style="margin: 0; font-size: 26px; color: #ffffff; font-weight: bold;">
+                RSVP Updated
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px;">
+              <p style="margin: 0 0 16px; font-size: 16px; color: #374151; line-height: 1.6;">
+                Hi ${displayName},
+              </p>
+              <p style="margin: 0 0 16px; font-size: 16px; color: #374151; line-height: 1.6;">
+                ${data.adminName} updated your RSVP for <strong>${data.eventName}</strong>.
+              </p>
+              <p style="margin: 0 0 16px; font-size: 16px; color: #374151; line-height: 1.6;">
+                New RSVP status: <strong>${statusLabel}</strong>
+              </p>
+              <p style="margin: 0 0 16px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                Event details: ${data.eventDate} at ${data.eventTime}
+              </p>
+              <p style="margin: 0;">
+                <a href="${data.eventUrl}" style="display: inline-block; background-color: #991b1b; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 20px; border-radius: 6px;">
+                  View Event
+                </a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 32px; background-color: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #6b7280; text-align: center;">
+                If this was unexpected, you can update your RSVP on the event page.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Hi ${displayName},
+
+${data.adminName} updated your RSVP for ${data.eventName}.
+New RSVP status: ${statusLabel}
+Event details: ${data.eventDate} at ${data.eventTime}
+
+View event: ${data.eventUrl}
+  `.trim();
+
+  return {
+    html,
+    text,
+    subject: `RSVP Updated: ${data.eventName}`,
+  };
+}

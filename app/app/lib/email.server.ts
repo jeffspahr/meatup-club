@@ -153,6 +153,82 @@ export async function sendCommentReplyEmail({
   }
 }
 
+interface SendRsvpOverrideEmailParams {
+  to: string;
+  recipientName: string | null;
+  adminName: string;
+  eventName: string;
+  eventDate: string;
+  eventTime: string;
+  rsvpStatus: string;
+  eventUrl: string;
+  resendApiKey: string;
+}
+
+export async function sendRsvpOverrideEmail({
+  to,
+  recipientName,
+  adminName,
+  eventName,
+  eventDate,
+  eventTime,
+  rsvpStatus,
+  eventUrl,
+  resendApiKey,
+}: SendRsvpOverrideEmailParams): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { generateRsvpOverrideEmail } = await import('./email-templates');
+
+    const { subject, html, text } = generateRsvpOverrideEmail({
+      recipientName,
+      adminName,
+      eventName,
+      eventDate,
+      eventTime,
+      rsvpStatus,
+      eventUrl,
+    });
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Meatup.Club <notifications@mail.meatup.club>',
+        to: [to],
+        subject,
+        html,
+        text,
+        reply_to: 'noreply@meatup.club',
+        headers: {
+          'X-Entity-Ref-ID': `rsvp-override-${Date.now()}`,
+        },
+        tags: [
+          {
+            name: 'category',
+            value: 'rsvp_override',
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Resend API error:', error);
+      return { success: false, error: `Failed to send email: ${response.statusText}` };
+    }
+
+    const data = await response.json();
+    console.log('RSVP override email sent successfully:', data);
+    return { success: true };
+  } catch (error) {
+    console.error('RSVP override email error:', error);
+    return { success: false, error: 'Failed to send RSVP override notification' };
+  }
+}
+
 interface EventInviteParams {
   eventId: number;
   restaurantName: string;

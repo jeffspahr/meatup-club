@@ -516,7 +516,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       // Verify INSERT was called
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar) VALUES (?, ?, ?, 1)'
+        'INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar, admin_override) VALUES (?, ?, ?, 1, 0)'
       );
       expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes');
     });
@@ -633,7 +633,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       // Verify UPDATE was called
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'UPDATE rsvps SET status = ?, updated_via_calendar = 1 WHERE id = ?'
+        'UPDATE rsvps SET status = ?, updated_via_calendar = 1, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE id = ?'
       );
       expect(mockDb.bind).toHaveBeenCalledWith('yes', 456);
     });

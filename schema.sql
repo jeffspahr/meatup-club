@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS rsvps (
   user_id INTEGER NOT NULL,
   status TEXT DEFAULT 'yes', -- yes, no, maybe
   dietary_restrictions TEXT,
+  admin_override INTEGER DEFAULT 0,
+  admin_override_by INTEGER,
+  admin_override_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
@@ -100,6 +103,7 @@ CREATE TABLE IF NOT EXISTS date_votes (
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_rsvps_event_id ON rsvps(event_id);
 CREATE INDEX IF NOT EXISTS idx_rsvps_user_id ON rsvps(user_id);
+CREATE INDEX IF NOT EXISTS idx_rsvps_admin_override ON rsvps(admin_override);
 CREATE INDEX IF NOT EXISTS idx_users_phone_number ON users(phone_number);
 CREATE INDEX IF NOT EXISTS idx_sms_reminders_event_user ON sms_reminders(event_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_restaurant_suggestions_event_id ON restaurant_suggestions(event_id);

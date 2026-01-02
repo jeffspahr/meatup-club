@@ -151,7 +151,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     if (existingRsvp) {
       // Update existing RSVP
       await db
-        .prepare('UPDATE rsvps SET status = ?, updated_via_calendar = 1 WHERE id = ?')
+        .prepare('UPDATE rsvps SET status = ?, updated_via_calendar = 1, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE id = ?')
         .bind(rsvpStatus, existingRsvp.id)
         .run();
 
@@ -159,7 +159,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     } else {
       // Create new RSVP
       await db
-        .prepare('INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar) VALUES (?, ?, ?, 1)')
+        .prepare('INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar, admin_override) VALUES (?, ?, ?, 1, 0)')
         .bind(eventId, user.id, rsvpStatus)
         .run();
 
