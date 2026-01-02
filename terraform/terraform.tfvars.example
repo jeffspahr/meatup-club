@@ -20,3 +20,51 @@ github_owner = "jeffspahr"
 # Authorized redirect URI: https://meatup.club/auth/google/callback
 google_client_id     = "your-google-client-id"
 google_client_secret = "your-google-client-secret"
+
+# Google Cloud project used for Places API quota overrides
+google_project_id = "your-gcp-project-id"
+
+# Places API quota overrides (metric/limit names come from GCP Service Usage quotas)
+# Example values below align with current recommended limits for this app.
+google_places_quota_overrides = {
+  search_text_per_day = {
+    metric         = "places.googleapis.com/SearchTextRequest"
+    limit          = "1/d/{project}"
+    override_value = "500"
+  }
+  search_text_per_minute = {
+    metric         = "places.googleapis.com/SearchTextRequest"
+    limit          = "1/min/{project}"
+    override_value = "30"
+  }
+  get_place_per_day = {
+    metric         = "places.googleapis.com/GetPlaceRequest"
+    limit          = "1/d/{project}"
+    override_value = "500"
+  }
+  get_place_per_minute = {
+    metric         = "places.googleapis.com/GetPlaceRequest"
+    limit          = "1/min/{project}"
+    override_value = "30"
+  }
+  get_photo_per_day = {
+    metric         = "places.googleapis.com/GetPhotoMediaRequest"
+    limit          = "1/d/{project}"
+    override_value = "2000"
+  }
+  get_photo_per_minute = {
+    metric         = "places.googleapis.com/GetPhotoMediaRequest"
+    limit          = "1/min/{project}"
+    override_value = "60"
+  }
+  autocomplete_per_day = {
+    metric         = "places.googleapis.com/AutocompletePlacesRequest"
+    limit          = "1/d/{project}"
+    override_value = "500"
+  }
+  autocomplete_per_minute = {
+    metric         = "places.googleapis.com/AutocompletePlacesRequest"
+    limit          = "1/min/{project}"
+    override_value = "30"
+  }
+}

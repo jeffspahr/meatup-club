@@ -32,6 +32,28 @@ variable "google_client_secret" {
   sensitive   = true
 }
 
+variable "google_project_id" {
+  description = "Google Cloud project ID for Places API quotas"
+  type        = string
+}
+
+variable "google_region" {
+  description = "Google Cloud region (used for provider configuration)"
+  type        = string
+  default     = "us-central1"
+}
+
+variable "google_places_quota_overrides" {
+  description = "Places API quota overrides keyed by name"
+  type = map(object({
+    metric         = string
+    limit          = string
+    override_value = string
+    dimensions     = optional(map(string), {})
+  }))
+  default = {}
+}
+
 variable "nextauth_secret" {
   description = "NextAuth.js secret for JWT encryption (generate with: openssl rand -base64 32)"
   type        = string
