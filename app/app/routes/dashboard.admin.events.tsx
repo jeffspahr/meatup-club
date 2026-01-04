@@ -293,6 +293,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'ID, restaurant name and date are required' };
     }
 
+    const normalizedStatus = status === 'cancelled' ? 'cancelled' : 'upcoming';
+
     try {
       // Update the event and increment calendar sequence for updates
       const eventId = Number(id);
@@ -307,7 +309,7 @@ export async function action({ request, context }: Route.ActionArgs) {
               calendar_sequence = COALESCE(calendar_sequence, 0) + 1
           WHERE id = ?
         `)
-        .bind(restaurant_name, restaurant_address || null, event_date, event_time, status, eventId)
+        .bind(restaurant_name, restaurant_address || null, event_date, event_time, normalizedStatus, eventId)
         .run();
 
       // Send calendar updates if requested
@@ -819,20 +821,24 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
 
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-1">
-                        Status *
+                        Status
                       </label>
-                      <select
-                        name="status"
-                        value={editData.status}
-                        onChange={(e) =>
-                          setEditData({ ...editData, status: e.target.value })
-                        }
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
-                      >
-                        <option value="upcoming">Upcoming</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                      <p className="text-sm text-muted-foreground">
+                        {event.displayStatus} (auto)
+                      </p>
+                      <label className="mt-2 flex items-center gap-2 text-sm text-foreground">
+                        <input
+                          type="checkbox"
+                          name="status"
+                          value="cancelled"
+                          checked={editData.status === 'cancelled'}
+                          onChange={(e) =>
+                            setEditData({ ...editData, status: e.target.checked ? 'cancelled' : 'upcoming' })
+                          }
+                          className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
+                        />
+                        Mark as cancelled
+                      </label>
                     </div>
 
                     <div className="flex items-center">
