@@ -9,6 +9,7 @@ interface Event {
   restaurant_name: string;
   restaurant_address: string | null;
   event_date: string;
+  event_time?: string | null;
   status: string;
   created_at: string;
 }
@@ -39,11 +40,18 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
   const today = getTodayDateStringInTimeZone(appTimeZone);
   const upcomingEventsRaw = events.filter(
-    (e: any) => e.event_date >= today && e.status === 'upcoming'
+    (e: any) => e.event_date >= today && e.status !== 'cancelled'
   );
-  const pastEvents = events.filter(
-    (e: any) => e.event_date < today || e.status !== 'upcoming'
-  );
+  const pastEvents = events
+    .filter((e: any) => e.event_date < today || e.status === 'cancelled')
+    .map((event: any) => ({
+      ...event,
+      displayStatus: event.status === 'cancelled'
+        ? 'cancelled'
+        : event.event_date < today
+          ? 'completed'
+          : 'upcoming',
+    }));
 
   // Fetch all active members
   const allMembersResult = await db
@@ -422,12 +430,12 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                       </h3>
                       <span
                         className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                          event.status === 'completed'
+                          event.displayStatus === 'completed'
                             ? 'bg-muted text-foreground'
                             : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}
                       >
-                        {event.status}
+                        {event.displayStatus}
                       </span>
                     </div>
                     {event.restaurant_address && (
