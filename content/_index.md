@@ -53,30 +53,6 @@ sections:
       # Reduce spacing
       spacing:
         padding: ["1rem", 0, "1rem", 0]
-  - block: features
-    id: how-it-works
-    content:
-      title: How it works
-      text: A dinner club that runs itself.
-      items:
-        - name: Suggest and vote
-          icon: hand-thumb-up
-          description: Drop restaurant ideas, vote, and let the leaderboard settle the venue.
-        - name: Lock the date
-          icon: calendar-days
-          description: Propose dates and pick the one that works for the crew.
-        - name: RSVP in seconds
-          icon: chat-bubble-left-right
-          description: RSVP on the web, by email, or by text.
-        - name: Reminders that work
-          icon: bell-alert
-          description: 24-hour and 2-hour nudges with one-tap responses.
-        - name: Admin control
-          icon: shield-check
-          description: Override RSVPs and send updates when needed.
-        - name: Zero spam
-          icon: lock-closed
-          description: Notification-only. Opt out anytime.
   - block: cta-image-paragraph
     id: events
     content:
@@ -122,17 +98,4 @@ sections:
       spacing:
         # Reduce bottom spacing so the testimonial appears vertically centered between sections
         padding: ["6rem", 0, 0, 0]
-  - block: cta-card
-    id: community
-    content:
-      title: Ready for the next dinner?
-      text: If you have a seat at the table, jump in.
-      button:
-        text: Member Login
-        url: /login
-    design:
-      card:
-        # Card background color (CSS class)
-        css_class: "meat-cta"
-        css_style: ""
 ---

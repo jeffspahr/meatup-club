@@ -188,6 +188,14 @@ See `schema.sql` for full schema details.
 
 ## Usage
 
+## How Meatup.Club Works
+
+- Members suggest restaurants and vote on the favorites.
+- Members propose dates and vote to pick a meetup time.
+- Admins finalize the event and send calendar invites.
+- Members RSVP on the dashboard, via calendar response, or by SMS.
+- Automated reminders go out 24 hours and 2 hours before the event.
+
 ### For Members
 
 1. Visit https://meatup.club
