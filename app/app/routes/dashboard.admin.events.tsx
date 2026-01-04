@@ -5,7 +5,7 @@ import { requireAdmin } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
-import { formatDateForDisplay, formatTimeForDisplay } from "../lib/dateUtils";
+import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
 import { sendAdhocSmsReminder } from "../lib/sms.server";
 
 interface Event {
@@ -37,6 +37,16 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const eventsResult = await db
     .prepare('SELECT * FROM events ORDER BY event_date DESC')
     .all();
+  const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const today = getTodayDateStringInTimeZone(appTimeZone);
+  const eventsWithDisplayStatus = (eventsResult.results || []).map((event: any) => ({
+    ...event,
+    displayStatus: event.status === 'cancelled'
+      ? 'cancelled'
+      : event.event_date < today
+        ? 'completed'
+        : 'upcoming',
+  }));
 
   const smsMembersResult = await db
     .prepare(`
@@ -93,7 +103,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { topRestaurant, topDate } = await getActivePollLeaders(db);
 
   return {
-    events: eventsResult.results || [],
+    events: eventsWithDisplayStatus,
     topRestaurant,
     topDate,
     smsMembers: smsMembersResult.results || [],
@@ -865,14 +875,14 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         </h3>
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                            event.status === 'upcoming'
+                            event.displayStatus === 'upcoming'
                               ? 'bg-green-100 text-green-800'
-                              : event.status === 'completed'
+                              : event.displayStatus === 'completed'
                               ? 'bg-gray-100 text-gray-800'
                               : 'bg-red-100 text-red-800'
                           }`}
                         >
-                          {event.status}
+                          {event.displayStatus}
                         </span>
                       </div>
                       {event.restaurant_address && (
