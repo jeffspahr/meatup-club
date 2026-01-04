@@ -5,7 +5,7 @@ import { requireAdmin } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
-import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
+import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 import { sendAdhocSmsReminder } from "../lib/sms.server";
 
 interface Event {
@@ -38,12 +38,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare('SELECT * FROM events ORDER BY event_date DESC')
     .all();
   const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
-  const today = getTodayDateStringInTimeZone(appTimeZone);
   const eventsWithDisplayStatus = (eventsResult.results || []).map((event: any) => ({
     ...event,
     displayStatus: event.status === 'cancelled'
       ? 'cancelled'
-      : event.event_date < today
+      : isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
         ? 'completed'
         : 'upcoming',
   }));

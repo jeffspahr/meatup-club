@@ -2,7 +2,7 @@ import { Form, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
-import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
+import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 
 interface Event {
   id: number;
@@ -36,21 +36,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const events = eventsResult.results || [];
 
-  // Separate upcoming and past events using timezone-safe YYYY-MM-DD comparison.
+  // Separate upcoming and past events using timezone-aware datetime comparison.
   const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
-  const today = getTodayDateStringInTimeZone(appTimeZone);
-  const upcomingEventsRaw = events.filter(
-    (e: any) => e.event_date >= today && e.status !== 'cancelled'
+  const upcomingEventsRaw = events.filter((event: any) =>
+    event.status !== 'cancelled' &&
+    !isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
   );
   const pastEvents = events
-    .filter((e: any) => e.event_date < today || e.status === 'cancelled')
+    .filter((event: any) =>
+      event.status === 'cancelled' ||
+      isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
+    )
     .map((event: any) => ({
       ...event,
-      displayStatus: event.status === 'cancelled'
-        ? 'cancelled'
-        : event.event_date < today
-          ? 'completed'
-          : 'upcoming',
+      displayStatus: event.status === 'cancelled' ? 'cancelled' : 'completed',
     }));
 
   // Fetch all active members

@@ -184,6 +184,56 @@ export function formatDateTimeForDisplay(
 }
 
 /**
+ * Convert a local event date + time (in the app timezone) to a UTC Date.
+ */
+export function getEventDateTimeUtc(
+  eventDate: string,
+  eventTime: string | null | undefined,
+  timeZone: string
+): Date {
+  const [year, month, day] = eventDate.split('-').map(Number);
+  const [hour, minute] = (eventTime || '18:00').split(':').map(Number);
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const parts = formatter.formatToParts(utcGuess).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {} as Record<string, string>);
+  const asUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+  const offsetMs = asUtc - utcGuess.getTime();
+  return new Date(utcGuess.getTime() - offsetMs);
+}
+
+/**
+ * Check if an event datetime is in the past for a specific timezone.
+ */
+export function isEventInPastInTimeZone(
+  eventDate: string,
+  eventTime: string | null | undefined,
+  timeZone: string,
+  now: Date = new Date()
+): boolean {
+  const eventDateTime = getEventDateTimeUtc(eventDate, eventTime, timeZone);
+  return eventDateTime.getTime() < now.getTime();
+}
+
+/**
  * BACKWARDS COMPATIBILITY (deprecated - will be removed)
  * These use UTC on server, local on client - causes hydration issues
  */

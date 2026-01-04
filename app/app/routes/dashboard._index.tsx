@@ -3,7 +3,7 @@ import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
-import { formatDateForDisplay, formatTimeForDisplay } from '../lib/dateUtils';
+import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from '../lib/dateUtils';
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -129,11 +129,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     userDateVoteCount = (userDateVoteResult as any)?.count || 0;
   }
 
-  // Get next upcoming event
-  const nextEvent = await db
-    .prepare('SELECT * FROM events WHERE status = ? AND event_date >= date("now") ORDER BY event_date ASC LIMIT 1')
-    .bind('upcoming')
-    .first();
+  // Get next upcoming event (ignore cancelled, filter by datetime in app timezone)
+  const eventsForNext = await db
+    .prepare('SELECT * FROM events WHERE status != ? ORDER BY event_date ASC')
+    .bind('cancelled')
+    .all();
+  const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const nextEvent = (eventsForNext.results || []).find((event: any) =>
+    !isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
+  ) || null;
 
   // Get user's RSVP for the next event
   let userRsvp = null;

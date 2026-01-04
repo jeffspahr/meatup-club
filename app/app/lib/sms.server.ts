@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { getAppTimeZone } from "./dateUtils";
+import { getAppTimeZone, getEventDateTimeUtc } from "./dateUtils";
 import type { D1Database } from "./db.server";
 
 type SmsEnv = {
@@ -357,40 +357,6 @@ export function formatEventDateTimeForSms(
 
   const relativeLabel = getRelativeDateLabel(eventDateTime, now, timeZone);
   return { dateLabel, timeLabel, relativeLabel };
-}
-
-export function getEventDateTimeUtc(
-  eventDate: string,
-  eventTime: string | null | undefined,
-  timeZone: string
-): Date {
-  const [year, month, day] = eventDate.split("-").map(Number);
-  const [hour, minute] = (eventTime || "18:00").split(":").map(Number);
-  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour12: false,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const parts = formatter.formatToParts(utcGuess).reduce((acc, part) => {
-    acc[part.type] = part.value;
-    return acc;
-  }, {} as Record<string, string>);
-  const asUtc = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second)
-  );
-  const offsetMs = asUtc - utcGuess.getTime();
-  return new Date(utcGuess.getTime() - offsetMs);
 }
 
 function isWithinWindow(diffMs: number, targetMs: number, windowMs: number): boolean {
