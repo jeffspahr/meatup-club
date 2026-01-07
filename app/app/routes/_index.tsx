@@ -113,30 +113,19 @@ export default function Home() {
       </section>
 
       <section className="px-6 pb-20 sm:px-10 lg:px-16">
-        <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="landing-card p-8 h-full flex flex-col">
-            <h2 className="landing-heading text-2xl text-slate-900">
-              Member notes
-            </h2>
-            <p className="mt-6 text-lg text-slate-700 flex-1">
-              One page tells me what is next. One text confirms I am in.
+        <div className="mx-auto max-w-6xl landing-surface p-8 flex flex-col gap-6 items-start lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className="landing-heading text-2xl text-slate-900">
+              Keep the seat warm.
+            </h3>
+            <p className="mt-3 text-sm text-slate-600">
+              Members sign in to vote, RSVP, and coordinate the next dinner. Admins
+              can step in when the schedule shifts.
             </p>
-            <p className="mt-4 text-sm text-slate-500">Johnny J.</p>
           </div>
-          <div className="landing-surface p-8 h-full flex flex-col justify-between">
-            <div>
-              <h3 className="landing-heading text-2xl text-slate-900">
-                Keep the seat warm.
-              </h3>
-              <p className="mt-3 text-sm text-slate-600">
-                Members sign in to vote, RSVP, and coordinate the next dinner. Admins
-                can step in when the schedule shifts.
-              </p>
-            </div>
-            <Link to="/login" className="mt-6 inline-flex landing-cta">
-              Member Login
-            </Link>
-          </div>
+          <Link to="/login" className="inline-flex landing-cta">
+            Member Login
+          </Link>
         </div>
       </section>
 
