@@ -37,6 +37,105 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.landing-shell {
+  font-family: "Manrope", "Sora", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #1c1612;
+  background: radial-gradient(circle at top, #fff6e8 0%, #f3e5d4 45%, #ead7c5 100%);
+}
+
+.landing-heading {
+  font-family: "Fraunces", serif;
+  letter-spacing: -0.02em;
+}
+
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(34, 24, 18, 0.08);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(200, 161, 90, 0.3), transparent 55%),
+    radial-gradient(circle at 90% 10%, rgba(139, 30, 26, 0.3), transparent 45%),
+    linear-gradient(135deg, #1c1612 0%, #2d2017 100%);
+  color: #fdf8f1;
+}
+
+.landing-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.landing-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-pill {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #c8a15a;
+  color: #1c1612;
+  border-radius: 999px;
+  padding: 0.85rem 1.8rem;
+  font-weight: 600;
+  box-shadow: 0 16px 30px rgba(28, 22, 18, 0.25);
+}
+
+.landing-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  padding: 0.85rem 1.8rem;
+  color: #fdf8f1;
+}
+
+.landing-card {
+  background: rgba(255, 248, 239, 0.92);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(28, 22, 18, 0.08);
+  box-shadow: 0 20px 40px rgba(24, 18, 13, 0.12);
+}
+
+.landing-surface {
+  background: rgba(255, 248, 239, 0.85);
+  border-radius: 1.25rem;
+  border: 1px solid rgba(28, 22, 18, 0.08);
+}
+
+.landing-stat {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 1.5rem;
+}
+
+.landing-highlight {
+  background: linear-gradient(120deg, rgba(200, 161, 90, 0.2), rgba(139, 30, 26, 0.1));
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+}
+
+.landing-footer {
+  color: rgba(28, 22, 18, 0.7);
+  border-top: 1px solid rgba(28, 22, 18, 0.08);
+}
+
 @layer base {
   /* Override Tailwind's default colors to be dark-mode aware */
   .bg-white {
