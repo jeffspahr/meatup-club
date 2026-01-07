@@ -39,37 +39,34 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="landing-card p-6 sm:p-8 text-sm text-[#2b1d16]/90">
+          <div className="landing-card p-6 sm:p-8 text-sm text-slate-700">
             <div className="flex items-center justify-between">
-              <div className="text-xs uppercase tracking-[0.3em] text-[#2b1d16]/60">
-                Next dinner
+              <div className="text-xs uppercase tracking-[0.3em] text-slate-500">
+                Member flow
               </div>
-              <span className="text-xs font-semibold text-[#2b1d16]/80">
+              <span className="text-xs font-semibold text-slate-500">
                 Invite only
               </span>
             </div>
-            <div className="mt-4 space-y-4">
-              <div>
-                <h2 className="landing-heading text-2xl text-[#2b1d16]">
-                  The Peddler Steak House
-                </h2>
-                <p className="text-sm text-[#2b1d16]/70">
-                  Raleigh, NC
+            <div className="mt-6 space-y-5">
+              <div className="landing-surface p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Vote
+                </div>
+                <p className="mt-2 text-base font-semibold text-slate-900">
+                  Suggest restaurants and dates.
                 </p>
               </div>
               <div className="landing-surface p-4">
-                <div className="text-xs uppercase tracking-[0.2em] text-[#2b1d16]/60">
-                  Timing
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                  Confirm
                 </div>
-                <p className="mt-2 text-base font-semibold text-[#2b1d16]">
-                  Friday, Jan 2 at 7:45 PM
-                </p>
-                <p className="mt-1 text-sm text-[#2b1d16]/70">
-                  RSVP by text or in the dashboard.
+                <p className="mt-2 text-base font-semibold text-slate-900">
+                  RSVP on web, calendar, or SMS.
                 </p>
               </div>
-              <div className="landing-highlight text-sm text-[#2b1d16]/80">
-                SMS reminders go out 24 hours and 2 hours before dinner. Reply YES or NO.
+              <div className="landing-highlight text-sm text-slate-700">
+                Two reminders. One tap. No noise.
               </div>
             </div>
           </div>
@@ -77,57 +74,65 @@ export default function Home() {
       </section>
 
       <section className="px-6 py-16 sm:px-10 lg:px-16">
-        <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[1fr_1fr]">
-          <div className="landing-card p-8">
-            <h2 className="landing-heading text-3xl text-[#2b1d16]">
-              The dinner lineup lives here.
-            </h2>
-            <p className="mt-4 text-sm text-[#2b1d16]/70">
-              One dashboard keeps the calendar, RSVP status, and reminders in sync so
-              the group stays locked in.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-[#2b1d16]/60">
-              <span>Calendar sync</span>
-              <span>SMS reminders</span>
-              <span>Admin overrides</span>
+        <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-3">
+          {[
+            {
+              title: "The dinner lineup lives here.",
+              body:
+                "One dashboard keeps the calendar, RSVP status, and reminders in sync so the group stays locked in.",
+              tags: ["Calendar sync", "SMS reminders", "Admin overrides"],
+            },
+            {
+              title: "Built for a real crew.",
+              body:
+                "No marketing blasts. No random drops. Just clear calls, clean RSVPs, and fewer loose ends on dinner night.",
+              tags: ["Invite only", "Member voted", "Low volume"],
+            },
+            {
+              title: "Minimal admin overhead.",
+              body:
+                "Auto-reminders, RSVP tracking, and override controls that keep the night on track without a spreadsheet.",
+              tags: ["Overrides", "Reminders", "Audit trail"],
+            },
+          ].map((card) => (
+            <div key={card.title} className="landing-card p-8 h-full flex flex-col">
+              <h2 className="landing-heading text-2xl text-slate-900">
+                {card.title}
+              </h2>
+              <p className="mt-4 text-sm text-slate-600 flex-1">
+                {card.body}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+                {card.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="landing-card p-8">
-            <h2 className="landing-heading text-3xl text-[#2b1d16]">
-              Built for a real crew.
-            </h2>
-            <p className="mt-4 text-sm text-[#2b1d16]/70">
-              No marketing blasts. No random drops. Just clear calls, clean RSVPs, and
-              fewer loose ends on dinner night.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-xs uppercase tracking-[0.2em] text-[#2b1d16]/60">
-              <span>Invite only</span>
-              <span>Member voted</span>
-              <span>Low volume</span>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
       <section className="px-6 pb-20 sm:px-10 lg:px-16">
         <div className="mx-auto max-w-6xl grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="landing-card p-8">
-            <h2 className="landing-heading text-3xl text-[#2b1d16]">
+          <div className="landing-card p-8 h-full flex flex-col">
+            <h2 className="landing-heading text-2xl text-slate-900">
               Member notes
             </h2>
-            <p className="mt-6 text-lg text-[#2b1d16]/80">
+            <p className="mt-6 text-lg text-slate-700 flex-1">
               One page tells me what is next. One text confirms I am in.
             </p>
-            <p className="mt-4 text-sm text-[#2b1d16]/60">Johnny J.</p>
+            <p className="mt-4 text-sm text-slate-500">Johnny J.</p>
           </div>
-          <div className="landing-surface p-8">
-            <h3 className="landing-heading text-2xl text-[#2b1d16]">
-              Keep the seat warm.
-            </h3>
-            <p className="mt-3 text-sm text-[#2b1d16]/70">
-              Members sign in to vote, RSVP, and coordinate the next dinner. Admins
-              can step in when the schedule shifts.
-            </p>
+          <div className="landing-surface p-8 h-full flex flex-col justify-between">
+            <div>
+              <h3 className="landing-heading text-2xl text-slate-900">
+                Keep the seat warm.
+              </h3>
+              <p className="mt-3 text-sm text-slate-600">
+                Members sign in to vote, RSVP, and coordinate the next dinner. Admins
+                can step in when the schedule shifts.
+              </p>
+            </div>
             <Link to="/login" className="mt-6 inline-flex landing-cta">
               Member Login
             </Link>
