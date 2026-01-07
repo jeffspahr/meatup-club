@@ -20,9 +20,6 @@ export default function Home() {
               <Link to="/login" className="landing-cta">
                 Member Login
               </Link>
-              <Link to="/accept-invite" className="landing-secondary">
-                Request an invite
-              </Link>
             </div>
             <div className="landing-stat grid grid-cols-3 gap-6 text-sm text-white/75">
               <div>
