@@ -163,20 +163,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-type DashboardVariant =
-  | 'default'
-  | 'minimal'
-  | 'editorial'
-  | 'product'
-  | 'calm'
-  | 'polished'
-  | 'crisp'
-  | 'warm';
-
-export function DashboardContent({
-  loaderData,
-  variant = 'calm',
-}: Route.ComponentProps & { variant?: DashboardVariant }) {
+export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const { user, memberCount, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
@@ -202,99 +189,102 @@ export function DashboardContent({
   }, [user.phone_number]);
 
   return (
-    <main
-      className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
-      data-variant={variant}
-    >
+    <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Hero Section */}
-      <div className="mb-10 dashboard-hero">
-        <div className="dashboard-kicker inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-          <span className="h-2 w-2 rounded-full bg-accent" />
-          Quarterly meetup hub
+      <div className="mb-12 dashboard-hero">
+        <div className="dashboard-kicker inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] mb-6">
+          <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+          Quarterly Meetup Hub
         </div>
-        <h1 className="dashboard-hero-title mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-          Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}!
+        <h1 className="dashboard-hero-title text-4xl sm:text-5xl lg:text-6xl tracking-tight">
+          Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}
         </h1>
-        <p className="dashboard-hero-subtitle mt-3 text-base text-muted-foreground">
+        <p className="dashboard-hero-subtitle mt-4 text-lg text-muted-foreground">
           Everything you need to plan the next steakhouse meetup.
         </p>
       </div>
 
+      {/* SMS Prompt */}
       {showSmsPrompt && (
-        <div className="card-shell mb-8 p-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Get SMS reminders + RSVP by text</p>
-            <p className="text-sm text-muted-foreground">
-              Add your mobile number to receive quick Y/N reminders before each meetup.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/dashboard/profile"
-              className="inline-flex items-center justify-center rounded-full bg-meat-red px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-meat-brown transition-colors"
-            >
-              Add Number
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setShowSmsPrompt(false);
-                localStorage.setItem('dismissedSmsPrompt', 'true');
-              }}
-              className="inline-flex items-center justify-center rounded-full border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground hover:bg-foreground/5"
-            >
-              Not now
-            </button>
+        <div
+          className="card-shell card-glow mb-8 p-6 dashboard-section border-accent/20"
+          style={{ '--section-delay': '40ms' } as CSSProperties}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <span className="icon-container shrink-0">📱</span>
+              <div>
+                <p className="font-semibold text-foreground">Get SMS reminders + RSVP by text</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Add your mobile number to receive quick Y/N reminders before each meetup.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 shrink-0">
+              <Link to="/dashboard/profile" className="btn-primary">
+                Add Number
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSmsPrompt(false);
+                  localStorage.setItem('dismissedSmsPrompt', 'true');
+                }}
+                className="btn-ghost"
+              >
+                Not now
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Site Content Section - Front and Center */}
+      {/* Site Content Section */}
       {content.length > 0 && (
         <div
-          className="card-shell mb-8 p-6 dashboard-section"
-          style={{ '--section-delay': '60ms' } as CSSProperties}
+          className="card-shell mb-8 p-6 sm:p-8 dashboard-section"
+          style={{ '--section-delay': '80ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
-                🥩
-              </span>
+            <div className="flex items-center gap-4">
+              <span className="icon-container-lg">🥩</span>
               <div>
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2 className="text-xl font-display font-semibold text-foreground">
                   About Meatup.Club
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mt-1">
                   Everything you need to know about our quarterly steakhouse adventures.
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowContent(!showContent)}
-              className="rounded-full border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground hover:bg-foreground/5"
+              className="btn-ghost"
             >
               {showContent ? 'Hide' : 'Show'} Details
             </button>
           </div>
 
           {showContent && (
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4 mt-8 pt-6 border-t border-border/30">
               {content.map((item: any) => (
-                <div key={item.id} className="card-shell p-5">
-                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-2">
-                    {item.key === 'description' && '📖'}
-                    {item.key === 'goals' && '🎯'}
-                    {item.key === 'guidelines' && '📋'}
-                    {item.key === 'membership' && '👥'}
-                    {item.key === 'safety' && '🚗'}
+                <div key={item.id} className="card-shell p-5 bg-muted/30">
+                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-3">
+                    <span className="text-lg">
+                      {item.key === 'description' && '📖'}
+                      {item.key === 'goals' && '🎯'}
+                      {item.key === 'guidelines' && '📋'}
+                      {item.key === 'membership' && '👥'}
+                      {item.key === 'safety' && '🚗'}
+                    </span>
                     {item.title}
                   </h3>
-                  <div className="prose prose-sm max-w-none text-foreground">
+                  <div className="prose prose-sm max-w-none text-foreground/80">
                     <ReactMarkdown
                       components={{
                         ul: ({ children }) => <ul className="space-y-1 list-disc ml-6">{children}</ul>,
                         ol: ({ children }) => <ol className="space-y-1 list-decimal ml-6">{children}</ol>,
-                        li: ({ children }) => <li className="text-foreground">{children}</li>,
+                        li: ({ children }) => <li className="text-foreground/80">{children}</li>,
                         p: ({ children }) => <p className="mb-2">{children}</p>,
                         strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
                         em: ({ children }) => <em className="italic">{children}</em>,
@@ -315,36 +305,38 @@ export function DashboardContent({
       {activePoll ? (
         <Link to="/dashboard/polls">
           <div
-            className="card-shell card-hover mb-8 p-6 dashboard-section"
-            style={{ '--section-delay': '110ms' } as CSSProperties}
+            className="card-shell card-hover card-glow mb-8 p-6 sm:p-8 dashboard-section"
+            style={{ '--section-delay': '120ms' } as CSSProperties}
           >
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">
-                  🗳️
-                </span>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <span className="icon-container-lg">🗳️</span>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground">
+                  <h3 className="text-xl font-display font-semibold text-foreground">
                     {(activePoll as any).title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()} • Click to vote
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Active poll • Started {new Date((activePoll as any).created_at).toLocaleDateString()}
                   </p>
                 </div>
+              </div>
+              <span className="badge badge-accent">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                Voting Open
+              </span>
             </div>
-            <span className="rounded-full border border-accent bg-accent-soft px-4 py-2 text-xs font-semibold uppercase tracking-wide text-accent">
-              Voting Open
-            </span>
-          </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="card-shell p-4">
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Restaurant</p>
+              <div className="card-shell p-5 bg-muted/20">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant</p>
                 {userRestaurantVote ? (
                   <>
-                    <p className="font-semibold text-foreground">✓ You voted: {(userRestaurantVote as any).name}</p>
+                    <p className="font-semibold text-foreground flex items-center gap-2">
+                      <span className="text-accent">✓</span>
+                      You voted: {(userRestaurantVote as any).name}
+                    </p>
                     {topRestaurants.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-2">
                         {topRestaurants.length > 1 ? (
                           <>Tied ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''} each): {topRestaurants.map(r => r.name).join(', ')}</>
                         ) : (
@@ -362,23 +354,26 @@ export function DashboardContent({
                         topRestaurants[0].name
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-accent-strong mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-sm text-accent mt-2 font-medium">Vote now →</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
                 )}
               </div>
 
-              <div className="card-shell p-4">
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">Dates</p>
+              <div className="card-shell p-5 bg-muted/20">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Dates</p>
                 {userDateVoteCount > 0 ? (
                   <>
-                    <p className="font-semibold text-foreground">✓ You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}</p>
+                    <p className="font-semibold text-foreground flex items-center gap-2">
+                      <span className="text-accent">✓</span>
+                      You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}
+                    </p>
                     {topDates.length > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-2">
                         {topDates.length > 1 ? (
                           <>Tied ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''} each): {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
                         ) : (
@@ -396,10 +391,10 @@ export function DashboardContent({
                         formatDateForDisplay(topDates[0].suggested_date)
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-accent-strong mt-1">⚠️ You haven't voted yet</p>
+                    <p className="text-sm text-accent mt-2 font-medium">Vote now →</p>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
@@ -410,13 +405,13 @@ export function DashboardContent({
         </Link>
       ) : (
         <div
-          className="card-shell mb-8 p-6 dashboard-section"
-          style={{ '--section-delay': '110ms' } as CSSProperties}
+          className="card-shell mb-8 p-6 sm:p-8 dashboard-section border-border/30"
+          style={{ '--section-delay': '120ms' } as CSSProperties}
         >
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-2xl">⚠️</span>
+          <div className="flex items-center gap-4">
+            <span className="icon-container-lg bg-muted">📋</span>
             <div>
-              <h3 className="text-base font-semibold text-foreground">No Active Poll</h3>
+              <h3 className="text-xl font-display font-semibold text-foreground">No Active Poll</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Start a new poll to begin voting on the next meetup location and date.
               </p>
@@ -425,55 +420,50 @@ export function DashboardContent({
         </div>
       )}
 
-      {/* At a Glance - Compact Stats */}
+      {/* Next Meetup */}
       {nextEvent && (
         <div
-          className="card-shell mb-8 p-6 dashboard-section"
-          style={{ '--section-delay': '150ms' } as CSSProperties}
+          className="card-shell mb-8 p-6 sm:p-8 dashboard-section"
+          style={{ '--section-delay': '160ms' } as CSSProperties}
         >
-          <h2 className="text-lg font-semibold text-foreground mb-4">📍 Next Meetup</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="icon-container-lg">📍</span>
+            <h2 className="text-xl font-display font-semibold text-foreground">Next Meetup</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Restaurant</p>
-              <p className="text-base font-semibold text-foreground">{(nextEvent as any).restaurant_name}</p>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Restaurant</p>
+              <p className="text-lg font-semibold text-foreground">{(nextEvent as any).restaurant_name}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Date</p>
-              <p className="text-base font-semibold text-foreground">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Date & Time</p>
+              <p className="text-lg font-semibold text-foreground">
                 {formatDateForDisplay((nextEvent as any).event_date, {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
                 })}{' '}
-                at {formatTimeForDisplay((nextEvent as any).event_time || '18:00')}
+                <span className="text-muted-foreground font-normal">at</span>{' '}
+                {formatTimeForDisplay((nextEvent as any).event_time || '18:00')}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Your RSVP</p>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Your RSVP</p>
               <div className="flex items-center gap-2">
                 {userRsvp ? (
                   <>
                     {(userRsvp as any).status === 'yes' && (
-                      <>
-                        <span className="text-2xl">✅</span>
-                        <span className="text-base font-semibold text-emerald-600">Going</span>
-                      </>
+                      <span className="badge badge-success">Going</span>
                     )}
                     {(userRsvp as any).status === 'no' && (
-                      <>
-                        <span className="text-2xl">❌</span>
-                        <span className="text-base font-semibold text-rose-600">Not Going</span>
-                      </>
+                      <span className="badge badge-danger">Not Going</span>
                     )}
                     {(userRsvp as any).status === 'maybe' && (
-                      <>
-                        <span className="text-2xl">❔</span>
-                        <span className="text-base font-semibold text-amber-600">Maybe</span>
-                      </>
+                      <span className="badge badge-warning">Maybe</span>
                     )}
                   </>
                 ) : (
-                  <Link to="/dashboard/events" className="text-accent hover:text-accent-strong font-semibold">
+                  <Link to="/dashboard/events" className="text-accent hover:text-accent-strong font-semibold transition-colors">
                     Set RSVP →
                   </Link>
                 )}
@@ -485,28 +475,24 @@ export function DashboardContent({
 
       {/* Quick Actions */}
       <div
-        className="mb-10 dashboard-section"
-        style={{ '--section-delay': '190ms' } as CSSProperties}
+        className="mb-12 dashboard-section"
+        style={{ '--section-delay': '200ms' } as CSSProperties}
       >
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+          <h2 className="text-xl font-display font-semibold text-foreground">Quick Actions</h2>
           <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
-              <div className="group card-shell card-hover p-6">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                    🗳️
-                  </span>
-                  <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Active
-                  </span>
+              <div className="card-shell card-hover card-glow p-6 h-full">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="icon-container">🗳️</span>
+                  <span className="badge badge-accent">Active</span>
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">Vote on Polls</h3>
+                <h3 className="text-lg font-semibold text-foreground">Vote on Polls</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {activePoll && `${topRestaurants[0]?.vote_count || 0} restaurant votes, ${topDates[0]?.vote_count || 0} date votes`}
+                  {topRestaurants[0]?.vote_count || 0} restaurant votes, {topDates[0]?.vote_count || 0} date votes
                 </p>
               </div>
             </Link>
@@ -514,18 +500,14 @@ export function DashboardContent({
 
           {nextEvent && (
             <Link to="/dashboard/events">
-              <div className="group card-shell card-hover p-6">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                    ✋
-                  </span>
+              <div className="card-shell card-hover card-glow p-6 h-full">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="icon-container">✋</span>
                   {!userRsvp && (
-                    <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                      Action Needed
-                    </span>
+                    <span className="badge badge-warning">Action Needed</span>
                   )}
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">RSVP</h3>
+                <h3 className="text-lg font-semibold text-foreground">RSVP</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
                 </p>
@@ -534,53 +516,43 @@ export function DashboardContent({
           )}
 
           <Link to="/dashboard/restaurants">
-            <div className="group card-shell card-hover p-6">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                  🍖
-                </span>
+            <div className="card-shell card-hover card-glow p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <span className="icon-container">🍖</span>
               </div>
-              <h3 className="mt-4 text-base font-semibold text-foreground">Restaurants</h3>
+              <h3 className="text-lg font-semibold text-foreground">Restaurants</h3>
               <p className="mt-2 text-sm text-muted-foreground">Browse and add steakhouses</p>
             </div>
           </Link>
 
           <Link to="/dashboard/events">
-            <div className="group card-shell card-hover p-6">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                  📜
-                </span>
+            <div className="card-shell card-hover card-glow p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <span className="icon-container">📜</span>
               </div>
-              <h3 className="mt-4 text-base font-semibold text-foreground">Events</h3>
+              <h3 className="text-lg font-semibold text-foreground">Events</h3>
               <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
             </div>
           </Link>
 
           <Link to="/dashboard/members">
-            <div className="group card-shell card-hover p-6">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                  👥
-                </span>
+            <div className="card-shell card-hover card-glow p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <span className="icon-container">👥</span>
               </div>
-              <h3 className="mt-4 text-base font-semibold text-foreground">Members</h3>
+              <h3 className="text-lg font-semibold text-foreground">Members</h3>
               <p className="mt-2 text-sm text-muted-foreground">{memberCount} active members</p>
             </div>
           </Link>
 
           {isAdmin && (
             <Link to="/dashboard/admin">
-              <div className="group card-shell card-hover p-6">
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-xl text-accent">
-                    ⚙️
-                  </span>
-                  <span className="rounded-full bg-foreground/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Admin
-                  </span>
+              <div className="card-shell card-hover card-glow p-6 h-full">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="icon-container">⚙️</span>
+                  <span className="badge badge-muted">Admin</span>
                 </div>
-                <h3 className="mt-4 text-base font-semibold text-foreground">Admin Panel</h3>
+                <h3 className="text-lg font-semibold text-foreground">Admin Panel</h3>
                 <p className="mt-2 text-sm text-muted-foreground">Manage polls, events, and members</p>
               </div>
             </Link>
@@ -589,12 +561,16 @@ export function DashboardContent({
       </div>
 
       {/* Feedback Section */}
-      <div className="mt-12 pt-8 border-t border-border/60">
-        <div className="card-shell p-6 text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+      <div
+        className="dashboard-section"
+        style={{ '--section-delay': '240ms' } as CSSProperties}
+      >
+        <div className="divider-accent mb-10" />
+        <div className="card-shell p-8 text-center">
+          <h3 className="text-xl font-display font-semibold text-foreground mb-3">
             Have feedback or found a bug?
           </h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Help us improve Meatup.Club by reporting issues or suggesting new features
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
@@ -602,7 +578,7 @@ export function DashboardContent({
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=bug_report.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-accent bg-accent-soft px-5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent-soft/80"
+              className="btn-secondary"
             >
               🐛 Report a Bug
             </a>
@@ -610,7 +586,7 @@ export function DashboardContent({
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=feature_request.md"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/5 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground/10"
+              className="btn-ghost"
             >
               💡 Request a Feature
             </a>
@@ -618,7 +594,7 @@ export function DashboardContent({
               href="https://github.com/jeffspahr/meatup-club/issues"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/5 px-5 py-2.5 text-sm font-semibold text-foreground transition hover:bg-foreground/10"
+              className="btn-ghost"
             >
               📋 View All Issues
             </a>
@@ -627,8 +603,4 @@ export function DashboardContent({
       </div>
     </main>
   );
-}
-
-export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  return <DashboardContent loaderData={loaderData} variant="calm" />;
 }
