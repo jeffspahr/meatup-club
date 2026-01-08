@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meatup.Club Feature Slideshow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    .slideshow {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .slide {
+      display: none;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .slide-number {
+      display: inline-block;
+      background: #e67e22;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 1.1rem;
+    }
+
+    .screenshot-container {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .screenshot {
+      width: 100%;
+      height: 400px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    .screenshot img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .feature {
+      background: rgba(255,255,255,0.1);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 3px solid #e67e22;
+    }
+
+    .feature h3 {
+      color: #e67e22;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .feature p {
+      color: #ccc;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .navigation {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      margin-top: 2rem;
+      padding: 1rem;
+    }
+
+    .nav-btn {
+      background: #e67e22;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .nav-btn:hover {
+      background: #d35400;
+      transform: scale(1.05);
+    }
+
+    .nav-btn:disabled {
+      background: #444;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .progress {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #444;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background: #e67e22;
+      transform: scale(1.2);
+    }
+
+    .dot:hover {
+      background: #888;
+    }
+
+    .title-slide {
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .title-slide h1 {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #e67e22, #f39c12);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .title-slide .tagline {
+      font-size: 1.5rem;
+      color: #888;
+      margin-bottom: 3rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin-top: 2rem;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #e67e22;
+    }
+
+    .stat-label {
+      color: #888;
+      font-size: 0.9rem;
+    }
+
+    .keyboard-hint {
+      text-align: center;
+      color: #666;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="slideshow">
+    <!-- Title Slide -->
+    <div class="slide active" data-slide="0">
+      <div class="title-slide">
+        <h1>Meatup.Club</h1>
+        <p class="tagline">Steakhouse nights, four times a year</p>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value">4x</div>
+            <div class="stat-label">Dinners per Year</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Member Voted</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">&lt;60s</div>
+            <div class="stat-label">Average RSVP</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Landing Page -->
+    <div class="slide" data-slide="1">
+      <div class="slide-header">
+        <span class="slide-number">1 / 10</span>
+        <h1>Landing Page</h1>
+        <p class="subtitle">Public-facing homepage for the club</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/01-landing.png" alt="Landing Page" onerror="this.parentElement.innerHTML='Screenshot: 01-landing.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Member Flow</h3>
+          <p>Clear explanation of the voting and RSVP process</p>
+        </div>
+        <div class="feature">
+          <h3>Key Stats</h3>
+          <p>4x dinners/year, 100% member voted, quick RSVPs</p>
+        </div>
+        <div class="feature">
+          <h3>Invite Only</h3>
+          <p>Private club with member login access</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="slide" data-slide="2">
+      <div class="slide-header">
+        <span class="slide-number">2 / 10</span>
+        <h1>Dashboard Home</h1>
+        <p class="subtitle">Member's central hub for all activities</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/03-dashboard.png" alt="Dashboard" onerror="this.parentElement.innerHTML='Screenshot: 03-dashboard.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Welcome Message</h3>
+          <p>Personalized greeting for each member</p>
+        </div>
+        <div class="feature">
+          <h3>Active Poll Status</h3>
+          <p>Quick indicator of current voting polls</p>
+        </div>
+        <div class="feature">
+          <h3>Quick Actions</h3>
+          <p>One-click access to key features</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events -->
+    <div class="slide" data-slide="3">
+      <div class="slide-header">
+        <span class="slide-number">3 / 10</span>
+        <h1>Events</h1>
+        <p class="subtitle">View upcoming and past meetups</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/05-events.png" alt="Events" onerror="this.parentElement.innerHTML='Screenshot: 05-events.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Upcoming Events</h3>
+          <p>Next scheduled dinners with RSVP status</p>
+        </div>
+        <div class="feature">
+          <h3>Past Events</h3>
+          <p>History of completed meetups</p>
+        </div>
+        <div class="feature">
+          <h3>Event Details</h3>
+          <p>Restaurant, address, date/time info</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restaurants -->
+    <div class="slide" data-slide="4">
+      <div class="slide-header">
+        <span class="slide-number">4 / 10</span>
+        <h1>Restaurants</h1>
+        <p class="subtitle">Browse and suggest steakhouses</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/06-restaurants.png" alt="Restaurants" onerror="this.parentElement.innerHTML='Screenshot: 06-restaurants.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Google Places Integration</h3>
+          <p>Ratings, photos, and contact info</p>
+        </div>
+        <div class="feature">
+          <h3>Add Restaurant</h3>
+          <p>Search and add new suggestions</p>
+        </div>
+        <div class="feature">
+          <h3>Member Attribution</h3>
+          <p>See who suggested each venue</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Polls -->
+    <div class="slide" data-slide="5">
+      <div class="slide-header">
+        <span class="slide-number">5 / 10</span>
+        <h1>Polls</h1>
+        <p class="subtitle">Vote on restaurants and dates</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/07-polls.png" alt="Polls" onerror="this.parentElement.innerHTML='Screenshot: 07-polls.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Active Polls</h3>
+          <p>Cast your vote for the next meetup</p>
+        </div>
+        <div class="feature">
+          <h3>Restaurant + Date Voting</h3>
+          <p>Two-stage voting process</p>
+        </div>
+        <div class="feature">
+          <h3>Previous Polls</h3>
+          <p>View past results and winners</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members -->
+    <div class="slide" data-slide="6">
+      <div class="slide-header">
+        <span class="slide-number">6 / 10</span>
+        <h1>Members</h1>
+        <p class="subtitle">Club member directory</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/08-members.png" alt="Members" onerror="this.parentElement.innerHTML='Screenshot: 08-members.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Member Profiles</h3>
+          <p>Photos synced from Google accounts</p>
+        </div>
+        <div class="feature">
+          <h3>Admin Badges</h3>
+          <p>Clear role indicators</p>
+        </div>
+        <div class="feature">
+          <h3>Contact Info</h3>
+          <p>Email addresses for coordination</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="slide" data-slide="7">
+      <div class="slide-header">
+        <span class="slide-number">7 / 10</span>
+        <h1>Profile & Settings</h1>
+        <p class="subtitle">Manage account preferences</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/09-profile.png" alt="Profile" onerror="this.parentElement.innerHTML='Screenshot: 09-profile.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Google Sync</h3>
+          <p>Profile synced from Google account</p>
+        </div>
+        <div class="feature">
+          <h3>Email Notifications</h3>
+          <p>Control comment/poll/event alerts</p>
+        </div>
+        <div class="feature">
+          <h3>SMS Reminders</h3>
+          <p>Text message RSVP reminders</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="slide" data-slide="8">
+      <div class="slide-header">
+        <span class="slide-number">8 / 10</span>
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Club management tools</p>
+      </div>
+      <div class="screenshot-container">
+        <div class="screenshot">
+          <img src="screenshots/10-admin.png" alt="Admin Panel" onerror="this.parentElement.innerHTML='Screenshot: 10-admin.png'">
+        </div>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>Polls Management</h3>
+          <p>Create, close, and manage voting</p>
+        </div>
+        <div class="feature">
+          <h3>Event Management</h3>
+          <p>Schedule and edit meetups</p>
+        </div>
+        <div class="feature">
+          <h3>Member Management</h3>
+          <p>Invite, remove, set roles</p>
+        </div>
+        <div class="feature">
+          <h3>Analytics</h3>
+          <p>Track engagement and activity</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="slide" data-slide="9">
+      <div class="slide-header">
+        <span class="slide-number">9 / 10</span>
+        <h1>Technical Stack</h1>
+        <p class="subtitle">Built for speed and reliability</p>
+      </div>
+      <div class="features" style="grid-template-columns: repeat(3, 1fr); margin-top: 3rem;">
+        <div class="feature">
+          <h3>Frontend</h3>
+          <p>React Router 7<br>Tailwind CSS<br>TypeScript</p>
+        </div>
+        <div class="feature">
+          <h3>Backend</h3>
+          <p>Cloudflare Pages<br>Edge Runtime<br>D1 Database</p>
+        </div>
+        <div class="feature">
+          <h3>Auth</h3>
+          <p>Google OAuth<br>Session-based<br>Role-based access</p>
+        </div>
+        <div class="feature">
+          <h3>Communications</h3>
+          <p>Resend (Email)<br>Twilio (SMS)<br>Calendar sync</p>
+        </div>
+        <div class="feature">
+          <h3>APIs</h3>
+          <p>Google Places<br>Cloudflare KV<br>Webhooks</p>
+        </div>
+        <div class="feature">
+          <h3>Infrastructure</h3>
+          <p>Terraform<br>GitHub Actions<br>Edge caching</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- End Slide -->
+    <div class="slide" data-slide="10">
+      <div class="title-slide">
+        <h1>Thank You</h1>
+        <p class="tagline">Questions?</p>
+        <div class="stats" style="margin-top: 3rem;">
+          <div class="stat">
+            <div class="stat-value" style="font-size: 1.5rem;">meatup.club</div>
+            <div class="stat-label">Website</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="navigation">
+      <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">Previous</button>
+      <div class="progress" id="progress"></div>
+      <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next</button>
+    </div>
+    <p class="keyboard-hint">Use arrow keys or click to navigate</p>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const progress = document.getElementById('progress');
+
+    // Create progress dots
+    for (let i = 0; i < totalSlides; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (i === 0 ? ' active' : '');
+      dot.onclick = () => goToSlide(i);
+      progress.appendChild(dot);
+    }
+
+    function updateSlide() {
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === currentSlide);
+      });
+
+      document.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide);
+      });
+
+      document.getElementById('prevBtn').disabled = currentSlide === 0;
+      document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+    }
+
+    function changeSlide(direction) {
+      currentSlide = Math.max(0, Math.min(totalSlides - 1, currentSlide + direction));
+      updateSlide();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateSlide();
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+      if (e.key === 'ArrowLeft') changeSlide(-1);
+      if (e.key === 'Home') goToSlide(0);
+      if (e.key === 'End') goToSlide(totalSlides - 1);
+    });
+  </script>
+</body>
+</html>

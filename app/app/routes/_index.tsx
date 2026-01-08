@@ -19,7 +19,7 @@ export default function Home() {
                 <span className="text-accent">four times a year.</span>
               </h1>
 
-              <p className="text-lg sm:text-xl text-foreground/90 max-w-xl leading-relaxed">
+              <p className="text-lg sm:text-xl text-foreground max-w-xl leading-relaxed">
                 A quarterly tradition of exceptional cuts, great company, and
                 effortless coordination. Member-voted venues. Tight logistics.
                 No noise.
