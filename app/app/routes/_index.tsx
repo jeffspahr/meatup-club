@@ -19,7 +19,7 @@ export default function Home() {
                 <span className="text-accent">four times a year.</span>
               </h1>
 
-              <p className="text-lg sm:text-xl text-foreground/70 max-w-xl leading-relaxed">
+              <p className="text-lg sm:text-xl text-foreground/90 max-w-xl leading-relaxed">
                 A quarterly tradition of exceptional cuts, great company, and
                 effortless coordination. Member-voted venues. Tight logistics.
                 No noise.
@@ -48,15 +48,15 @@ export default function Home() {
               <div className="landing-stat grid grid-cols-3 gap-8 pt-6 text-sm">
                 <div>
                   <div className="landing-stat-value">4x</div>
-                  <span className="text-foreground/50">per year</span>
+                  <span className="text-foreground/70">per year</span>
                 </div>
                 <div>
                   <div className="landing-stat-value">100%</div>
-                  <span className="text-foreground/50">member voted</span>
+                  <span className="text-foreground/70">member voted</span>
                 </div>
                 <div>
                   <div className="landing-stat-value">&lt;60s</div>
-                  <span className="text-foreground/50">avg RSVP</span>
+                  <span className="text-foreground/70">avg RSVP</span>
                 </div>
               </div>
             </div>
@@ -176,14 +176,14 @@ export default function Home() {
                 <h3 className="text-display-md text-foreground mb-4">
                   {card.title}
                 </h3>
-                <p className="text-foreground/60 flex-1 leading-relaxed">
+                <p className="text-foreground/80 flex-1 leading-relaxed">
                   {card.body}
                 </p>
                 <div className="mt-6 pt-6 border-t border-border/30 flex flex-wrap gap-2">
                   {card.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="text-xs font-medium uppercase tracking-wider text-foreground/40"
+                      className="text-xs font-medium uppercase tracking-wider text-foreground/60"
                     >
                       {tag}
                     </span>
@@ -207,7 +207,7 @@ export default function Home() {
                 <h2 className="text-display-lg text-foreground mb-4">
                   Keep the seat warm.
                 </h2>
-                <p className="text-foreground/60 text-lg leading-relaxed">
+                <p className="text-foreground/80 text-lg leading-relaxed">
                   Members sign in to vote, RSVP, and coordinate the next dinner.
                   Admins can step in when the schedule shifts.
                 </p>
@@ -242,7 +242,7 @@ export default function Home() {
               Meatup.Club
             </span>
           </div>
-          <p className="text-xs uppercase tracking-[0.25em] text-foreground/40">
+          <p className="text-xs uppercase tracking-[0.25em] text-foreground/60">
             A quarterly tradition
           </p>
         </div>
