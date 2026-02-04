@@ -19,7 +19,7 @@ export default function Home() {
                 <span className="text-accent">four times a year.</span>
               </h1>
 
-              <p className="text-lg sm:text-xl text-foreground max-w-xl leading-relaxed">
+              <p className="text-lg sm:text-xl text-white/90 max-w-xl leading-relaxed">
                 A quarterly tradition of exceptional cuts, great company, and
                 effortless coordination. Member-voted venues. Tight logistics.
                 No noise.
@@ -48,15 +48,15 @@ export default function Home() {
               <div className="landing-stat grid grid-cols-3 gap-8 pt-6 text-sm">
                 <div>
                   <div className="landing-stat-value">4x</div>
-                  <span className="text-foreground/70">per year</span>
+                  <span className="text-white/70">per year</span>
                 </div>
                 <div>
                   <div className="landing-stat-value">100%</div>
-                  <span className="text-foreground/70">member voted</span>
+                  <span className="text-white/70">member voted</span>
                 </div>
                 <div>
                   <div className="landing-stat-value">&lt;60s</div>
-                  <span className="text-foreground/70">avg RSVP</span>
+                  <span className="text-white/70">avg RSVP</span>
                 </div>
               </div>
             </div>
