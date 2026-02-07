@@ -5,6 +5,7 @@ import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -245,27 +246,25 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
 
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Poll Management</h1>
-          <p className="text-muted-foreground mt-1">Manage voting polls and close with winners</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Poll Management"
+        description="Manage voting polls and close with winners"
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Active Poll Section */}
       {activePoll ? (
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
+        <Card className="p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
@@ -275,9 +274,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 Started {formatDateForDisplay(activePoll.created_at)}
               </p>
             </div>
-            <span className="px-4 py-2 bg-green-100 text-green-800 font-semibold rounded-full">
-              Active
-            </span>
+            <Badge variant="success">Active</Badge>
           </div>
 
           {/* Current Winners */}
@@ -305,7 +302,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   <select
                     name="winning_restaurant_id"
                     defaultValue={topRestaurant.id}
-                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red bg-card text-foreground"
+                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
                     required
                   >
                     {allRestaurants.map((restaurant: any) => (
@@ -327,7 +324,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   <select
                     name="winning_date_id"
                     defaultValue={topDate.id}
-                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red bg-card text-foreground"
+                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
                     required
                   >
                     {allDates.map((date: any) => (
@@ -355,7 +352,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     name="create_event"
                     value="true"
                     defaultChecked
-                    className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
+                    className="w-4 h-4 text-accent rounded focus:ring-accent"
                   />
                   <span className="text-sm font-medium text-foreground">
                     Create event from winners
@@ -371,7 +368,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     name="send_invites"
                     value="true"
                     defaultChecked
-                    className="w-4 h-4 text-meat-red rounded focus:ring-meat-red"
+                    className="w-4 h-4 text-accent rounded focus:ring-accent"
                   />
                   <span className="text-sm font-medium text-foreground">
                     Send calendar invites to all members
@@ -390,7 +387,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   type="time"
                   name="event_time"
                   defaultValue="18:00"
-                  className="w-full px-4 py-2 border border-border rounded-md focus:ring-meat-red focus:border-meat-red"
+                  className="w-full px-4 py-2 border border-border rounded-md focus:ring-accent focus:border-accent"
                   required
                 />
                 <p className="text-xs text-muted-foreground mt-1">
@@ -398,26 +395,21 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 </p>
               </div>
 
-              <button
-                type="submit"
-                className="w-full px-6 py-3 bg-meat-red text-white rounded-md font-bold hover:bg-meat-brown transition-colors"
-              >
+              <Button type="submit" className="w-full">
                 Close Poll & Finalize Winners
-              </button>
+              </Button>
             </Form>
           )}
-        </div>
+        </Card>
       ) : (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center mb-8">
-          <p className="text-yellow-800 font-medium mb-2">No active poll</p>
-          <p className="text-sm text-yellow-700">
-            Users can start a new poll from the restaurant or date voting pages.
-          </p>
-        </div>
+        <EmptyState
+          title="No active poll"
+          description="Users can start a new poll from the restaurant or date voting pages."
+        />
       )}
 
       {/* Closed Polls History */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <Card className="overflow-hidden mt-8">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">Closed Polls History</h2>
         </div>
@@ -438,9 +430,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                       {poll.closed_by_name}
                     </p>
                   </div>
-                  <span className="px-3 py-1 bg-muted text-foreground text-sm font-semibold rounded-full">
-                    Closed
-                  </span>
+                  <Badge variant="muted">Closed</Badge>
                 </div>
 
                 {poll.winning_restaurant_name && (
@@ -471,7 +461,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   <div className="mt-3">
                     <Link
                       to="/dashboard/admin/events"
-                      className="text-sm text-meat-red hover:text-meat-brown font-medium"
+                      className="text-sm text-accent hover:text-accent-strong font-medium"
                     >
                       View Created Event →
                     </Link>
@@ -481,7 +471,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </main>
   );
 }

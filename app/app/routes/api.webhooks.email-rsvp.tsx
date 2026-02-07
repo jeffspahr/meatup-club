@@ -1,5 +1,6 @@
 import type { Route } from "./+types/api.webhooks.email-rsvp";
 import { Webhook } from "svix";
+import { upsertRsvp } from "../lib/rsvps.server";
 
 /**
  * Webhook handler for inbound emails from Resend
@@ -142,29 +143,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const rsvpStatus = statusMap[rsvpData.partstat] || 'maybe';
 
-    // Check if RSVP already exists
-    const existingRsvp = await db
-      .prepare('SELECT id, status FROM rsvps WHERE event_id = ? AND user_id = ?')
-      .bind(eventId, user.id)
-      .first();
-
-    if (existingRsvp) {
-      // Update existing RSVP
-      await db
-        .prepare('UPDATE rsvps SET status = ?, updated_via_calendar = 1, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE id = ?')
-        .bind(rsvpStatus, existingRsvp.id)
-        .run();
-
-      console.log(`Updated RSVP for user ${user.email} to "${rsvpStatus}"`);
-    } else {
-      // Create new RSVP
-      await db
-        .prepare('INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar, admin_override) VALUES (?, ?, ?, 1, 0)')
-        .bind(eventId, user.id, rsvpStatus)
-        .run();
-
-      console.log(`Created RSVP for user ${user.email} as "${rsvpStatus}"`);
-    }
+    const result = await upsertRsvp({
+      db,
+      eventId,
+      userId: user.id as number,
+      status: rsvpStatus,
+      updatedViaCalendar: true,
+    });
+    console.log(`${result === 'created' ? 'Created' : 'Updated'} RSVP for user ${user.email} as "${rsvpStatus}"`);
 
     return Response.json({
       success: true,

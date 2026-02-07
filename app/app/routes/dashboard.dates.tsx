@@ -5,6 +5,7 @@ import type { Route } from "./+types/dashboard.dates";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
+import { PageHeader, Button, Alert, Badge, Card, EmptyState } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -249,66 +250,62 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Date Voting</h1>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowForm(!showForm)}
-            disabled={!activePoll}
-            className={`px-6 py-2 rounded-md font-medium transition-colors ${
-              activePoll
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-            title={!activePoll ? 'Start a poll to suggest dates' : ''}
-          >
-            {showForm ? 'Cancel' : '+ Suggest Date'}
-          </button>
-          <button
-            onClick={() => setShowNewPollForm(!showNewPollForm)}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors"
-          >
-            {showNewPollForm ? 'Cancel' : '🗳️ Start New Poll'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Date Voting"
+        actions={
+          <>
+            <Button
+              variant="primary"
+              onClick={() => setShowForm(!showForm)}
+              disabled={!activePoll}
+              title={!activePoll ? 'Start a poll to suggest dates' : ''}
+            >
+              {showForm ? 'Cancel' : '+ Suggest Date'}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowNewPollForm(!showNewPollForm)}
+            >
+              {showNewPollForm ? 'Cancel' : '🗳️ Start New Poll'}
+            </Button>
+          </>
+        }
+      />
 
       {/* Poll Status Indicator */}
       {activePoll ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <Alert variant="success" className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-green-900">
+              <h3 className="font-semibold">
                 🗳️ Active Poll: {activePoll.title}
               </h3>
-              <p className="text-sm text-green-700 mt-1">
+              <p className="text-sm opacity-80 mt-1">
                 Started {formatDateForDisplay(activePoll.created_at)}
               </p>
             </div>
-            <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-              Active
-            </span>
+            <Badge variant="success">Active</Badge>
           </div>
-        </div>
+        </Alert>
       ) : (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <Alert variant="warning" className="mb-6">
           <div className="flex items-center gap-2">
-            <span className="text-yellow-600">⚠️</span>
-            <p className="text-yellow-800 font-medium">
+            <span>⚠️</span>
+            <p className="font-medium">
               No active poll. Start a new poll to begin voting on dates.
             </p>
           </div>
-        </div>
+        </Alert>
       )}
 
       {/* Start New Poll Form */}
       {showNewPollForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+        <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Start New Poll</h2>
           <form onSubmit={handleStartPoll} className="space-y-4">
             <input type="hidden" name="_action" value="create" />
             <div>
-              <label htmlFor="poll_title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="poll_title" className="block text-sm font-medium text-muted-foreground mb-1">
                 Poll Title *
               </label>
               <input
@@ -317,44 +314,39 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                 type="text"
                 required
                 placeholder="e.g., Q1 2025 Meetup Poll"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             {activePoll && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="text-sm text-orange-800">
-                  ⚠️ Starting a new poll will close the current active poll "{activePoll.title}".
-                </p>
-              </div>
+              <Alert variant="warning">
+                ⚠️ Starting a new poll will close the current active poll "{activePoll.title}".
+              </Alert>
             )}
             <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition-colors"
-              >
+              <Button type="submit" variant="secondary">
                 Start Poll
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setShowNewPollForm(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
-        </div>
+        </Card>
       )}
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Suggestion Form */}
       {showForm && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <Card className="p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Suggest a Date</h2>
           <Form
             method="post"
@@ -367,7 +359,7 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
             <input type="hidden" name="_action" value="suggest" />
 
             <div>
-              <label htmlFor="suggested_date" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="suggested_date" className="block text-sm font-medium text-muted-foreground mb-1">
                 Proposed Date *
               </label>
               <input
@@ -377,30 +369,27 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                 required
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
             <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
-              >
+              <Button type="submit" variant="primary">
                 Submit Date
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   setShowForm(false);
                   setSelectedDate("");
                 }}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </Form>
-        </div>
+        </Card>
       )}
 
       {/* Grid Layout: Calendar + Suggestions List */}
@@ -418,21 +407,17 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
         {/* Suggestions List - Takes 2 columns */}
         <div className="lg:col-span-2">
           {suggestions.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">
-            {activePoll
-              ? 'No date suggestions yet. Be the first to suggest one!'
-              : 'Start a poll to begin suggesting and voting on dates.'}
-          </p>
-          {activePoll && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
-            >
+        <EmptyState
+          icon="📅"
+          title={activePoll
+            ? 'No date suggestions yet. Be the first to suggest one!'
+            : 'Start a poll to begin suggesting and voting on dates.'}
+          action={activePoll ? (
+            <Button variant="primary" onClick={() => setShowForm(true)}>
               Suggest Date
-            </button>
-          )}
-        </div>
+            </Button>
+          ) : undefined}
+        />
       ) : (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">
@@ -446,11 +431,9 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
             const isPast = suggestedDate < new Date();
 
             return (
-              <div
+              <Card
                 key={suggestion.id}
-                className={`bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow ${
-                  isPast ? 'opacity-50' : ''
-                }`}
+                className={`p-6 ${isPast ? 'opacity-50' : ''}`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -469,7 +452,7 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                       </p>
                     )}
 
-                    <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                       Suggested by {suggestion.suggested_by_name}
                     </p>
                   </div>
@@ -478,38 +461,33 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                     {/* Only show vote button if suggestion belongs to active poll */}
                     {activePoll && suggestion.poll_id === activePoll.id ? (
                       <>
-                        <button
+                        <Button
+                          variant={hasVoted ? 'primary' : 'secondary'}
                           onClick={() => handleVote(suggestion.id, hasVoted)}
                           disabled={isPast}
-                          className={`px-6 py-3 rounded-md font-medium transition-colors min-w-[120px] ${
-                            hasVoted
-                              ? 'bg-blue-600 text-white hover:bg-blue-700'
-                              : 'bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className="min-w-[120px]"
                         >
                           {hasVoted ? '✓ Voted' : 'Vote'}
-                        </button>
+                        </Button>
 
                         <div className="text-center">
-                          <p className="text-3xl font-bold text-gray-900">
+                          <p className="text-3xl font-bold text-foreground">
                             {suggestion.vote_count}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {suggestion.vote_count === 1 ? 'vote' : 'votes'}
                           </p>
                         </div>
                       </>
                     ) : (
-                      <div className="text-center px-4 py-2 bg-gray-100 rounded-md">
-                        <p className="text-sm text-gray-600">
-                          Not in active poll
-                        </p>
-                      </div>
+                      <Badge variant="muted">Not in active poll</Badge>
                     )}
 
                     {/* Delete button - shown if user owns or is admin */}
                     {(currentUser.isAdmin || suggestion.user_id === currentUser.id) && (
-                      <button
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => handleDelete(
                           suggestion.id,
                           suggestedDate.toLocaleDateString('en-US', {
@@ -519,15 +497,15 @@ export default function DatesPage({ loaderData, actionData }: Route.ComponentPro
                             day: 'numeric',
                           })
                         )}
-                        className="mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                        className="mt-2"
                         title="Delete suggestion"
                       >
                         Delete
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

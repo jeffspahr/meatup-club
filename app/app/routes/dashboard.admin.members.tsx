@@ -5,16 +5,8 @@ import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
 import { sendInviteEmail } from "../lib/email.server";
 import { forceUserReauth } from "../lib/db.server";
-
-interface Member {
-  id: number;
-  email: string;
-  name: string | null;
-  picture: string | null;
-  is_admin: number;
-  status: string;
-  created_at: string;
-}
+import { Alert, Badge, Button, Card, PageHeader, UserAvatar } from "../components/ui";
+import type { Member } from "../lib/types";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -276,54 +268,52 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Member Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Total members: {members.length}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-        >
-          {showAddForm ? 'Cancel' : '+ Invite User'}
-        </button>
-      </div>
+
+      <PageHeader
+        title="Member Management"
+        description={`Total members: ${members.length}`}
+        actions={
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+          >
+            {showAddForm ? 'Cancel' : '+ Invite User'}
+          </Button>
+        }
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {actionData?.success && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+        <Alert variant="success" className="mb-6">
           {actionData.success}
-        </div>
+        </Alert>
       )}
 
       {actionData?.warning && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+        <Alert variant="warning" className="mb-6">
           <p className="font-semibold mb-2">{actionData.warning}</p>
           {actionData.inviteLink && (
             <div className="mt-2">
               <p className="text-sm mb-1">Share this link with the invitee:</p>
-              <code className="bg-yellow-100 px-2 py-1 rounded text-xs break-all">
+              <code className="bg-amber-500/10 px-2 py-1 rounded text-xs break-all">
                 {actionData.inviteLink}
               </code>
             </div>
           )}
-        </div>
+        </Alert>
       )}
 
       {/* Invite User Form */}
       {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
+        <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Invite New User</h2>
           <Form method="post" className="space-y-4">
             <input type="hidden" name="_action" value="invite" />
@@ -341,7 +331,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 type="email"
                 required
                 placeholder="member@example.com"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -357,7 +347,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 name="name"
                 type="text"
                 placeholder="John Doe"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -371,7 +361,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
               <select
                 id="template_id"
                 name="template_id"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {templates.map((template: any) => (
                   <option
@@ -384,22 +374,19 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 ))}
               </select>
               <p className="text-xs text-muted-foreground mt-1">
-                Choose which email template to send. <Link to="/dashboard/admin/email-templates" className="text-meat-red hover:underline">Manage templates</Link>
+                Choose which email template to send. <Link to="/dashboard/admin/email-templates" className="text-accent hover:underline">Manage templates</Link>
               </p>
             </div>
 
-            <button
-              type="submit"
-              className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-            >
+            <Button type="submit">
               Send Invite
-            </button>
+            </Button>
           </Form>
-        </div>
+        </Card>
       )}
 
       {/* Members List */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <Card className="overflow-hidden">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted">
             <tr>
@@ -444,7 +431,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, name: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                           />
                         </div>
 
@@ -458,7 +445,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, is_admin: e.target.value === 'true' })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                           >
                             <option value="false">Member</option>
                             <option value="true">Admin</option>
@@ -467,19 +454,16 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                       </div>
 
                       <div className="flex gap-3">
-                        <button
-                          type="submit"
-                          className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-                        >
+                        <Button type="submit">
                           Save Changes
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="secondary"
                           onClick={cancelEditing}
-                          className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </Form>
                   </td>
@@ -487,17 +471,12 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                   <>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {member.picture ? (
-                          <img
-                            src={member.picture}
-                            alt={member.name || ''}
-                            className="w-10 h-10 rounded-full mr-3"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-muted mr-3 flex items-center justify-center text-muted-foreground font-semibold">
-                            {(member.name || member.email)[0].toUpperCase()}
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={member.picture}
+                          name={member.name}
+                          email={member.email}
+                          className="mr-3"
+                        />
                         <div className="font-medium text-foreground">
                           {member.name || 'No name'}
                         </div>
@@ -508,49 +487,46 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {member.is_admin ? (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-meat-red text-white">
-                          Admin
-                        </span>
+                        <Badge variant="accent">Admin</Badge>
                       ) : (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
-                          Member
-                        </span>
+                        <Badge variant="muted">Member</Badge>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {member.status === 'active' ? (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          Active
-                        </span>
+                        <Badge variant="success">Active</Badge>
                       ) : (
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          Invited
-                        </span>
+                        <Badge variant="warning">Invited</Badge>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateForDisplay(member.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => startEditing(member)}
-                        className="text-meat-red hover:text-meat-brown font-medium mr-4"
+                        className="mr-2"
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleForceReauth(member.id, member.name || member.email)}
-                        className="text-blue-600 hover:text-blue-900 font-medium mr-4"
                         title="Force user to re-login with OAuth"
+                        className="mr-2"
                       >
                         Re-login
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => handleDelete(member.id)}
-                        className="text-red-600 hover:text-red-900 font-medium"
                       >
                         Remove
-                      </button>
+                      </Button>
                     </td>
                   </>
                 )}
@@ -558,7 +534,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </main>
   );
 }

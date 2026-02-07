@@ -2,29 +2,10 @@ import { Form, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
+import { upsertRsvp } from "../lib/rsvps.server";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
-
-interface Event {
-  id: number;
-  restaurant_name: string;
-  restaurant_address: string | null;
-  event_date: string;
-  event_time?: string | null;
-  status: string;
-  created_at: string;
-}
-
-interface RSVP {
-  id: number;
-  event_id: number;
-  user_id: number;
-  status: 'yes' | 'no' | 'maybe';
-  comments: string | null;
-  created_at: string;
-  name?: string;
-  email?: string;
-  picture?: string;
-}
+import type { Event, RsvpWithUser } from "../lib/types";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader, UserAvatar } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -109,43 +90,22 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { error: 'Missing required fields' };
   }
 
-  // Check if RSVP exists
-  const existing = await db
-    .prepare('SELECT id FROM rsvps WHERE event_id = ? AND user_id = ?')
-    .bind(eventId, user.id)
-    .first();
+  const result = await upsertRsvp({
+    db,
+    eventId: parseInt(eventId as string),
+    userId: user.id,
+    status: status as string,
+    comments: (comments as string) || null,
+  });
 
-  if (existing) {
-    // Update existing RSVP
-    await db
-      .prepare('UPDATE rsvps SET status = ?, comments = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE event_id = ? AND user_id = ?')
-      .bind(status, comments || null, eventId, user.id)
-      .run();
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'update_rsvp',
-      actionDetails: { event_id: eventId, status, comments },
-      route: '/dashboard/events',
-      request,
-    });
-  } else {
-    // Create new RSVP
-    await db
-      .prepare('INSERT INTO rsvps (event_id, user_id, status, comments, admin_override) VALUES (?, ?, ?, ?, 0)')
-      .bind(eventId, user.id, status, comments || null)
-      .run();
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'rsvp',
-      actionDetails: { event_id: eventId, status, comments },
-      route: '/dashboard/events',
-      request,
-    });
-  }
+  await logActivity({
+    db,
+    userId: user.id,
+    actionType: result === 'created' ? 'rsvp' : 'update_rsvp',
+    actionDetails: { event_id: eventId, status, comments },
+    route: '/dashboard/events',
+    request,
+  });
 
   return redirect('/dashboard/events');
 }
@@ -155,33 +115,29 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Events</h1>
-        <p className="text-muted-foreground mt-1">Upcoming and past Meatup.Club events</p>
-      </div>
+      <PageHeader
+        title="Events"
+        description="Upcoming and past Meatup.Club events"
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Upcoming Events */}
       <div className="mb-12">
         <h2 className="text-2xl font-semibold text-foreground mb-4">Upcoming Events</h2>
         {upcomingEvents.length === 0 ? (
-          <div className="bg-muted border border-border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">
-              No upcoming events at the moment. Check back soon!
-            </p>
-          </div>
+          <EmptyState
+            title="No upcoming events"
+            description="No upcoming events at the moment. Check back soon!"
+          />
         ) : (
           <div className="space-y-8">
             {upcomingEvents.map((event: any) => (
-              <div
-                key={event.id}
-                className="bg-card border border-border rounded-lg p-6"
-              >
+              <Card key={event.id} className="p-6">
                 <div className="mb-6">
                   <h3 className="text-2xl font-semibold text-foreground mb-2">
                     {event.restaurant_name}
@@ -217,8 +173,8 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                             key={option}
                             className={`px-4 py-2 rounded-md font-medium transition-all cursor-pointer select-none ${
                               event.userRsvp?.status === option
-                                ? 'bg-meat-red text-white shadow-sm'
-                                : 'bg-card border border-border text-foreground hover:bg-muted hover:border-meat-red/50 active:scale-95 active:shadow-inner'
+                                ? 'bg-accent text-white shadow-sm'
+                                : 'bg-card border border-border text-foreground hover:bg-muted hover:border-accent/50 active:scale-95 active:shadow-inner'
                             }`}
                           >
                             <input
@@ -257,14 +213,11 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                           defaultValue={event.userRsvp?.comments || ''}
                           placeholder="Any comments or notes about your attendance"
                           rows={3}
-                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red bg-card text-foreground"
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
                         />
-                        <button
-                          type="submit"
-                          className="px-4 py-1.5 text-sm bg-meat-red text-white rounded-md font-medium hover:bg-meat-red/90 transition-colors"
-                        >
+                        <Button type="submit" size="sm">
                           Update Comments
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </Form>
@@ -273,28 +226,22 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                 {/* Attendee List */}
                 <div>
                   <h4 className="font-semibold text-foreground mb-3">
-                    RSVPs ({event.allRsvps.filter((r: RSVP) => r.status === 'yes').length} yes, {event.allRsvps.filter((r: RSVP) => r.status === 'maybe').length} maybe, {event.allRsvps.filter((r: RSVP) => r.status === 'no').length} no, {event.notResponded?.length || 0} pending)
+                    RSVPs ({event.allRsvps.filter((r: RsvpWithUser) => r.status === 'yes').length} yes, {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'maybe').length} maybe, {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'no').length} no, {event.notResponded?.length || 0} pending)
                   </h4>
 
                   {/* Going */}
-                  {event.allRsvps.filter((r: RSVP) => r.status === 'yes').length > 0 && (
+                  {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'yes').length > 0 && (
                     <>
                       <h5 className="font-semibold text-green-700 dark:text-green-400 mt-2 mb-2">✓ Going</h5>
                       <div className="space-y-2 mb-4">
                         {event.allRsvps
-                          .filter((rsvp: RSVP) => rsvp.status === 'yes')
-                          .map((rsvp: RSVP) => (
+                          .filter((rsvp: RsvpWithUser) => rsvp.status === 'yes')
+                          .map((rsvp: RsvpWithUser) => (
                             <div
                               key={rsvp.id}
                               className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md"
                             >
-                              {rsvp.picture && (
-                                <img
-                                  src={rsvp.picture}
-                                  alt={rsvp.name || ''}
-                                  className="w-10 h-10 rounded-full"
-                                />
-                              )}
+                              <UserAvatar src={rsvp.picture} name={rsvp.name} email={rsvp.email} />
                               <div className="flex-1">
                                 <p className="font-medium text-foreground">{rsvp.name || rsvp.email}</p>
                                 {rsvp.comments && (
@@ -310,24 +257,18 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   )}
 
                   {/* Maybe */}
-                  {event.allRsvps.filter((r: RSVP) => r.status === 'maybe').length > 0 && (
+                  {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'maybe').length > 0 && (
                     <>
                       <h5 className="font-semibold text-yellow-700 dark:text-yellow-400 mt-2 mb-2">? Maybe</h5>
                       <div className="space-y-2 mb-4">
                         {event.allRsvps
-                          .filter((rsvp: RSVP) => rsvp.status === 'maybe')
-                          .map((rsvp: RSVP) => (
+                          .filter((rsvp: RsvpWithUser) => rsvp.status === 'maybe')
+                          .map((rsvp: RsvpWithUser) => (
                             <div
                               key={rsvp.id}
                               className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md"
                             >
-                              {rsvp.picture && (
-                                <img
-                                  src={rsvp.picture}
-                                  alt={rsvp.name || ''}
-                                  className="w-10 h-10 rounded-full"
-                                />
-                              )}
+                              <UserAvatar src={rsvp.picture} name={rsvp.name} email={rsvp.email} />
                               <div className="flex-1">
                                 <p className="font-medium text-foreground">{rsvp.name || rsvp.email}</p>
                                 {rsvp.comments && (
@@ -343,24 +284,18 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   )}
 
                   {/* Not Going */}
-                  {event.allRsvps.filter((r: RSVP) => r.status === 'no').length > 0 && (
+                  {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'no').length > 0 && (
                     <>
                       <h5 className="font-semibold text-red-700 dark:text-red-400 mt-2 mb-2">✗ Not Going</h5>
                       <div className="space-y-2 mb-4">
                         {event.allRsvps
-                          .filter((rsvp: RSVP) => rsvp.status === 'no')
-                          .map((rsvp: RSVP) => (
+                          .filter((rsvp: RsvpWithUser) => rsvp.status === 'no')
+                          .map((rsvp: RsvpWithUser) => (
                             <div
                               key={rsvp.id}
                               className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md opacity-75"
                             >
-                              {rsvp.picture && (
-                                <img
-                                  src={rsvp.picture}
-                                  alt={rsvp.name || ''}
-                                  className="w-10 h-10 rounded-full"
-                                />
-                              )}
+                              <UserAvatar src={rsvp.picture} name={rsvp.name} email={rsvp.email} />
                               <div className="flex-1">
                                 <p className="font-medium text-foreground">{rsvp.name || rsvp.email}</p>
                                 {rsvp.comments && (
@@ -385,13 +320,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                             key={member.id}
                             className="flex items-center gap-3 p-3 bg-muted/50 border border-border rounded-md opacity-50"
                           >
-                            {member.picture && (
-                              <img
-                                src={member.picture}
-                                alt={member.name || ''}
-                                className="w-10 h-10 rounded-full grayscale"
-                              />
-                            )}
+                            <UserAvatar src={member.picture} name={member.name} email={member.email} className="grayscale" />
                             <p className="font-medium text-muted-foreground">
                               {member.name || member.email}
                             </p>
@@ -401,7 +330,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     </>
                   )}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -411,31 +340,20 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
       <div>
         <h2 className="text-2xl font-semibold text-foreground mb-4">Past Events</h2>
         {pastEvents.length === 0 ? (
-          <div className="bg-muted border border-border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">No past events yet.</p>
-          </div>
+          <EmptyState title="No past events yet" />
         ) : (
           <div className="space-y-4">
             {pastEvents.map((event: any) => (
-              <div
-                key={event.id}
-                className="bg-card border border-border rounded-lg p-6 opacity-75"
-              >
+              <Card key={event.id} className="p-6 opacity-75">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-semibold text-foreground">
                         {event.restaurant_name}
                       </h3>
-                      <span
-                        className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                          event.displayStatus === 'completed'
-                            ? 'bg-muted text-foreground'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                        }`}
-                      >
+                      <Badge variant={event.displayStatus === 'completed' ? 'muted' : 'danger'}>
                         {event.displayStatus}
-                      </span>
+                      </Badge>
                     </div>
                     {event.restaurant_address && (
                       <p className="text-sm text-muted-foreground mb-2">
@@ -454,7 +372,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     </p>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}

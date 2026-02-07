@@ -1,4 +1,5 @@
 import type { Route } from "./+types/api.places.photo";
+import { withCache } from "../lib/cache.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -12,39 +13,32 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 
   try {
-    const cache = caches.default;
-    const cacheKey = new Request(url.toString(), { method: "GET" });
-    const cached = await cache.match(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    return await withCache(
+      request,
+      context,
+      async () => {
+        const response = await fetch(
+          `https://places.googleapis.com/v1/${name}/media?maxHeightPx=${encodeURIComponent(
+            maxHeightPx
+          )}&maxWidthPx=${encodeURIComponent(maxWidthPx)}&key=${apiKey}`
+        );
 
-    const response = await fetch(
-      `https://places.googleapis.com/v1/${name}/media?maxHeightPx=${encodeURIComponent(
-        maxHeightPx
-      )}&maxWidthPx=${encodeURIComponent(maxWidthPx)}&key=${apiKey}`
-    );
+        if (!response.ok) {
+          const error = await response.text();
+          console.error("Place photo error:", error);
+          return Response.json(
+            { error: "Failed to fetch place photo" },
+            { status: response.status }
+          );
+        }
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Place photo error:", error);
-      return Response.json(
-        { error: "Failed to fetch place photo" },
-        { status: response.status }
-      );
-    }
-
-    const headers = new Headers(response.headers);
-    headers.set(
-      "Cache-Control",
+        return new Response(response.body, {
+          status: response.status,
+          headers: new Headers(response.headers),
+        });
+      },
       "public, max-age=604800, stale-while-revalidate=2592000"
     );
-    const cachedResponse = new Response(response.body, {
-      status: response.status,
-      headers,
-    });
-    context.cloudflare.ctx.waitUntil(cache.put(cacheKey, cachedResponse.clone()));
-    return cachedResponse;
   } catch (error) {
     console.error("Place photo error:", error);
     return Response.json(

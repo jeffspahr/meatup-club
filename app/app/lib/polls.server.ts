@@ -2,24 +2,7 @@
  * Server-side utilities for poll and vote leader data
  */
 
-interface VoteLeader {
-  id: number;
-  name: string;
-  address: string | null;
-  vote_count: number;
-}
-
-interface DateLeader {
-  id: number;
-  suggested_date: string;
-  vote_count: number;
-}
-
-interface VoteLeaders {
-  topRestaurant: VoteLeader | null;
-  topDate: DateLeader | null;
-  activePoll: any | null;
-}
+import type { VoteLeader, DateLeader, VoteLeaders } from "./types";
 
 /**
  * Fetches vote leaders for the active poll

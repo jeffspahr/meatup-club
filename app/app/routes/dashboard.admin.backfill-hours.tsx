@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin.backfill-hours";
 import { requireAdmin } from "../lib/auth.server";
+import { Alert, Button, Card, PageHeader } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -76,36 +77,36 @@ export default function BackfillHoursPage({ loaderData, actionData }: Route.Comp
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
 
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold mb-4">Backfill Opening Hours</h1>
+      <Card className="p-8">
+        <PageHeader title="Backfill Opening Hours" />
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-yellow-900 font-medium mb-2">⚠️ One-Time Operation</p>
-          <p className="text-sm text-yellow-800">
+        <Alert variant="warning" className="mb-6">
+          <p className="font-medium mb-2">One-Time Operation</p>
+          <p className="text-sm">
             This will fetch opening hours from Google Places API for all existing restaurants
             that have a Google Place ID but no opening hours data.
           </p>
-        </div>
+        </Alert>
 
         {actionData?.results && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-            <h2 className="text-lg font-semibold text-green-900 mb-3">✓ Backfill Complete</h2>
+          <Alert variant="success" className="mb-6">
+            <h2 className="text-lg font-semibold mb-3">Backfill Complete</h2>
             <div className="space-y-2 text-sm">
-              <p className="text-green-800">
+              <p>
                 <strong>Total restaurants found:</strong> {actionData.results.total}
               </p>
-              <p className="text-green-800">
+              <p>
                 <strong>Successfully updated:</strong> {actionData.results.updated}
               </p>
               {actionData.results.failed.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-red-800 font-medium">Failed to update:</p>
-                  <ul className="list-disc list-inside text-red-700 mt-1">
+                  <p className="font-medium">Failed to update:</p>
+                  <ul className="list-disc list-inside mt-1">
                     {actionData.results.failed.map((name: string, idx: number) => (
                       <li key={idx}>{name}</li>
                     ))}
@@ -113,30 +114,31 @@ export default function BackfillHoursPage({ loaderData, actionData }: Route.Comp
                 </div>
               )}
             </div>
-          </div>
+          </Alert>
         )}
 
         <Form method="post" onSubmit={() => setIsRunning(true)}>
-          <button
+          <Button
             type="submit"
+            size="lg"
             disabled={isRunning || !!actionData?.results}
-            className="w-full px-6 py-4 bg-meat-red text-white rounded-lg font-bold text-lg hover:bg-meat-brown transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full"
           >
-            {isRunning ? '⏳ Running Backfill...' : '🔄 Run Backfill'}
-          </button>
+            {isRunning ? 'Running Backfill...' : 'Run Backfill'}
+          </Button>
         </Form>
 
         {actionData?.results && (
           <div className="mt-6 text-center">
             <Link
               to="/dashboard/polls"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              className="btn-primary inline-flex items-center justify-center px-6 py-3"
             >
-              View Polls →
+              View Polls
             </Link>
           </div>
         )}
-      </div>
+      </Card>
     </main>
   );
 }

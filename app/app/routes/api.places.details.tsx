@@ -1,4 +1,5 @@
 import type { Route } from "./+types/api.places.details";
+import { withCache } from "../lib/cache.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -10,77 +11,72 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   }
 
   try {
-    const cache = caches.default;
-    const cacheKey = new Request(url.toString(), { method: "GET" });
-    const cached = await cache.match(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    return await withCache(
+      request,
+      context,
+      async () => {
+        // Use Google Places API (New) - Place Details
+        const response = await fetch(
+          `https://places.googleapis.com/v1/places/${placeId}`,
+          {
+            headers: {
+              "X-Goog-Api-Key": apiKey,
+              "X-Goog-FieldMask": [
+                "id",
+                "displayName",
+                "formattedAddress",
+                "internationalPhoneNumber",
+                "websiteUri",
+                "googleMapsUri",
+                "rating",
+                "userRatingCount",
+                "priceLevel",
+                "types",
+                "photos",
+                "editorialSummary",
+                "currentOpeningHours",
+              ].join(","),
+            },
+          }
+        );
 
-    // Use Google Places API (New) - Place Details
-    const response = await fetch(
-      `https://places.googleapis.com/v1/places/${placeId}`,
-      {
-        headers: {
-          "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask": [
-            "id",
-            "displayName",
-            "formattedAddress",
-            "internationalPhoneNumber",
-            "websiteUri",
-            "googleMapsUri",
-            "rating",
-            "userRatingCount",
-            "priceLevel",
-            "types",
-            "photos",
-            "editorialSummary",
-            "currentOpeningHours",
-          ].join(","),
-        },
-      }
+        if (!response.ok) {
+          const error = await response.text();
+          console.error("Place details error:", error);
+          throw new Error("Failed to fetch place details");
+        }
+
+        const data = await response.json();
+        const photoUrl = data.photos?.[0]?.name
+          ? `/api/places/photo?${new URLSearchParams({
+              name: data.photos[0].name,
+              maxHeightPx: "400",
+              maxWidthPx: "400",
+            }).toString()}`
+          : "";
+
+        // Transform to our format
+        const placeData = {
+          placeId: data.id,
+          name: data.displayName?.text || "",
+          address: data.formattedAddress || "",
+          phone: data.internationalPhoneNumber || "",
+          website: data.websiteUri || "",
+          googleMapsUrl: data.googleMapsUri || "",
+          rating: data.rating || 0,
+          ratingCount: data.userRatingCount || 0,
+          priceLevel: data.priceLevel ? getPriceLevelNumber(data.priceLevel) : 0,
+          photoUrl,
+          cuisine: getCuisineFromTypes(data.types || []),
+          openingHours: data.currentOpeningHours?.weekdayDescriptions
+            ? JSON.stringify(data.currentOpeningHours.weekdayDescriptions)
+            : null,
+        };
+
+        return Response.json(placeData);
+      },
+      "public, max-age=86400, stale-while-revalidate=604800"
     );
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Place details error:", error);
-      throw new Error("Failed to fetch place details");
-    }
-
-    const data = await response.json();
-    const photoUrl = data.photos?.[0]?.name
-      ? `/api/places/photo?${new URLSearchParams({
-          name: data.photos[0].name,
-          maxHeightPx: "400",
-          maxWidthPx: "400",
-        }).toString()}`
-      : "";
-    
-    // Transform to our format
-    const placeData = {
-      placeId: data.id,
-      name: data.displayName?.text || "",
-      address: data.formattedAddress || "",
-      phone: data.internationalPhoneNumber || "",
-      website: data.websiteUri || "",
-      googleMapsUrl: data.googleMapsUri || "",
-      rating: data.rating || 0,
-      ratingCount: data.userRatingCount || 0,
-      priceLevel: data.priceLevel ? getPriceLevelNumber(data.priceLevel) : 0,
-      photoUrl,
-      cuisine: getCuisineFromTypes(data.types || []),
-      openingHours: data.currentOpeningHours?.weekdayDescriptions
-        ? JSON.stringify(data.currentOpeningHours.weekdayDescriptions)
-        : null,
-    };
-
-    const headers = new Headers({
-      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
-    });
-    const jsonResponse = Response.json(placeData, { headers });
-    context.cloudflare.ctx.waitUntil(cache.put(cacheKey, jsonResponse.clone()));
-    return jsonResponse;
   } catch (error) {
     console.error("Place details error:", error);
     return Response.json(

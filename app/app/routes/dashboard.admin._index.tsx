@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin._index";
 import { requireAdmin } from "../lib/auth.server";
+import { Card, Alert } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -17,9 +18,9 @@ export default function AdminPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link to="/dashboard/admin/polls">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 🗳️
               </div>
               <div>
@@ -33,13 +34,13 @@ export default function AdminPage() {
               <li>• Close polls with winners</li>
               <li>• Create events from winners</li>
             </ul>
-          </div>
+          </Card>
         </Link>
 
         <Link to="/dashboard/admin/events">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 📅
               </div>
               <div>
@@ -53,13 +54,13 @@ export default function AdminPage() {
               <li>• Edit event details and status</li>
               <li>• View all past and upcoming events</li>
             </ul>
-          </div>
+          </Card>
         </Link>
 
         <Link to="/dashboard/admin/members">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 👥
               </div>
               <div>
@@ -73,13 +74,13 @@ export default function AdminPage() {
               <li>• View member status (Active/Invited)</li>
               <li>• Remove members</li>
             </ul>
-          </div>
+          </Card>
         </Link>
 
         <Link to="/dashboard/admin/content">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 📝
               </div>
               <div>
@@ -93,13 +94,13 @@ export default function AdminPage() {
               <li>• Manage membership info</li>
               <li>• Update safety reminders</li>
             </ul>
-          </div>
+          </Card>
         </Link>
 
         <Link to="/dashboard/admin/email-templates">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 ✉️
               </div>
               <div>
@@ -113,13 +114,13 @@ export default function AdminPage() {
               <li>• Set default template</li>
               <li>• Preview before sending</li>
             </ul>
-          </div>
+          </Card>
         </Link>
 
         <Link to="/dashboard/admin/analytics">
-          <div className="bg-card border-2 border-border rounded-lg p-8 hover:border-meat-red hover:shadow-lg transition cursor-pointer">
+          <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-meat-red rounded-full flex items-center justify-center text-3xl">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
                 📊
               </div>
               <div>
@@ -133,21 +134,21 @@ export default function AdminPage() {
               <li>• See activity statistics</li>
               <li>• Monitor engagement metrics</li>
             </ul>
-          </div>
+          </Card>
         </Link>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-semibold text-blue-900 mb-2">🛠️ Maintenance Tools</h3>
+      <Alert variant="info" className="mt-6">
+        <h3 className="font-semibold mb-2">🛠️ Maintenance Tools</h3>
         <Link
           to="/dashboard/admin/backfill-hours"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+          className="inline-flex items-center gap-2 text-accent hover:text-accent-strong font-medium"
         >
           <span>🔄</span>
           <span>Backfill Opening Hours for Existing Restaurants</span>
           <span>→</span>
         </Link>
-      </div>
+      </Alert>
     </main>
   );
 }

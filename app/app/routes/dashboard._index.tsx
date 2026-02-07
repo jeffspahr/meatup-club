@@ -4,6 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from '../lib/dateUtils';
+import { Badge, Card } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -206,8 +207,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
       {/* SMS Prompt */}
       {showSmsPrompt && (
-        <div
-          className="card-shell card-glow mb-8 p-6 dashboard-section border-accent/20"
+        <Card
+          className="card-glow mb-8 p-6 dashboard-section border-accent/20"
           style={{ '--section-delay': '40ms' } as CSSProperties}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -236,13 +237,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </button>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Site Content Section */}
       {content.length > 0 && (
-        <div
-          className="card-shell mb-8 p-6 sm:p-8 dashboard-section"
+        <Card
+          className="mb-8 p-6 sm:p-8 dashboard-section"
           style={{ '--section-delay': '80ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -268,7 +269,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           {showContent && (
             <div className="space-y-4 mt-8 pt-6 border-t border-border/30">
               {content.map((item: any) => (
-                <div key={item.id} className="card-shell p-5 bg-muted/30">
+                <Card key={item.id} className="p-5 bg-muted/30">
                   <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-3">
                     <span className="text-lg">
                       {item.key === 'description' && '📖'}
@@ -294,18 +295,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                       {item.content}
                     </ReactMarkdown>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Active Poll Banner */}
       {activePoll ? (
         <Link to="/dashboard/polls">
-          <div
-            className="card-shell card-hover card-glow mb-8 p-6 sm:p-8 dashboard-section"
+          <Card
+            hover
+            className="card-glow mb-8 p-6 sm:p-8 dashboard-section"
             style={{ '--section-delay': '120ms' } as CSSProperties}
           >
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -320,14 +322,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   </p>
                 </div>
               </div>
-              <span className="badge badge-accent">
+              <Badge variant="accent">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                 Voting Open
-              </span>
+              </Badge>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="card-shell p-5 bg-muted/20">
+              <Card className="p-5 bg-muted/20">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant</p>
                 {userRestaurantVote ? (
                   <>
@@ -362,9 +364,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
                 )}
-              </div>
+              </Card>
 
-              <div className="card-shell p-5 bg-muted/20">
+              <Card className="p-5 bg-muted/20">
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Dates</p>
                 {userDateVoteCount > 0 ? (
                   <>
@@ -399,13 +401,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 ) : (
                   <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
                 )}
-              </div>
+              </Card>
             </div>
-          </div>
+          </Card>
         </Link>
       ) : (
-        <div
-          className="card-shell mb-8 p-6 sm:p-8 dashboard-section border-border/30"
+        <Card
+          className="mb-8 p-6 sm:p-8 dashboard-section border-border/30"
           style={{ '--section-delay': '120ms' } as CSSProperties}
         >
           <div className="flex items-center gap-4">
@@ -417,13 +419,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Next Meetup */}
       {nextEvent && (
-        <div
-          className="card-shell mb-8 p-6 sm:p-8 dashboard-section"
+        <Card
+          className="mb-8 p-6 sm:p-8 dashboard-section"
           style={{ '--section-delay': '160ms' } as CSSProperties}
         >
           <div className="flex items-center gap-3 mb-6">
@@ -453,13 +455,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {userRsvp ? (
                   <>
                     {(userRsvp as any).status === 'yes' && (
-                      <span className="badge badge-success">Going</span>
+                      <Badge variant="success">Going</Badge>
                     )}
                     {(userRsvp as any).status === 'no' && (
-                      <span className="badge badge-danger">Not Going</span>
+                      <Badge variant="danger">Not Going</Badge>
                     )}
                     {(userRsvp as any).status === 'maybe' && (
-                      <span className="badge badge-warning">Maybe</span>
+                      <Badge variant="warning">Maybe</Badge>
                     )}
                   </>
                 ) : (
@@ -470,7 +472,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Quick Actions */}
@@ -485,76 +487,76 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {activePoll && (
             <Link to="/dashboard/polls">
-              <div className="card-shell card-hover card-glow p-6 h-full">
+              <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
                   <span className="icon-container">🗳️</span>
-                  <span className="badge badge-accent">Active</span>
+                  <Badge variant="accent">Active</Badge>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Vote on Polls</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {topRestaurants[0]?.vote_count || 0} restaurant votes, {topDates[0]?.vote_count || 0} date votes
                 </p>
-              </div>
+              </Card>
             </Link>
           )}
 
           {nextEvent && (
             <Link to="/dashboard/events">
-              <div className="card-shell card-hover card-glow p-6 h-full">
+              <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
                   <span className="icon-container">✋</span>
                   {!userRsvp && (
-                    <span className="badge badge-warning">Action Needed</span>
+                    <Badge variant="warning">Action Needed</Badge>
                   )}
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">RSVP</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
                   {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
                 </p>
-              </div>
+              </Card>
             </Link>
           )}
 
           <Link to="/dashboard/restaurants">
-            <div className="card-shell card-hover card-glow p-6 h-full">
+            <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
                 <span className="icon-container">🍖</span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Restaurants</h3>
               <p className="mt-2 text-sm text-muted-foreground">Browse and add steakhouses</p>
-            </div>
+            </Card>
           </Link>
 
           <Link to="/dashboard/events">
-            <div className="card-shell card-hover card-glow p-6 h-full">
+            <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
                 <span className="icon-container">📜</span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Events</h3>
               <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
-            </div>
+            </Card>
           </Link>
 
           <Link to="/dashboard/members">
-            <div className="card-shell card-hover card-glow p-6 h-full">
+            <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
                 <span className="icon-container">👥</span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Members</h3>
               <p className="mt-2 text-sm text-muted-foreground">{memberCount} active members</p>
-            </div>
+            </Card>
           </Link>
 
           {isAdmin && (
             <Link to="/dashboard/admin">
-              <div className="card-shell card-hover card-glow p-6 h-full">
+              <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
                   <span className="icon-container">⚙️</span>
-                  <span className="badge badge-muted">Admin</span>
+                  <Badge variant="muted">Admin</Badge>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Admin Panel</h3>
                 <p className="mt-2 text-sm text-muted-foreground">Manage polls, events, and members</p>
-              </div>
+              </Card>
             </Link>
           )}
         </div>
@@ -566,7 +568,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         style={{ '--section-delay': '240ms' } as CSSProperties}
       >
         <div className="divider-accent mb-10" />
-        <div className="card-shell p-8 text-center">
+        <Card className="p-8 text-center">
           <h3 className="text-xl font-display font-semibold text-foreground mb-3">
             Have feedback or found a bug?
           </h3>
@@ -599,7 +601,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               📋 View All Issues
             </a>
           </div>
-        </div>
+        </Card>
       </div>
     </main>
   );

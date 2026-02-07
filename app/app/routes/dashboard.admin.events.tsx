@@ -7,27 +7,8 @@ import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 import { sendAdhocSmsReminder } from "../lib/sms.server";
-
-interface Event {
-  id: number;
-  restaurant_name: string;
-  restaurant_address: string | null;
-  event_date: string;
-  event_time: string;
-  status: string;
-  created_at: string;
-}
-
-interface VoteWinner {
-  name: string;
-  address: string | null;
-  vote_count: number;
-}
-
-interface DateWinner {
-  suggested_date: string;
-  vote_count: number;
-}
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
+import type { Event, VoteWinner, DateWinner } from "../lib/types";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -582,54 +563,54 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Event Management</h1>
-          <p className="text-muted-foreground mt-1">Create and manage meetup events</p>
-        </div>
-        <div className="flex gap-3">
-          {topRestaurant && topDate && (
-            <button
-              onClick={() => {
-                setShowCreateForm(true);
-                // Auto-fill form with vote winners
-                const form = document.getElementById('create-form') as HTMLFormElement;
-                if (form) {
-                  setTimeout(() => {
-                    (form.elements.namedItem('restaurant_name') as HTMLInputElement).value = topRestaurant.name;
-                    (form.elements.namedItem('restaurant_address') as HTMLInputElement).value = topRestaurant.address || '';
-                    (form.elements.namedItem('event_date') as HTMLInputElement).value = topDate.suggested_date;
-                  }, 0);
-                }
-              }}
-              className="px-6 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
+
+      <PageHeader
+        title="Event Management"
+        description="Create and manage meetup events"
+        actions={
+          <>
+            {topRestaurant && topDate && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowCreateForm(true);
+                  // Auto-fill form with vote winners
+                  const form = document.getElementById('create-form') as HTMLFormElement;
+                  if (form) {
+                    setTimeout(() => {
+                      (form.elements.namedItem('restaurant_name') as HTMLInputElement).value = topRestaurant.name;
+                      (form.elements.namedItem('restaurant_address') as HTMLInputElement).value = topRestaurant.address || '';
+                      (form.elements.namedItem('event_date') as HTMLInputElement).value = topDate.suggested_date;
+                    }, 0);
+                  }
+                }}
+              >
+                Create from Vote Winners
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowCreateForm(!showCreateForm)}
             >
-              Create from Vote Winners
-            </button>
-          )}
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-          >
-            {showCreateForm ? 'Cancel' : '+ Create Event'}
-          </button>
-        </div>
-      </div>
+              {showCreateForm ? 'Cancel' : '+ Create Event'}
+            </Button>
+          </>
+        }
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {actionData?.success && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6">
+        <Alert variant="success" className="mb-6">
           {actionData.success}
-        </div>
+        </Alert>
       )}
 
       {/* Vote Winners Summary */}
@@ -641,7 +622,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
 
       {/* Create Event Form */}
       {showCreateForm && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
+        <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Create New Event</h2>
           <Form method="post" id="create-form" className="space-y-4">
             <input type="hidden" name="_action" value="create" />
@@ -659,7 +640,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 type="text"
                 required
                 placeholder="e.g., Ruth's Chris Steak House"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -675,7 +656,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 name="restaurant_address"
                 type="text"
                 placeholder="e.g., 123 Main St, San Francisco, CA"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -692,7 +673,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   name="event_date"
                   type="date"
                   required
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -708,7 +689,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   name="event_time"
                   type="time"
                   defaultValue="18:00"
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>
@@ -720,31 +701,31 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 type="checkbox"
                 value="true"
                 defaultChecked={true}
-                className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
+                className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
               />
               <label htmlFor="send_invites" className="ml-2 block text-sm text-foreground">
                 Send calendar invites to all active members
               </label>
             </div>
 
-            <button
-              type="submit"
-              className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-            >
+            <Button type="submit">
               Create Event
-            </button>
+            </Button>
           </Form>
-        </div>
+        </Card>
       )}
 
       {/* Events List */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">All Events</h2>
         </div>
         {events.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            No events created yet. Create your first event above!
+          <div className="p-8">
+            <EmptyState
+              title="No events created yet"
+              description="Create your first event above!"
+            />
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -767,7 +748,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         onChange={(e) =>
                           setEditData({ ...editData, restaurant_name: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                     </div>
 
@@ -782,7 +763,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         onChange={(e) =>
                           setEditData({ ...editData, restaurant_address: e.target.value })
                         }
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                     </div>
 
@@ -799,7 +780,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           onChange={(e) =>
                             setEditData({ ...editData, event_date: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </div>
 
@@ -814,7 +795,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           onChange={(e) =>
                             setEditData({ ...editData, event_time: e.target.value })
                           }
-                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                          className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </div>
                     </div>
@@ -835,7 +816,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           onChange={(e) =>
                             setEditData({ ...editData, status: e.target.checked ? 'cancelled' : 'upcoming' })
                           }
-                          className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
+                          className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
                         />
                         Mark as cancelled
                       </label>
@@ -848,7 +829,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         type="checkbox"
                         value="true"
                         defaultChecked={true}
-                        className="h-4 w-4 text-meat-red focus:ring-meat-red border-border rounded"
+                        className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
                       />
                       <label htmlFor="send_updates" className="ml-2 block text-sm text-foreground">
                         Send calendar updates to all active members
@@ -856,19 +837,16 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                     </div>
 
                     <div className="flex gap-3">
-                      <button
-                        type="submit"
-                        className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-                      >
+                      <Button type="submit">
                         Save Changes
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="secondary"
                         onClick={cancelEditing}
-                        className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
                   </Form>
                 ) : (
@@ -878,17 +856,17 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         <h3 className="text-lg font-semibold text-foreground">
                           {event.restaurant_name}
                         </h3>
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        <Badge
+                          variant={
                             event.displayStatus === 'upcoming'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'success'
                               : event.displayStatus === 'completed'
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
+                              ? 'muted'
+                              : 'danger'
+                          }
                         >
                           {event.displayStatus}
-                        </span>
+                        </Badge>
                       </div>
                       {event.restaurant_address && (
                         <p className="text-sm text-muted-foreground mb-1">
@@ -917,7 +895,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             </label>
                             <select
                               name="message_type"
-                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                               defaultValue="default"
                             >
                               <option value="default">Use default reminder template</option>
@@ -930,7 +908,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             </label>
                             <select
                               name="recipient_scope"
-                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                               value={smsScopeByEvent[event.id] || 'all'}
                               onChange={(eventScope) =>
                                 setSmsScopeByEvent((prev) => ({
@@ -954,7 +932,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                               </label>
                               <select
                                 name="recipient_user_id"
-                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                                 defaultValue=""
                               >
                                 <option value="">Select a member</option>
@@ -974,31 +952,30 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                               name="custom_message"
                               rows={3}
                               placeholder="Add a custom note (RSVP + opt-out instructions are appended automatically)."
-                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
                             />
                           </div>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-meat-red rounded-md hover:bg-meat-brown transition-colors"
-                          >
+                          <Button type="submit" size="sm">
                             Send SMS Reminder
-                          </button>
+                          </Button>
                         </Form>
                       </div>
                     </div>
                       <div className="flex gap-2">
-                        <button
-                        onClick={() => startEditing(event)}
-                        className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(event.id, event.restaurant_name, event.event_date)}
-                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        Delete
-                      </button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditing(event)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(event.id, event.restaurant_name, event.event_date)}
+                        >
+                          Delete
+                        </Button>
                     </div>
                     {event.status === 'upcoming' && (
                       <div className="mt-6 border-t border-border pt-4">
@@ -1013,9 +990,9 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 <div className="text-sm font-medium text-foreground">
                                   {member.name || member.email}
                                   {member.admin_override === 1 && (
-                                    <span className="ml-2 text-xs font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                    <Badge variant="warning" className="ml-2">
                                       Admin override
-                                    </span>
+                                    </Badge>
                                   )}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
@@ -1026,18 +1003,15 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 <select
                                   name="status"
                                   defaultValue={member.rsvp_status || 'maybe'}
-                                  className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-meat-red"
+                                  className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                                 >
                                   <option value="yes">Yes</option>
                                   <option value="no">No</option>
                                   <option value="maybe">Maybe</option>
                                 </select>
-                                <button
-                                  type="submit"
-                                  className="px-4 py-2 text-sm font-medium text-white bg-meat-red rounded-md hover:bg-meat-brown transition-colors"
-                                >
+                                <Button type="submit" size="sm">
                                   Override
-                                </button>
+                                </Button>
                               </div>
                             </Form>
                           ))}
@@ -1050,7 +1024,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </main>
   );
 }

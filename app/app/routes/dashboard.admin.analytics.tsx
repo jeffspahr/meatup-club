@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Route } from "./+types/dashboard.admin.analytics";
 import { requireActiveUser } from "../lib/auth.server";
 import { getAllActivity, getActivityStats } from "../lib/activity.server";
+import { Badge, Card, PageHeader } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -63,31 +64,31 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">User Analytics</h1>
-        <p className="text-muted-foreground">Track user activity and engagement</p>
-      </div>
+      <PageHeader
+        title="User Analytics"
+        description="Track user activity and engagement"
+      />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-card border border-border rounded-lg p-4">
+        <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Total Activities</div>
           <div className="text-3xl font-bold text-foreground">{stats.total}</div>
-        </div>
+        </Card>
 
-        <div className="bg-card border border-border rounded-lg p-4">
+        <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Logins (Last 7 Days)</div>
           <div className="text-3xl font-bold text-foreground">{stats.recentLogins}</div>
-        </div>
+        </Card>
 
-        <div className="bg-card border border-border rounded-lg p-4">
+        <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Active Users (30d)</div>
           <div className="text-3xl font-bold text-foreground">{stats.mostActiveUsers.length}</div>
-        </div>
+        </Card>
       </div>
 
       {/* Activity Breakdown */}
-      <div className="bg-card border border-border rounded-lg p-6 mb-6">
+      <Card className="p-6 mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Activity Breakdown</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* All Activities Card */}
@@ -95,12 +96,12 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             onClick={() => setFilterType('all')}
             className={`border rounded p-3 text-left transition-all ${
               filterType === 'all'
-                ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
+                ? 'border-accent bg-accent/5 ring-2 ring-accent'
                 : 'border-muted hover:border-border hover:shadow-sm'
             }`}
           >
             <div className="text-xs text-muted-foreground mb-1">All Activities</div>
-            <div className={`text-2xl font-bold ${filterType === 'all' ? 'text-meat-red' : 'text-foreground'}`}>
+            <div className={`text-2xl font-bold ${filterType === 'all' ? 'text-accent' : 'text-foreground'}`}>
               {stats.total}
             </div>
           </button>
@@ -112,23 +113,23 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
               onClick={() => setFilterType(item.action_type)}
               className={`border rounded p-3 text-left transition-all ${
                 filterType === item.action_type
-                  ? 'border-meat-red bg-meat-red/5 ring-2 ring-meat-red'
+                  ? 'border-accent bg-accent/5 ring-2 ring-accent'
                   : 'border-muted hover:border-border hover:shadow-sm'
               }`}
             >
               <div className="text-xs text-muted-foreground mb-1">
                 {formatActionType(item.action_type)}
               </div>
-              <div className={`text-2xl font-bold ${filterType === item.action_type ? 'text-meat-red' : 'text-foreground'}`}>
+              <div className={`text-2xl font-bold ${filterType === item.action_type ? 'text-accent' : 'text-foreground'}`}>
                 {item.count}
               </div>
             </button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Most Active Users */}
-      <div className="bg-card border border-border rounded-lg p-6 mb-6">
+      <Card className="p-6 mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Most Active Users (Last 30 Days)</h2>
         <div className="space-y-2">
           {stats.mostActiveUsers.map((user: any) => (
@@ -141,18 +142,18 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Recent Activity Log */}
-      <div className="bg-card border border-border rounded-lg p-6">
+      <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
             {filterType !== 'all' && (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-meat-red/10 text-meat-red border border-meat-red/20">
+                <Badge variant="accent">
                   Filtered: {formatActionType(filterType)}
-                </span>
+                </Badge>
                 <button
                   onClick={() => setFilterType('all')}
                   className="text-sm text-muted-foreground hover:text-foreground underline"
@@ -212,9 +213,9 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
                         <div className="text-xs text-muted-foreground">{activity.user_email}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <Badge variant="muted">
                           {formatActionType(activity.action_type)}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {details ? (
@@ -264,7 +265,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             )}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

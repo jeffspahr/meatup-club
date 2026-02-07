@@ -4,14 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
-
-interface ContentItem {
-  id: number;
-  key: string;
-  title: string;
-  content: string;
-  updated_at: string;
-}
+import type { ContentItem } from "../lib/types";
+import { Alert, Button, Card, PageHeader } from "../components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireAdmin(request, context);
@@ -97,27 +91,25 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Site Content Management</h1>
-        <p className="text-muted-foreground mt-1">
-          Edit the club's description, goals, guidelines, and other information
-        </p>
-      </div>
+      <PageHeader
+        title="Site Content Management"
+        description="Edit the club's description, goals, guidelines, and other information"
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       <div className="space-y-6">
         {content.map((item: any) => (
-          <div key={item.id} className="bg-card border border-border rounded-lg overflow-hidden">
+          <Card key={item.id} className="overflow-hidden">
             {editingId === item.id ? (
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-4">{item.title}</h2>
@@ -130,13 +122,14 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                       <label className="block text-sm font-medium text-foreground">
                         Content *
                       </label>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         type="button"
                         onClick={() => setShowPreview(!showPreview)}
-                        className="text-sm text-meat-red hover:text-meat-brown font-medium"
                       >
                         {showPreview ? 'Edit' : 'Preview'}
-                      </button>
+                      </Button>
                     </div>
 
                     {showPreview ? (
@@ -164,7 +157,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         rows={10}
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
                         placeholder="Enter content here..."
                       />
                     )}
@@ -174,19 +167,16 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   </div>
 
                   <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-                    >
+                    <Button type="submit">
                       Save Changes
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
                       type="button"
                       onClick={cancelEditing}
-                      className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </Form>
               </div>
@@ -199,12 +189,13 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                       Last updated: {formatDateForDisplay(item.updated_at)}
                     </p>
                   </div>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => startEditing(item)}
-                    className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
                   >
                     Edit
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="bg-muted rounded-lg p-4">
@@ -228,7 +219,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         ))}
       </div>
     </main>

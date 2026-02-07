@@ -62,14 +62,22 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
+    <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+      <div className="card-shell p-8 max-w-lg w-full text-center">
+        <div className="text-4xl mb-4">
+          {isRouteErrorResponse(error) && error.status === 404 ? "🔍" : "⚠️"}
+        </div>
+        <h1 className="text-display-md mb-2">{message}</h1>
+        <p className="text-muted-foreground mb-6">{details}</p>
+        <a href="/" className="btn-primary inline-flex">
+          Go Home
+        </a>
+        {stack && (
+          <pre className="mt-6 text-left text-xs bg-muted rounded-lg p-4 overflow-x-auto text-muted-foreground">
+            <code>{stack}</code>
+          </pre>
+        )}
+      </div>
     </main>
   );
 }

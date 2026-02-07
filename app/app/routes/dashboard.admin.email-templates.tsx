@@ -2,17 +2,8 @@ import { Form, Link, redirect, useNavigation } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/dashboard.admin.email-templates";
 import { requireAdmin } from "../lib/auth.server";
-
-interface EmailTemplate {
-  id: number;
-  name: string;
-  subject: string;
-  html_body: string;
-  text_body: string;
-  is_default: number;
-  created_at: string;
-  updated_at: string;
-}
+import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
+import type { EmailTemplate } from "../lib/types";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -200,35 +191,30 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <Link
         to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
+        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
       >
         ← Back to Admin
       </Link>
 
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Email Templates</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage invitation email templates. Use {'{{inviteeName}}'}, {'{{inviterName}}'}, and {'{{acceptLink}}'} as variables.
-          </p>
-        </div>
-        <button
-          onClick={() => startCreate()}
-          className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-        >
-          + New Template
-        </button>
-      </div>
+      <PageHeader
+        title="Email Templates"
+        description={`Manage invitation email templates. Use ${'{{inviteeName}}'}, ${'{{inviterName}}'}, and ${'{{acceptLink}}'} as variables.`}
+        actions={
+          <Button onClick={() => startCreate()}>
+            + New Template
+          </Button>
+        }
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Template Form */}
       {showForm && (
-        <div className="bg-card border border-border rounded-lg p-6 mb-8">
+        <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">
             {editingTemplate ? 'Edit Template' : 'Create New Template'}
           </h2>
@@ -254,7 +240,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Default Invitation"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -270,7 +256,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="🥩 You're invited to join Meatup.Club!"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -286,7 +272,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, html_body: e.target.value })}
                 rows={15}
                 placeholder="HTML email template..."
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
               />
             </div>
 
@@ -302,7 +288,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
                 rows={10}
                 placeholder="Plain text email template..."
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
               />
             </div>
 
@@ -314,7 +300,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
                 value="true"
-                className="w-4 h-4 text-meat-red border-border rounded focus:ring-meat-red"
+                className="w-4 h-4 text-accent border-border rounded focus:ring-accent"
               />
               <label htmlFor="is_default" className="ml-2 text-sm text-foreground">
                 Set as default template
@@ -322,39 +308,31 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
             </div>
 
             <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-              >
+              <Button type="submit">
                 {editingTemplate ? 'Update Template' : 'Create Template'}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={cancelForm}
-                className="px-6 py-2 bg-muted text-foreground rounded-md font-medium hover:bg-muted/80 transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </Form>
-        </div>
+        </Card>
       )}
 
       {/* Templates List */}
       <div className="space-y-4">
         {templates.map((template: any) => (
-          <div
-            key={template.id}
-            className="bg-card border border-border rounded-lg p-6"
-          >
+          <Card key={template.id} className="p-6">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-semibold">{template.name}</h3>
                   {template.is_default === 1 && (
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-meat-red text-white">
-                      Default
-                    </span>
+                    <Badge variant="accent">Default</Badge>
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -369,42 +347,41 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                   <Form method="post" className="inline">
                     <input type="hidden" name="_action" value="set_default" />
                     <input type="hidden" name="id" value={template.id} />
-                    <button
-                      type="submit"
-                      className="text-sm text-meat-red hover:text-meat-brown font-medium"
-                    >
+                    <Button variant="ghost" size="sm" type="submit">
                       Set as Default
-                    </button>
+                    </Button>
                   </Form>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => startEdit(template)}
-                  className="text-sm text-meat-red hover:text-meat-brown font-medium"
                 >
                   Edit
-                </button>
+                </Button>
                 {template.is_default !== 1 && (
                   <Form method="post" className="inline">
                     <input type="hidden" name="_action" value="delete" />
                     <input type="hidden" name="id" value={template.id} />
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       type="submit"
                       onClick={(e) => {
                         if (!confirm('Are you sure you want to delete this template?')) {
                           e.preventDefault();
                         }
                       }}
-                      className="text-sm text-red-600 hover:text-red-900 font-medium"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </Form>
                 )}
               </div>
             </div>
 
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-meat-red">
+              <summary className="cursor-pointer text-sm font-medium text-foreground hover:text-accent">
                 Preview Template
               </summary>
               <div className="mt-3 space-y-3">
@@ -423,7 +400,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 </div>
               </div>
             </details>
-          </div>
+          </Card>
         ))}
       </div>
     </main>

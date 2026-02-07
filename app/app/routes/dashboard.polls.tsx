@@ -18,6 +18,9 @@ import {
   removeVote,
   deleteRestaurant,
 } from "../lib/restaurants.server";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader, UserAvatar } from "../components/ui";
+import { CommentSection } from "../components/CommentSection";
+import type { Poll } from "../lib/types";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -530,150 +533,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
-// Recursive component for rendering threaded comments
-function CommentThread({
-  comment,
-  currentUser,
-  replyingTo,
-  setReplyingTo,
-  depth = 0,
-}: {
-  comment: any;
-  currentUser: any;
-  replyingTo: number | null;
-  setReplyingTo: (id: number | null) => void;
-  depth?: number;
-}) {
-  const maxDepth = 5; // Limit nesting depth
-  const isReplying = replyingTo === comment.id;
-
-  return (
-    <div className={depth > 0 ? "ml-8 mt-4 border-l-2 border-border pl-4" : ""}>
-      <div className="bg-card border border-border rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          {comment.user_picture && (
-            <img
-              src={comment.user_picture}
-              alt={comment.user_name || comment.user_email}
-              className="w-10 h-10 rounded-full flex-shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-foreground">
-                  {comment.user_name || comment.user_email}
-                </span>
-                {comment.user_id === currentUser.id && (
-                  <span className="text-xs text-blue-600">(you)</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
-                  {new Date(comment.created_at).toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}
-                </span>
-                {(comment.user_id === currentUser.id || currentUser.isAdmin) && (
-                  <Form method="post" className="inline">
-                    <input type="hidden" name="_action" value="delete_comment" />
-                    <input type="hidden" name="comment_id" value={comment.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-red-600 hover:text-red-700"
-                      onClick={(e) => {
-                        if (!confirm('Delete this comment and all replies?')) {
-                          e.preventDefault();
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </Form>
-                )}
-              </div>
-            </div>
-            <p className="text-sm text-foreground whitespace-pre-wrap break-words">
-              {comment.content}
-            </p>
-            <div className="mt-2 flex gap-3">
-              {depth < maxDepth && (
-                <button
-                  onClick={() => setReplyingTo(isReplying ? null : comment.id)}
-                  className="text-xs text-meat-red hover:underline"
-                >
-                  {isReplying ? 'Cancel' : 'Reply'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Reply Form */}
-        {isReplying && (
-          <div className="mt-4 ml-13">
-            <Form
-              method="post"
-              onSubmit={() => setReplyingTo(null)}
-            >
-              <input type="hidden" name="_action" value="add_comment" />
-              <input type="hidden" name="parent_id" value={comment.id} />
-              <textarea
-                name="content"
-                placeholder="Write a reply..."
-                className="w-full border border-border bg-background text-foreground rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-meat-red resize-none"
-                rows={3}
-                maxLength={1000}
-                required
-                autoFocus
-              />
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setReplyingTo(null)}
-                  className="text-sm text-muted-foreground hover:text-foreground px-3 py-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-meat-red text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm"
-                >
-                  Reply
-                </button>
-              </div>
-            </Form>
-          </div>
-        )}
-      </div>
-
-      {/* Nested Replies */}
-      {comment.replies && comment.replies.length > 0 && (
-        <div className="mt-2">
-          {comment.replies.map((reply: any) => (
-            <CommentThread
-              key={reply.id}
-              comment={reply}
-              currentUser={currentUser}
-              replyingTo={replyingTo}
-              setReplyingTo={setReplyingTo}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, comments, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
 
   // Calendar date click handler
   function handleDateClick(dateStr: string) {
@@ -728,27 +591,23 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Polls</h1>
-        <p className="text-muted-foreground mt-1">
-          Vote on dates and restaurants for upcoming meetups
-        </p>
-      </div>
+      <PageHeader
+        title="Polls"
+        description="Vote on dates and restaurants for upcoming meetups"
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Active Poll */}
       {activePoll ? (
         <div className="space-y-8">
-          <div className="bg-card border-2 border-meat-red rounded-lg p-6">
+          <Card className="border-2 border-accent p-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1 bg-meat-red text-white text-sm font-semibold rounded-full">
-                Active Poll
-              </span>
+              <Badge variant="accent">Active Poll</Badge>
               <h2 className="text-2xl font-bold text-foreground">{activePoll.title}</h2>
             </div>
             {activePoll.description && (
@@ -757,7 +616,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
 
             {/* Dates Section */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-4">📅 Vote on Dates</h3>
+              <h3 className="text-xl font-semibold text-foreground mb-4">Vote on Dates</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Click on calendar dates to add or vote. You can vote for multiple dates.
               </p>
@@ -784,17 +643,14 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground">🍖 Vote on Restaurants</h3>
+                  <h3 className="text-xl font-semibold text-foreground">Vote on Restaurants</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     You can vote for one restaurant. Click again to change or remove your vote.
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowRestaurantModal(true)}
-                  className="px-4 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
-                >
+                <Button onClick={() => setShowRestaurantModal(true)}>
                   + Add Restaurant
-                </button>
+                </Button>
               </div>
 
               {/* Restaurant Modal */}
@@ -812,8 +668,8 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     key={suggestion.id}
                     className={`border-2 rounded-lg p-4 transition-all cursor-pointer ${
                       suggestion.user_has_voted > 0
-                        ? 'border-meat-red bg-red-50/10'
-                        : 'border-border hover:border-meat-red'
+                        ? 'border-accent bg-accent/10'
+                        : 'border-border hover:border-accent'
                     }`}
                     onClick={() => handleRestaurantVote(suggestion.id)}
                   >
@@ -849,69 +705,28 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
               </div>
 
               {restaurantSuggestions.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No restaurant suggestions yet. Be the first to suggest one!
-                </div>
+                <EmptyState
+                  title="No restaurant suggestions yet"
+                  description="Be the first to suggest one!"
+                />
               )}
             </div>
-          </div>
+          </Card>
         </div>
       ) : (
-        <div className="bg-background border border-border rounded-lg p-12 text-center">
-          <p className="text-muted-foreground text-lg">
-            No active poll at the moment. Check back soon!
-          </p>
-        </div>
+        <EmptyState
+          title="No active poll at the moment"
+          description="Check back soon!"
+        />
       )}
 
       {/* Comments Section */}
       {activePoll && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Discussion</h2>
-
-          {/* Add Comment Form */}
-          <Form method="post" className="mb-6">
-            <input type="hidden" name="_action" value="add_comment" />
-            <div className="bg-card border border-border rounded-lg p-4">
-              <textarea
-                name="content"
-                placeholder="Share your thoughts about this poll..."
-                className="w-full border border-border bg-background text-foreground rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-meat-red focus:border-transparent resize-none"
-                rows={3}
-                maxLength={1000}
-                required
-              />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-muted-foreground">Max 1000 characters</span>
-                <button
-                  type="submit"
-                  className="bg-meat-red text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm font-medium"
-                >
-                  Post Comment
-                </button>
-              </div>
-            </div>
-          </Form>
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {comments.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground bg-muted rounded-lg">
-                No comments yet. Be the first to share your thoughts!
-              </div>
-            ) : (
-              comments.map((comment: any) => (
-                <CommentThread
-                  key={comment.id}
-                  comment={comment}
-                  currentUser={currentUser}
-                  replyingTo={replyingTo}
-                  setReplyingTo={setReplyingTo}
-                />
-              ))
-            )}
-          </div>
-        </div>
+        <CommentSection
+          comments={comments}
+          currentUser={currentUser}
+          placeholder="Share your thoughts about this poll..."
+        />
       )}
 
       {/* Previous Polls */}
@@ -920,7 +735,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
           <h2 className="text-2xl font-bold text-foreground mb-6">Previous Polls</h2>
           <div className="space-y-4">
             {previousPolls.map((poll: any) => (
-              <div key={poll.id} className="bg-card border border-border rounded-lg p-6">
+              <Card key={poll.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-foreground">{poll.title}</h3>
@@ -928,20 +743,20 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                       <p className="text-sm text-muted-foreground mt-1">{poll.description}</p>
                     )}
                   </div>
-                  <span className="text-xs text-muted-foreground">
+                  <Badge variant="muted">
                     Closed {formatDateTimeForDisplay(poll.closed_at)}
-                  </span>
+                  </Badge>
                 </div>
                 {poll.winner_restaurant && poll.winner_date && (
                   <div className="mt-4 pt-4 border-t border-border">
                     <p className="text-sm font-semibold text-foreground mb-2">Winner:</p>
                     <div className="flex items-center gap-4 text-sm text-foreground">
-                      <span>🍖 {poll.winner_restaurant}</span>
-                      <span>📅 {formatDateForDisplay(poll.winner_date)}</span>
+                      <span>{poll.winner_restaurant}</span>
+                      <span>{formatDateForDisplay(poll.winner_date)}</span>
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             ))}
           </div>
         </div>

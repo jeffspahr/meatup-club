@@ -514,11 +514,11 @@ describe('Webhook Handler - Database Operations', () => {
       expect(data.data.user).toBe('user@example.com');
       expect(data.data.event).toBe('Prime Steakhouse');
 
-      // Verify INSERT was called
+      // Verify INSERT was called (via upsertRsvp)
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'INSERT INTO rsvps (event_id, user_id, status, updated_via_calendar, admin_override) VALUES (?, ?, ?, 1, 0)'
+        'INSERT INTO rsvps (event_id, user_id, status, admin_override, updated_via_calendar) VALUES (?, ?, ?, 0, ?)'
       );
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes');
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes', 1);
     });
 
     it('should map DECLINED to "no" status', async () => {
@@ -554,7 +554,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = await response.json();
 
       expect(data.data.status).toBe('no');
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no');
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no', 1);
     });
 
     it('should map TENTATIVE to "maybe" status', async () => {
@@ -590,7 +590,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = await response.json();
 
       expect(data.data.status).toBe('maybe');
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'maybe');
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'maybe', 1);
     });
   });
 
@@ -631,11 +631,11 @@ describe('Webhook Handler - Database Operations', () => {
       expect(data.success).toBe(true);
       expect(data.data.status).toBe('yes');
 
-      // Verify UPDATE was called
+      // Verify UPDATE was called (via upsertRsvp)
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'UPDATE rsvps SET status = ?, updated_via_calendar = 1, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE id = ?'
+        'UPDATE rsvps SET status = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL, updated_via_calendar = 1 WHERE event_id = ? AND user_id = ?'
       );
-      expect(mockDb.bind).toHaveBeenCalledWith('yes', 456);
+      expect(mockDb.bind).toHaveBeenCalledWith('yes', 123, 1);
     });
 
     it('should change status from yes to no', async () => {
@@ -671,7 +671,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = await response.json();
 
       expect(data.data.status).toBe('no');
-      expect(mockDb.bind).toHaveBeenCalledWith('no', 456);
+      expect(mockDb.bind).toHaveBeenCalledWith('no', 123, 1);
     });
   });
 

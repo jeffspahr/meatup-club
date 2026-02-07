@@ -6,6 +6,7 @@ import {
   verifyTwilioSignature,
 } from "../lib/sms.server";
 import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
+import { upsertRsvp } from "../lib/rsvps.server";
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = context.cloudflare.env;
@@ -93,22 +94,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return buildSmsResponse("We couldn't find an upcoming event to RSVP for.");
   }
 
-  const existingRsvp = await db
-    .prepare("SELECT id FROM rsvps WHERE event_id = ? AND user_id = ?")
-    .bind(eventId, (user as any).id)
-    .first();
-
-  if (existingRsvp) {
-    await db
-      .prepare("UPDATE rsvps SET status = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL WHERE event_id = ? AND user_id = ?")
-      .bind(replyType, eventId, (user as any).id)
-      .run();
-  } else {
-    await db
-      .prepare("INSERT INTO rsvps (event_id, user_id, status, admin_override) VALUES (?, ?, ?, 0)")
-      .bind(eventId, (user as any).id, replyType)
-      .run();
-  }
+  await upsertRsvp({
+    db,
+    eventId,
+    userId: (user as any).id as number,
+    status: replyType,
+  });
 
   const confirmation = replyType === "yes" ? "Yes" : "No";
   return buildSmsResponse(`Thanks! Your RSVP is set to ${confirmation}.`);

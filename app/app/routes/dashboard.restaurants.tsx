@@ -9,6 +9,7 @@ import {
   findRestaurantByPlaceId,
   deleteRestaurant,
 } from "../lib/restaurants.server";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 
 interface RestaurantDisplay {
   id: number;
@@ -183,25 +184,24 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-3xl font-bold">Restaurants</h1>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-          >
+      <PageHeader
+        title="Restaurants"
+        description={
+          <>
+            Manage the restaurant collection. Visit the <a href="/dashboard/polls" className="text-accent hover:underline">Polls page</a> to vote.
+          </>
+        }
+        actions={
+          <Button onClick={() => setShowModal(true)}>
             + Add Restaurant
-          </button>
-        </div>
-        <p className="text-gray-600">
-          Manage the restaurant collection. Visit the <a href="/dashboard/polls" className="text-meat-red hover:underline">Polls page</a> to vote.
-        </p>
-      </div>
+          </Button>
+        }
+      />
 
       {actionData?.error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+        <Alert variant="error" className="mb-6">
           {actionData.error}
-        </div>
+        </Alert>
       )}
 
       {/* Restaurant Modal */}
@@ -213,27 +213,22 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
       {/* Restaurants List */}
       {suggestions.length === 0 ? (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">
-            No restaurants yet. Be the first to add one!
-          </p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-6 py-2 bg-amber-600 text-white rounded-md font-medium hover:bg-amber-700 transition-colors"
-          >
-            Add Restaurant
-          </button>
-        </div>
+        <EmptyState
+          title="No restaurants yet"
+          description="Be the first to add one!"
+          action={
+            <Button onClick={() => setShowModal(true)}>
+              Add Restaurant
+            </Button>
+          }
+        />
       ) : (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">
             All Restaurants ({suggestions.length})
           </h2>
           {suggestions.map((suggestion: any) => (
-              <div
-                key={suggestion.id}
-                className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow"
-              >
+              <Card key={suggestion.id} className="hover:shadow-lg transition-shadow">
                 <div className="flex flex-col md:flex-row">
                   {/* Restaurant Photo */}
                   {suggestion.photo_url && (
@@ -251,7 +246,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                       <div className="flex-1">
                         {/* Restaurant Name & Rating */}
                         <div className="flex items-start gap-3 mb-2">
-                          <h3 className="text-xl font-semibold text-gray-900">
+                          <h3 className="text-xl font-semibold text-foreground">
                             {suggestion.name}
                           </h3>
                           {suggestion.google_rating && suggestion.google_rating > 0 && (
@@ -261,7 +256,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                                 {suggestion.google_rating.toFixed(1)}
                               </span>
                               {suggestion.rating_count && (
-                                <span className="text-xs text-gray-600">
+                                <span className="text-xs text-muted-foreground">
                                   ({suggestion.rating_count})
                                 </span>
                               )}
@@ -272,12 +267,10 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                         {/* Cuisine & Price */}
                         <div className="flex items-center gap-3 mb-3">
                           {suggestion.cuisine && (
-                            <span className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-700">
-                              {suggestion.cuisine}
-                            </span>
+                            <Badge variant="muted">{suggestion.cuisine}</Badge>
                           )}
                           {suggestion.price_level && suggestion.price_level > 0 && (
-                            <span className="text-sm font-medium text-gray-600">
+                            <span className="text-sm font-medium text-muted-foreground">
                               {"$".repeat(suggestion.price_level)}
                             </span>
                           )}
@@ -295,10 +288,10 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
                             return (
                               <div className="mb-3 group relative">
-                                <p className="text-sm text-gray-600 flex items-center gap-2 cursor-help">
-                                  <span className="text-gray-400">🕒</span>
+                                <p className="text-sm text-muted-foreground flex items-center gap-2 cursor-help">
+                                  <span className="text-muted-foreground">🕒</span>
                                   <span className="font-medium">{daysOpen.join(', ')}</span>
-                                  <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                     (hover for hours)
                                   </span>
                                 </p>
@@ -322,8 +315,8 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
 
                         {/* Address */}
                         {suggestion.address && (
-                          <p className="text-gray-600 mb-3 flex items-start gap-2">
-                            <span className="text-gray-400">📍</span>
+                          <p className="text-muted-foreground mb-3 flex items-start gap-2">
+                            <span className="text-muted-foreground">📍</span>
                             <span>{suggestion.address}</span>
                           </p>
                         )}
@@ -345,7 +338,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                               href={suggestion.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-amber-600 hover:text-amber-700 hover:underline"
+                              className="text-sm text-accent hover:text-accent/80 hover:underline"
                             >
                               Website →
                             </a>
@@ -353,14 +346,14 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                           {suggestion.phone_number && (
                             <a
                               href={`tel:${suggestion.phone_number}`}
-                              className="text-sm text-gray-600 hover:text-gray-700"
+                              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {suggestion.phone_number}
                             </a>
                           )}
                         </div>
 
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                           Suggested by {suggestion.suggested_by_name}
                         </p>
                       </div>
@@ -368,19 +361,20 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                       {/* Delete button - shown if user owns or is admin */}
                       {(currentUser.isAdmin || suggestion.created_by === currentUser.id) && (
                         <div className="ml-6 flex items-start">
-                          <button
+                          <Button
+                            variant="danger"
+                            size="sm"
                             onClick={() => handleDelete(suggestion.id, suggestion.name)}
-                            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                             title="Delete suggestion"
                           >
                             Delete
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             )
           )}
         </div>

@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { Outlet, isRouteErrorResponse, Link } from "react-router";
 import type { Route } from "./+types/dashboard";
 import { requireActiveUser } from "../lib/auth.server";
 import DashboardNav from "../components/DashboardNav";
@@ -31,6 +31,48 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       <DashboardNav isAdmin={isAdmin} />
       <Outlet />
+    </div>
+  );
+}
+
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  let message = "Something went wrong";
+  let details = "An unexpected error occurred. Please try again.";
+
+  if (isRouteErrorResponse(error)) {
+    message = error.status === 404 ? "Page not found" : `Error ${error.status}`;
+    details = error.statusText || details;
+  } else if (import.meta.env.DEV && error instanceof Error) {
+    details = error.message;
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground relative">
+      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+        <div className="card-shell p-8">
+          <div className="text-4xl mb-4">
+            {isRouteErrorResponse(error) && error.status === 404 ? "🔍" : "⚠️"}
+          </div>
+          <h1 className="text-display-md mb-2">{message}</h1>
+          <p className="text-muted-foreground mb-6">{details}</p>
+          <div className="flex justify-center gap-3">
+            <Link to="/dashboard" className="btn-primary">
+              Back to Dashboard
+            </Link>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-secondary"
+            >
+              Retry
+            </button>
+          </div>
+          {import.meta.env.DEV && error instanceof Error && error.stack && (
+            <pre className="mt-6 text-left text-xs bg-muted rounded-lg p-4 overflow-x-auto text-muted-foreground">
+              <code>{error.stack}</code>
+            </pre>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
