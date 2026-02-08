@@ -4,6 +4,7 @@ import type { Route } from "./+types/dashboard.admin.email-templates";
 import { requireAdmin } from "../lib/auth.server";
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import type { EmailTemplate } from "../lib/types";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -188,14 +189,8 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
   }, [actionData, navigation.state]);
 
   return (
+    <AdminLayout>
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <PageHeader
         title="Email Templates"
         description={`Manage invitation email templates. Use ${'{{inviteeName}}'}, ${'{{inviterName}}'}, and ${'{{acceptLink}}'} as variables.`}
@@ -255,7 +250,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 required
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                placeholder="🥩 You're invited to join Meatup.Club!"
+                placeholder="You're invited to join Meatup.Club!"
                 className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
@@ -404,5 +399,6 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
         ))}
       </div>
     </main>
+    </AdminLayout>
   );
 }

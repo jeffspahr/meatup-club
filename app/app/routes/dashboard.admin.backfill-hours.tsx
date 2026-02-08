@@ -3,6 +3,7 @@ import { Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin.backfill-hours";
 import { requireAdmin } from "../lib/auth.server";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -74,14 +75,8 @@ export default function BackfillHoursPage({ loaderData, actionData }: Route.Comp
   const [isRunning, setIsRunning] = useState(false);
 
   return (
+    <AdminLayout>
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <Card className="p-8">
         <PageHeader title="Backfill Opening Hours" />
 
@@ -140,5 +135,6 @@ export default function BackfillHoursPage({ loaderData, actionData }: Route.Comp
         )}
       </Card>
     </main>
+    </AdminLayout>
   );
 }

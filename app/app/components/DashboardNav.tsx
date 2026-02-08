@@ -28,18 +28,17 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-3 group">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-xl transition-all group-hover:bg-accent/20 group-hover:scale-105">
-              🥩
+          <Link to="/dashboard" className="flex items-center gap-2.5 group">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-white transition-all group-hover:scale-105">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.8" />
+                <path d="M2 17l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </span>
-            <div className="leading-tight hidden sm:block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                Meatup
-              </span>
-              <div className="font-display text-lg font-semibold tracking-tight text-foreground">
-                Dashboard
-              </div>
-            </div>
+            <span className="text-base font-semibold tracking-tight text-foreground hidden sm:block">
+              Meatup
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

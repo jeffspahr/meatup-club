@@ -2,6 +2,8 @@ import { Form, Link } from "react-router";
 import type { AppLoadContext } from "react-router";
 import { useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
+import { EnvelopeIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: { request: Request; context: AppLoadContext }) {
   await requireAdmin(request, context);
@@ -30,14 +32,8 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
+    <AdminLayout>
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold">System Setup</h1>
         <p className="text-muted-foreground mt-1">Configure external integrations and services</p>
@@ -47,7 +43,7 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
       <div className="bg-card border border-border rounded-lg p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h2 className="text-xl font-semibold mb-2">📧 Resend Inbound Email</h2>
+            <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><EnvelopeIcon className="w-5 h-5 inline" /> Resend Inbound Email</h2>
             <p className="text-muted-foreground text-sm mb-4">
               Configure automatic email routing for calendar RSVP responses
             </p>
@@ -66,7 +62,7 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
 
         {actionData?.success === true && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <h3 className="font-semibold text-green-900 mb-2">✓ Success!</h3>
+            <h3 className="font-semibold text-green-900 mb-2 flex items-center gap-1"><CheckIcon className="w-5 h-5 inline" /> Success!</h3>
             <p className="text-sm text-green-800 mb-2">{actionData.message}</p>
             {actionData.details && (
               <div className="bg-green-100 rounded p-3 text-xs text-green-900 font-mono mt-2">
@@ -80,7 +76,7 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
 
         {actionData?.success === false && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <h3 className="font-semibold text-red-900 mb-2">✗ Error</h3>
+            <h3 className="font-semibold text-red-900 mb-2 flex items-center gap-1"><XMarkIcon className="w-5 h-5 inline" /> Error</h3>
             <p className="text-sm text-red-800 mb-2">{actionData.error}</p>
             {actionData.details && (
               <pre className="bg-red-100 rounded p-3 text-xs text-red-900 overflow-x-auto mt-2">
@@ -108,7 +104,7 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Configuring...' : 'Configure Resend Inbound Email'}
           </button>
@@ -123,5 +119,6 @@ export default function AdminSetupPage({ actionData }: { actionData: any }) {
         </p>
       </div>
     </main>
+    </AdminLayout>
   );
 }

@@ -7,6 +7,7 @@ import { sendInviteEmail } from "../lib/email.server";
 import { forceUserReauth } from "../lib/db.server";
 import { Alert, Badge, Button, Card, PageHeader, UserAvatar } from "../components/ui";
 import type { Member } from "../lib/types";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -265,14 +266,8 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
   }
 
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <PageHeader
         title="Member Management"
         description={`Total members: ${members.length}`}
@@ -536,5 +531,6 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
         </table>
       </Card>
     </main>
+    </AdminLayout>
   );
 }

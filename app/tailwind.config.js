@@ -7,13 +7,10 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Source Sans 3"', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
-        display: ['"Cormorant Garamond"', 'Georgia', 'Times New Roman', 'serif'],
+        sans: ['"Inter"', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Inter"', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
       },
       colors: {
-        // Legacy colors mapped to new palette
-        'meat-red': 'rgb(var(--accent) / <alpha-value>)',
-        'meat-brown': 'rgb(var(--accent-strong) / <alpha-value>)',
         // Semantic colors from CSS variables
         background: 'rgb(var(--background) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',
@@ -30,18 +27,14 @@ module.exports = {
           DEFAULT: 'rgb(var(--accent) / <alpha-value>)',
           strong: 'rgb(var(--accent-strong) / <alpha-value>)',
         },
-        // Extended palette
-        burgundy: 'rgb(var(--burgundy) / <alpha-value>)',
-        ember: 'rgb(var(--ember) / <alpha-value>)',
-        smoke: 'rgb(var(--smoke) / <alpha-value>)',
       },
       borderRadius: {
         '2xl': '1.25rem',
         '3xl': '1.5rem',
       },
       boxShadow: {
-        'glow': '0 0 20px rgb(var(--accent) / 0.25)',
-        'glow-lg': '0 0 40px rgb(var(--accent) / 0.3)',
+        'glow': '0 0 20px rgb(var(--accent) / 0.2)',
+        'glow-lg': '0 0 40px rgb(var(--accent) / 0.25)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',

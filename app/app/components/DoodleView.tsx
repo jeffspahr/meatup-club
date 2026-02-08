@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { isDateInPastLocal, getTodayDateStringLocal } from "../lib/dateUtils";
+import { CheckIcon } from "@heroicons/react/24/outline";
 
 interface DateVote {
   date_suggestion_id: number;
@@ -143,7 +144,7 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                       }`}
                     >
                       {userVotes.has(date.suggested_date) && (
-                        <span className="text-green-600 dark:text-green-400 text-lg">✓</span>
+                        <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
                       )}
                     </td>
                   ))}

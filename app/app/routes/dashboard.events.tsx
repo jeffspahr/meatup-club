@@ -6,6 +6,7 @@ import { upsertRsvp } from "../lib/rsvps.server";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 import type { Event, RsvpWithUser } from "../lib/types";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader, UserAvatar } from "../components/ui";
+import { MapPinIcon, CalendarDaysIcon, CheckIcon, XMarkIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -143,10 +144,10 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     {event.restaurant_name}
                   </h3>
                   {event.restaurant_address && (
-                    <p className="text-muted-foreground mb-1">📍 {event.restaurant_address}</p>
+                    <p className="text-muted-foreground mb-1 flex items-center gap-1"><MapPinIcon className="w-4 h-4 inline" /> {event.restaurant_address}</p>
                   )}
                   <p className="text-muted-foreground">
-                    📅{' '}
+                    <CalendarDaysIcon className="w-4 h-4 inline" />{' '}
                     {formatDateForDisplay(event.event_date, {
                       weekday: 'long',
                       year: 'numeric',
@@ -232,7 +233,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   {/* Going */}
                   {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'yes').length > 0 && (
                     <>
-                      <h5 className="font-semibold text-green-700 dark:text-green-400 mt-2 mb-2">✓ Going</h5>
+                      <h5 className="font-semibold text-green-700 dark:text-green-400 mt-2 mb-2 flex items-center gap-1"><CheckIcon className="w-4 h-4" /> Going</h5>
                       <div className="space-y-2 mb-4">
                         {event.allRsvps
                           .filter((rsvp: RsvpWithUser) => rsvp.status === 'yes')
@@ -286,7 +287,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   {/* Not Going */}
                   {event.allRsvps.filter((r: RsvpWithUser) => r.status === 'no').length > 0 && (
                     <>
-                      <h5 className="font-semibold text-red-700 dark:text-red-400 mt-2 mb-2">✗ Not Going</h5>
+                      <h5 className="font-semibold text-red-700 dark:text-red-400 mt-2 mb-2 flex items-center gap-1"><XMarkIcon className="w-4 h-4" /> Not Going</h5>
                       <div className="space-y-2 mb-4">
                         {event.allRsvps
                           .filter((rsvp: RsvpWithUser) => rsvp.status === 'no')
@@ -313,7 +314,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   {/* Not Responded */}
                   {event.notResponded && event.notResponded.length > 0 && (
                     <>
-                      <h5 className="font-semibold text-muted-foreground mt-2 mb-2">⏳ No Response Yet</h5>
+                      <h5 className="font-semibold text-muted-foreground mt-2 mb-2 flex items-center gap-1"><ClockIcon className="w-4 h-4" /> No Response Yet</h5>
                       <div className="space-y-2">
                         {event.notResponded.map((member: any) => (
                           <div
@@ -357,11 +358,11 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     </div>
                     {event.restaurant_address && (
                       <p className="text-sm text-muted-foreground mb-2">
-                        📍 {event.restaurant_address}
+                        <MapPinIcon className="w-4 h-4 inline" /> {event.restaurant_address}
                       </p>
                     )}
                     <p className="text-base text-foreground">
-                      📅{' '}
+                      <CalendarDaysIcon className="w-4 h-4 inline" />{' '}
                       {formatDateForDisplay(event.event_date, {
                         weekday: 'long',
                         year: 'numeric',

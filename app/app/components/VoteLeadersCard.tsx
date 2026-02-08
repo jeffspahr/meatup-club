@@ -33,39 +33,28 @@ export default function VoteLeadersCard({
     return null;
   }
 
-  const bgColor = variant === 'blue' ? 'bg-blue-50' : 'bg-amber-50';
-  const borderColor = variant === 'blue' ? 'border-blue-200' : 'border-amber-200';
-  const textColor = variant === 'blue' ? 'text-blue-900' : 'text-amber-900';
-  const badgeBg = variant === 'blue' ? 'bg-blue-100' : 'bg-blue-200';
-  const badgeText = variant === 'blue' ? 'text-blue-800' : 'text-blue-900';
-  const restaurantBadgeBg = variant === 'blue' ? 'bg-blue-100' : 'bg-amber-200';
-  const restaurantBadgeText = variant === 'blue' ? 'text-blue-800' : 'text-amber-900';
-  const restaurantLabelColor = variant === 'blue' ? 'text-muted-foreground' : 'text-amber-900';
-  const restaurantTextColor = variant === 'blue' ? 'text-foreground' : 'text-amber-900';
-  const restaurantAddressColor = variant === 'blue' ? 'text-muted-foreground' : 'text-amber-800';
-
   return (
-    <div className={`${bgColor} border ${borderColor} rounded-lg p-6 mb-8`}>
-      <h2 className={`text-lg font-semibold ${textColor} mb-4`}>
+    <div className="card-shell p-6 mb-8 border-accent/20">
+      <h2 className="text-lg font-semibold text-foreground mb-4">
         {variant === 'blue' ? 'Current Vote Leaders' : 'Leading Restaurant'}
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Restaurant Leader */}
         {topRestaurant ? (
-          <div className={variant === 'blue' ? 'bg-card rounded-lg p-4' : ''}>
+          <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-medium ${restaurantLabelColor}`}>
+              <span className="text-sm font-medium text-muted-foreground">
                 {variant === 'blue' ? 'Restaurant' : ''}
               </span>
-              <span className={`px-2 py-1 ${restaurantBadgeBg} ${restaurantBadgeText} text-xs font-${variant === 'blue' ? 'semibold' : 'bold'} rounded`}>
+              <span className="badge badge-accent">
                 {topRestaurant.vote_count} votes
               </span>
             </div>
-            <p className={`font-${variant === 'blue' ? 'semibold' : 'bold'} ${restaurantTextColor} ${variant === 'blue' ? '' : 'text-lg'}`}>
+            <p className="font-semibold text-foreground">
               {topRestaurant.name}
             </p>
             {topRestaurant.address && (
-              <p className={`text-sm ${restaurantAddressColor} mt-1`}>
+              <p className="text-sm text-muted-foreground mt-1">
                 {topRestaurant.address}
               </p>
             )}
@@ -78,16 +67,16 @@ export default function VoteLeadersCard({
 
         {/* Date Leader */}
         {topDate ? (
-          <div className={variant === 'blue' ? 'bg-card rounded-lg p-4' : `${bgColor} border ${borderColor} rounded-lg p-4`}>
+          <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className={`text-sm font-medium ${variant === 'blue' ? 'text-muted-foreground' : textColor}`}>
+              <span className="text-sm font-medium text-muted-foreground">
                 {variant === 'blue' ? 'Date' : 'Leading Date'}
               </span>
-              <span className={`px-2 py-1 ${badgeBg} ${badgeText} text-xs font-${variant === 'blue' ? 'semibold' : 'bold'} rounded`}>
+              <span className="badge badge-accent">
                 {topDate.vote_count} votes
               </span>
             </div>
-            <p className={`font-${variant === 'blue' ? 'semibold' : 'bold'} ${variant === 'blue' ? 'text-foreground' : textColor} ${variant === 'blue' ? '' : 'text-lg'}`}>
+            <p className="font-semibold text-foreground">
               {formatDateForDisplay(topDate.suggested_date)}
             </p>
           </div>

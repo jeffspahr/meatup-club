@@ -2,6 +2,7 @@ import { Form, useActionData } from "react-router";
 import type { Route } from "./+types/accept-invite";
 import { getUser } from "../lib/auth.server";
 import { redirect } from "react-router";
+import { CheckIcon } from "@heroicons/react/24/outline";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await getUser(request, context);
@@ -45,8 +46,8 @@ export default function AcceptInvitePage({ loaderData, actionData }: Route.Compo
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-meat-red mb-2">
-            🥩 Welcome to Meatup.Club!
+          <h1 className="text-3xl font-bold text-accent mb-2">
+            Welcome to Meatup.Club!
           </h1>
           <p className="text-gray-600">
             You've been invited to join our exclusive quarterly steakhouse meetup group.
@@ -59,19 +60,19 @@ export default function AcceptInvitePage({ loaderData, actionData }: Route.Compo
           </h2>
           <ul className="space-y-2 text-sm text-gray-700">
             <li className="flex items-start">
-              <span className="text-meat-red mr-2">✓</span>
+              <CheckIcon className="w-4 h-4 text-accent mr-2" />
               <span>RSVP to upcoming quarterly meetups</span>
             </li>
             <li className="flex items-start">
-              <span className="text-meat-red mr-2">✓</span>
+              <CheckIcon className="w-4 h-4 text-accent mr-2" />
               <span>Vote on restaurant selections</span>
             </li>
             <li className="flex items-start">
-              <span className="text-meat-red mr-2">✓</span>
+              <CheckIcon className="w-4 h-4 text-accent mr-2" />
               <span>Suggest and vote on meetup dates</span>
             </li>
             <li className="flex items-start">
-              <span className="text-meat-red mr-2">✓</span>
+              <CheckIcon className="w-4 h-4 text-accent mr-2" />
               <span>Connect with fellow steak enthusiasts</span>
             </li>
           </ul>
@@ -86,7 +87,7 @@ export default function AcceptInvitePage({ loaderData, actionData }: Route.Compo
         <Form method="post">
           <button
             type="submit"
-            className="w-full px-6 py-3 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
+            className="w-full btn-primary px-6 py-3"
           >
             Accept Invitation & Join
           </button>

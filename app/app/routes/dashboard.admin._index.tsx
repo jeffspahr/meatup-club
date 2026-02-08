@@ -2,6 +2,8 @@ import { Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin._index";
 import { requireAdmin } from "../lib/auth.server";
 import { Card, Alert } from "../components/ui";
+import { ClipboardDocumentCheckIcon, CalendarDaysIcon, UserGroupIcon, EnvelopeIcon, WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -10,6 +12,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function AdminPage() {
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
@@ -21,7 +24,7 @@ export default function AdminPage() {
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
-                🗳️
+                <ClipboardDocumentCheckIcon className="w-8 h-8" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">Polls</h2>
@@ -41,7 +44,7 @@ export default function AdminPage() {
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
-                📅
+                <CalendarDaysIcon className="w-8 h-8" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">Events</h2>
@@ -61,7 +64,7 @@ export default function AdminPage() {
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
-                👥
+                <UserGroupIcon className="w-8 h-8" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">Members</h2>
@@ -101,7 +104,7 @@ export default function AdminPage() {
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
-                ✉️
+                <EnvelopeIcon className="w-8 h-8" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">Email Templates</h2>
@@ -139,7 +142,7 @@ export default function AdminPage() {
       </div>
 
       <Alert variant="info" className="mt-6">
-        <h3 className="font-semibold mb-2">🛠️ Maintenance Tools</h3>
+        <h3 className="font-semibold mb-2 flex items-center gap-2"><WrenchScrewdriverIcon className="w-5 h-5" /> Maintenance Tools</h3>
         <Link
           to="/dashboard/admin/backfill-hours"
           className="inline-flex items-center gap-2 text-accent hover:text-accent-strong font-medium"
@@ -150,5 +153,6 @@ export default function AdminPage() {
         </Link>
       </Alert>
     </main>
+    </AdminLayout>
   );
 }

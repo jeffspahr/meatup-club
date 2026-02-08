@@ -129,52 +129,54 @@ describe('Dark Mode CSS System', () => {
     }
 
     it('light mode: foreground on background meets WCAG AA (4.5:1)', () => {
-      // Light mode values from app.css
-      const foreground: [number, number, number] = [17, 24, 39];   // gray-900
-      const background: [number, number, number] = [249, 250, 251]; // gray-50
+      // Light mode: --foreground: 17 17 24, --background: 255 255 255
+      const foreground: [number, number, number] = [17, 17, 24];
+      const background: [number, number, number] = [255, 255, 255];
 
       const ratio = getContrastRatio(foreground, background);
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 
     it('light mode: muted-foreground on background meets WCAG AA for large text (3:1)', () => {
-      // Light mode values from app.css
-      const mutedForeground: [number, number, number] = [107, 114, 128]; // gray-500
-      const background: [number, number, number] = [249, 250, 251];       // gray-50
+      // Light mode: --muted-foreground: 107 114 128, --background: 255 255 255
+      const mutedForeground: [number, number, number] = [107, 114, 128];
+      const background: [number, number, number] = [255, 255, 255];
 
       const ratio = getContrastRatio(mutedForeground, background);
       expect(ratio).toBeGreaterThanOrEqual(3.0);
     });
 
     it('dark mode: foreground on background meets WCAG AA (4.5:1)', () => {
-      // Dark mode values from app.css
-      const foreground: [number, number, number] = [243, 244, 246];  // gray-100
-      const background: [number, number, number] = [17, 24, 39];      // gray-900
+      // Dark mode: --foreground: 229 231 235, --background: 10 10 15
+      const foreground: [number, number, number] = [229, 231, 235];
+      const background: [number, number, number] = [10, 10, 15];
 
       const ratio = getContrastRatio(foreground, background);
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 
     it('dark mode: muted-foreground on background meets WCAG AA for large text (3:1)', () => {
-      // Dark mode values from app.css
-      const mutedForeground: [number, number, number] = [156, 163, 175]; // gray-400
-      const background: [number, number, number] = [17, 24, 39];          // gray-900
+      // Dark mode: --muted-foreground: 140 143 155, --background: 10 10 15
+      const mutedForeground: [number, number, number] = [140, 143, 155];
+      const background: [number, number, number] = [10, 10, 15];
 
       const ratio = getContrastRatio(mutedForeground, background);
       expect(ratio).toBeGreaterThanOrEqual(3.0);
     });
 
     it('light mode: card foreground on card background meets WCAG AA', () => {
-      const cardForeground: [number, number, number] = [17, 24, 39]; // gray-900
-      const card: [number, number, number] = [255, 255, 255];         // white
+      // Light mode: --card-foreground: 17 17 24, --card: 249 250 251
+      const cardForeground: [number, number, number] = [17, 17, 24];
+      const card: [number, number, number] = [249, 250, 251];
 
       const ratio = getContrastRatio(cardForeground, card);
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     });
 
     it('dark mode: card foreground on card background meets WCAG AA', () => {
-      const cardForeground: [number, number, number] = [243, 244, 246]; // gray-100
-      const card: [number, number, number] = [31, 41, 55];              // gray-800
+      // Dark mode: --card-foreground: 229 231 235, --card: 17 17 24
+      const cardForeground: [number, number, number] = [229, 231, 235];
+      const card: [number, number, number] = [17, 17, 24];
 
       const ratio = getContrastRatio(cardForeground, card);
       expect(ratio).toBeGreaterThanOrEqual(4.5);
@@ -208,44 +210,3 @@ describe('Dark Mode CSS System', () => {
     });
   });
 });
-
-/**
- * Documentation for Visual Regression Testing
- *
- * The tests above validate the CSS configuration, but visual testing
- * requires a real browser. To add visual regression tests:
- *
- * 1. Install Playwright:
- *    npm install -D @playwright/test
- *
- * 2. Create playwright.config.ts:
- *    export default {
- *      testDir: './e2e',
- *      use: {
- *        baseURL: 'http://localhost:5173',
- *      },
- *    };
- *
- * 3. Create e2e/dark-mode.visual.spec.ts:
- *    import { test, expect } from '@playwright/test';
- *
- *    test.describe('Dark Mode Visual', () => {
- *      test('polls page in dark mode', async ({ page }) => {
- *        await page.emulateMedia({ colorScheme: 'dark' });
- *        await page.goto('/dashboard/polls');
- *        await expect(page).toHaveScreenshot();
- *      });
- *
- *      test('polls page in light mode', async ({ page }) => {
- *        await page.emulateMedia({ colorScheme: 'light' });
- *        await page.goto('/dashboard/polls');
- *        await expect(page).toHaveScreenshot();
- *      });
- *    });
- *
- * 4. Run visual tests:
- *    npx playwright test
- *
- * 5. Update snapshots:
- *    npx playwright test --update-snapshots
- */

@@ -9,6 +9,7 @@ import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPa
 import { sendAdhocSmsReminder } from "../lib/sms.server";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 import type { Event, VoteWinner, DateWinner } from "../lib/types";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -560,14 +561,8 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
   }
 
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <PageHeader
         title="Event Management"
         description="Create and manage meetup events"
@@ -1026,5 +1021,6 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
         )}
       </Card>
     </main>
+    </AdminLayout>
   );
 }

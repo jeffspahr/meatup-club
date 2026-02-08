@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { RestaurantAutocomplete } from "./RestaurantAutocomplete";
+import { CheckIcon } from "@heroicons/react/24/outline";
+import { StarIcon } from "@heroicons/react/24/solid";
 
 interface PlaceDetails {
   placeId: string;
@@ -86,7 +88,7 @@ export function AddRestaurantModal({
           {placeDetails && (
             <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
               <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
-                <span>✓</span>
+                <CheckIcon className="w-4 h-4" />
                 <span>Restaurant Found</span>
               </h4>
               <div className="space-y-2">
@@ -115,7 +117,7 @@ export function AddRestaurantModal({
                     <div className="flex items-center gap-3 mt-1">
                       {placeDetails.rating > 0 && (
                         <span className="text-sm text-foreground">
-                          ⭐ {placeDetails.rating} ({placeDetails.ratingCount}{" "}
+                          <StarIcon className="w-4 h-4 text-amber-500 inline" /> {placeDetails.rating} ({placeDetails.ratingCount}{" "}
                           reviews)
                         </span>
                       )}

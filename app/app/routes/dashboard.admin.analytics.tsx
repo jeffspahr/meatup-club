@@ -3,6 +3,7 @@ import type { Route } from "./+types/dashboard.admin.analytics";
 import { requireActiveUser } from "../lib/auth.server";
 import { getAllActivity, getActivityStats } from "../lib/activity.server";
 import { Badge, Card, PageHeader } from "../components/ui";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -63,6 +64,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
   }
 
   return (
+    <AdminLayout>
     <div className="max-w-7xl mx-auto">
       <PageHeader
         title="User Analytics"
@@ -267,5 +269,6 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
         </div>
       </Card>
     </div>
+    </AdminLayout>
   );
 }

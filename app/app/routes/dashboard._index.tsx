@@ -5,6 +5,23 @@ import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from '../lib/dateUtils';
 import { Badge, Card } from "../components/ui";
+import {
+  DevicePhoneMobileIcon,
+  BookOpenIcon,
+  RocketLaunchIcon,
+  ClipboardDocumentListIcon,
+  UserGroupIcon,
+  ShieldCheckIcon,
+  ClipboardDocumentCheckIcon,
+  MapPinIcon,
+  HandRaisedIcon,
+  BuildingStorefrontIcon,
+  TicketIcon,
+  Cog6ToothIcon,
+  BugAntIcon,
+  LightBulbIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -213,7 +230,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
-              <span className="icon-container shrink-0">📱</span>
+              <span className="icon-container shrink-0"><DevicePhoneMobileIcon className="w-5 h-5" /></span>
               <div>
                 <p className="font-semibold text-foreground">Get SMS reminders + RSVP by text</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -248,7 +265,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         >
           <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
             <div className="flex items-center gap-4">
-              <span className="icon-container-lg">🥩</span>
+              <span className="icon-container-lg"><BuildingStorefrontIcon className="w-6 h-6" /></span>
               <div>
                 <h2 className="text-xl font-display font-semibold text-foreground">
                   About Meatup.Club
@@ -271,12 +288,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               {content.map((item: any) => (
                 <Card key={item.id} className="p-5 bg-muted/30">
                   <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-3">
-                    <span className="text-lg">
-                      {item.key === 'description' && '📖'}
-                      {item.key === 'goals' && '🎯'}
-                      {item.key === 'guidelines' && '📋'}
-                      {item.key === 'membership' && '👥'}
-                      {item.key === 'safety' && '🚗'}
+                    <span className="w-5 h-5 text-accent">
+                      {item.key === 'description' && <BookOpenIcon className="w-5 h-5" />}
+                      {item.key === 'goals' && <RocketLaunchIcon className="w-5 h-5" />}
+                      {item.key === 'guidelines' && <ClipboardDocumentListIcon className="w-5 h-5" />}
+                      {item.key === 'membership' && <UserGroupIcon className="w-5 h-5" />}
+                      {item.key === 'safety' && <ShieldCheckIcon className="w-5 h-5" />}
                     </span>
                     {item.title}
                   </h3>
@@ -312,7 +329,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           >
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
-                <span className="icon-container-lg">🗳️</span>
+                <span className="icon-container-lg"><ClipboardDocumentCheckIcon className="w-6 h-6" /></span>
                 <div>
                   <h3 className="text-xl font-display font-semibold text-foreground">
                     {(activePoll as any).title}
@@ -334,7 +351,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {userRestaurantVote ? (
                   <>
                     <p className="font-semibold text-foreground flex items-center gap-2">
-                      <span className="text-accent">✓</span>
+                      <CheckIcon className="w-4 h-4 text-accent" />
                       You voted: {(userRestaurantVote as any).name}
                     </p>
                     {topRestaurants.length > 0 && (
@@ -371,7 +388,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 {userDateVoteCount > 0 ? (
                   <>
                     <p className="font-semibold text-foreground flex items-center gap-2">
-                      <span className="text-accent">✓</span>
+                      <CheckIcon className="w-4 h-4 text-accent" />
                       You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}
                     </p>
                     {topDates.length > 0 && (
@@ -411,7 +428,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           style={{ '--section-delay': '120ms' } as CSSProperties}
         >
           <div className="flex items-center gap-4">
-            <span className="icon-container-lg bg-muted">📋</span>
+            <span className="icon-container-lg bg-muted"><ClipboardDocumentListIcon className="w-6 h-6" /></span>
             <div>
               <h3 className="text-xl font-display font-semibold text-foreground">No Active Poll</h3>
               <p className="text-sm text-muted-foreground mt-1">
@@ -429,7 +446,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           style={{ '--section-delay': '160ms' } as CSSProperties}
         >
           <div className="flex items-center gap-3 mb-6">
-            <span className="icon-container-lg">📍</span>
+            <span className="icon-container-lg"><MapPinIcon className="w-6 h-6" /></span>
             <h2 className="text-xl font-display font-semibold text-foreground">Next Meetup</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -489,7 +506,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/polls">
               <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container">🗳️</span>
+                  <span className="icon-container"><ClipboardDocumentCheckIcon className="w-5 h-5" /></span>
                   <Badge variant="accent">Active</Badge>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Vote on Polls</h3>
@@ -504,7 +521,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/events">
               <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container">✋</span>
+                  <span className="icon-container"><HandRaisedIcon className="w-5 h-5" /></span>
                   {!userRsvp && (
                     <Badge variant="warning">Action Needed</Badge>
                   )}
@@ -520,7 +537,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/restaurants">
             <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
-                <span className="icon-container">🍖</span>
+                <span className="icon-container"><BuildingStorefrontIcon className="w-5 h-5" /></span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Restaurants</h3>
               <p className="mt-2 text-sm text-muted-foreground">Browse and add steakhouses</p>
@@ -530,7 +547,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/events">
             <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
-                <span className="icon-container">📜</span>
+                <span className="icon-container"><TicketIcon className="w-5 h-5" /></span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Events</h3>
               <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
@@ -540,7 +557,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <Link to="/dashboard/members">
             <Card hover className="card-glow p-6 h-full">
               <div className="flex items-center justify-between mb-4">
-                <span className="icon-container">👥</span>
+                <span className="icon-container"><UserGroupIcon className="w-5 h-5" /></span>
               </div>
               <h3 className="text-lg font-semibold text-foreground">Members</h3>
               <p className="mt-2 text-sm text-muted-foreground">{memberCount} active members</p>
@@ -551,7 +568,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <Link to="/dashboard/admin">
               <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container">⚙️</span>
+                  <span className="icon-container"><Cog6ToothIcon className="w-5 h-5" /></span>
                   <Badge variant="muted">Admin</Badge>
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Admin Panel</h3>
@@ -582,7 +599,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               rel="noopener noreferrer"
               className="btn-secondary"
             >
-              🐛 Report a Bug
+              <BugAntIcon className="w-4 h-4" /> Report a Bug
             </a>
             <a
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=feature_request.md"
@@ -590,7 +607,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               rel="noopener noreferrer"
               className="btn-ghost"
             >
-              💡 Request a Feature
+              <LightBulbIcon className="w-4 h-4" /> Request a Feature
             </a>
             <a
               href="https://github.com/jeffspahr/meatup-club/issues"
@@ -598,7 +615,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               rel="noopener noreferrer"
               className="btn-ghost"
             >
-              📋 View All Issues
+              <ClipboardDocumentListIcon className="w-4 h-4" /> View All Issues
             </a>
           </div>
         </Card>

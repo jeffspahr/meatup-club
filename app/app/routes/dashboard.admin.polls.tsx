@@ -6,6 +6,8 @@ import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
+import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -243,14 +245,8 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
   const { activePoll, topRestaurant, topDate, allRestaurants, allDates, closedPolls } = loaderData;
 
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <PageHeader
         title="Poll Management"
         description="Manage voting polls and close with winners"
@@ -268,7 +264,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
-                🗳️ {activePoll.title}
+                {activePoll.title}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Started {formatDateForDisplay(activePoll.created_at)}
@@ -473,5 +469,6 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
         )}
       </Card>
     </main>
+    </AdminLayout>
   );
 }

@@ -10,6 +10,8 @@ import {
   deleteRestaurant,
 } from "../lib/restaurants.server";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
+import { ClockIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { StarIcon } from "@heroicons/react/24/solid";
 
 interface RestaurantDisplay {
   id: number;
@@ -251,7 +253,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                           </h3>
                           {suggestion.google_rating && suggestion.google_rating > 0 && (
                             <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded">
-                              <span className="text-amber-600">⭐</span>
+                              <StarIcon className="w-4 h-4 text-amber-500" />
                               <span className="font-semibold text-amber-900">
                                 {suggestion.google_rating.toFixed(1)}
                               </span>
@@ -289,7 +291,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                             return (
                               <div className="mb-3 group relative">
                                 <p className="text-sm text-muted-foreground flex items-center gap-2 cursor-help">
-                                  <span className="text-muted-foreground">🕒</span>
+                                  <ClockIcon className="w-4 h-4 text-muted-foreground" />
                                   <span className="font-medium">{daysOpen.join(', ')}</span>
                                   <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                     (hover for hours)
@@ -316,7 +318,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                         {/* Address */}
                         {suggestion.address && (
                           <p className="text-muted-foreground mb-3 flex items-start gap-2">
-                            <span className="text-muted-foreground">📍</span>
+                            <MapPinIcon className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                             <span>{suggestion.address}</span>
                           </p>
                         )}

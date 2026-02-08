@@ -6,6 +6,7 @@ type ButtonSize = "sm" | "md" | "lg";
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  icon?: ReactNode;
   children: ReactNode;
 }
 
@@ -13,11 +14,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary: "btn-primary",
   secondary: "btn-secondary",
   ghost: "btn-ghost",
-  danger: "btn-ghost text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300",
+  danger: "btn-danger",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "!py-1.5 !px-3 !text-[0.7rem]",
+  sm: "!py-1.5 !px-3 !text-xs",
   md: "", // default sizing from the CSS class
   lg: "!py-3 !px-6 !text-sm",
 };
@@ -25,6 +26,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 export function Button({
   variant = "primary",
   size = "md",
+  icon,
   className = "",
   children,
   ...rest
@@ -34,6 +36,7 @@ export function Button({
       className={`${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...rest}
     >
+      {icon && <span className="w-4 h-4 flex-shrink-0">{icon}</span>}
       {children}
     </button>
   );

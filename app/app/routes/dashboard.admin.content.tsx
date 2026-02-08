@@ -6,6 +6,7 @@ import { requireAdmin } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import type { ContentItem } from "../lib/types";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireAdmin(request, context);
@@ -88,14 +89,8 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
   }, [actionData, navigation.state]);
 
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-accent hover:text-accent-strong mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <PageHeader
         title="Site Content Management"
         description="Edit the club's description, goals, guidelines, and other information"
@@ -223,5 +218,6 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
         ))}
       </div>
     </main>
+    </AdminLayout>
   );
 }

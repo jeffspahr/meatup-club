@@ -5,6 +5,7 @@ import { useState } from "react";
 import { requireActiveUser } from "../lib/auth.server";
 import { DateCalendar } from "../components/DateCalendar";
 import { PageHeader, Button, Alert, Badge, Card, EmptyState } from "../components/ui";
+import { ClipboardDocumentCheckIcon, ExclamationTriangleIcon, CalendarDaysIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 export async function loader({ request, context }: { request: Request; context: AppLoadContext }) {
   const user = await requireActiveUser(request, context);
@@ -265,7 +266,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
               variant="secondary"
               onClick={() => setShowNewPollForm(!showNewPollForm)}
             >
-              {showNewPollForm ? 'Cancel' : '🗳️ Start New Poll'}
+              {showNewPollForm ? 'Cancel' : 'Start New Poll'}
             </Button>
           </>
         }
@@ -277,7 +278,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold">
-                🗳️ Active Poll: {activePoll.title}
+                Active Poll: {activePoll.title}
               </h3>
               <p className="text-sm opacity-80 mt-1">
                 Started {formatDateForDisplay(activePoll.created_at)}
@@ -288,12 +289,9 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
         </Alert>
       ) : (
         <Alert variant="warning" className="mb-6">
-          <div className="flex items-center gap-2">
-            <span>⚠️</span>
-            <p className="font-medium">
-              No active poll. Start a new poll to begin voting on dates.
-            </p>
-          </div>
+          <p className="font-medium">
+            No active poll. Start a new poll to begin voting on dates.
+          </p>
         </Alert>
       )}
 
@@ -318,7 +316,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
             </div>
             {activePoll && (
               <Alert variant="warning">
-                ⚠️ Starting a new poll will close the current active poll "{activePoll.title}".
+                Starting a new poll will close the current active poll "{activePoll.title}".
               </Alert>
             )}
             <div className="flex gap-2">
@@ -407,7 +405,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
         <div className="lg:col-span-2">
           {suggestions.length === 0 ? (
         <EmptyState
-          icon="📅"
+          icon={<CalendarDaysIcon className="w-6 h-6" />}
           title={activePoll
             ? 'No date suggestions yet. Be the first to suggest one!'
             : 'Start a poll to begin suggesting and voting on dates.'}
@@ -447,7 +445,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
 
                     {isPast && (
                       <p className="text-sm text-red-600 mb-1">
-                        ⚠️ This date has passed
+                        This date has passed
                       </p>
                     )}
 
@@ -466,7 +464,7 @@ export default function DatesPage({ loaderData, actionData }: { loaderData: any;
                           disabled={isPast}
                           className="min-w-[120px]"
                         >
-                          {hasVoted ? '✓ Voted' : 'Vote'}
+                          {hasVoted ? 'Voted' : 'Vote'}
                         </Button>
 
                         <div className="text-center">

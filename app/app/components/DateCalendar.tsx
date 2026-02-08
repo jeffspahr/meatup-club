@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getDateString, isDateInPastLocal, getTodayDateStringLocal } from "../lib/dateUtils";
+import { CheckIcon } from "@heroicons/react/24/outline";
 
 interface DateSuggestion {
   id: number;
@@ -237,11 +238,11 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
                 ${isOtherMonth ? 'bg-muted text-muted-foreground border-transparent opacity-60' : ''}
                 ${isPast && !canInteractWithPastDate ? 'bg-muted text-muted-foreground cursor-not-allowed border-transparent' : 'cursor-pointer'}
                 ${canInteractWithPastDate ? 'bg-red-50 border-red-300 hover:bg-red-100' : ''}
-                ${isToday && !isPast ? 'border-blue-500 font-bold' : ''}
-                ${suggestion && isInActivePoll && !isPast ? 'bg-blue-100 border-blue-400 hover:bg-blue-200' : ''}
+                ${isToday && !isPast ? 'border-indigo-500 font-bold' : ''}
+                ${suggestion && isInActivePoll && !isPast ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50' : ''}
                 ${suggestion && !isInActivePoll && !isPast ? 'bg-muted border-border' : ''}
-                ${!suggestion && !isPast && !isToday && !isOtherMonth ? 'border-border hover:bg-muted hover:border-blue-300' : ''}
-                ${!suggestion && !isPast && isOtherMonth ? 'border-border hover:bg-muted hover:border-blue-300' : ''}
+                ${!suggestion && !isPast && !isToday && !isOtherMonth ? 'border-border hover:bg-muted hover:border-indigo-300' : ''}
+                ${!suggestion && !isPast && isOtherMonth ? 'border-border hover:bg-muted hover:border-indigo-300' : ''}
                 relative
               `}
               title={
@@ -259,15 +260,15 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
               }
             >
               <div className="flex flex-col items-center justify-center h-full">
-                <span className={`${isToday ? 'text-blue-600' : ''}`}>
+                <span className={`${isToday ? 'text-indigo-500' : ''}`}>
                   {day}
                 </span>
                 {suggestion && (
                   <div className="flex items-center gap-0.5">
                     {suggestion.user_has_voted > 0 && (
-                      <span className="text-[10px]">✓</span>
+                      <CheckIcon className="w-3 h-3" />
                     )}
-                    <span className={`text-[10px] font-bold ${isInActivePoll ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] font-bold ${isInActivePoll ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`}>
                       {suggestion.vote_count}
                     </span>
                   </div>
@@ -282,11 +283,11 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       <div className="mt-2 pt-2 border-t border-border">
         <div className="grid grid-cols-2 gap-1.5 text-[10px]">
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 border border-blue-500 rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 border border-indigo-500 rounded flex-shrink-0"></div>
             <span className="text-muted-foreground">Today</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-blue-100 border border-blue-400 rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-400 rounded flex-shrink-0"></div>
             <span className="text-muted-foreground">Active</span>
           </div>
           <div className="flex items-center gap-1">

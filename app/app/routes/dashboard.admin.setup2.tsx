@@ -5,6 +5,7 @@ import { requireAdmin } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import type { ContentItem } from "../lib/types";
 import { formatDateForDisplay } from "../lib/dateUtils";
+import { AdminLayout } from "../components/AdminLayout";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireAdmin(request, context);
@@ -87,14 +88,8 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
   }, [actionData, navigation.state]);
 
   return (
+    <AdminLayout>
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link
-        to="/dashboard/admin"
-        className="inline-flex items-center text-meat-red hover:text-meat-brown mb-6 font-medium"
-      >
-        ← Back to Admin
-      </Link>
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Site Content Management</h1>
         <p className="text-muted-foreground mt-1">
@@ -126,7 +121,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                       <button
                         type="button"
                         onClick={() => setShowPreview(!showPreview)}
-                        className="text-sm text-meat-red hover:text-meat-brown font-medium"
+                        className="text-sm text-accent hover:text-accent-strong font-medium"
                       >
                         {showPreview ? 'Edit' : 'Preview'}
                       </button>
@@ -157,7 +152,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         rows={10}
-                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-meat-red font-mono text-sm"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
                         placeholder="Enter content here..."
                       />
                     )}
@@ -169,7 +164,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   <div className="flex gap-3">
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-meat-red text-white rounded-md font-medium hover:bg-meat-brown transition-colors"
+                      className="px-6 py-2 bg-accent text-white rounded-md font-medium hover:bg-accent-strong transition-colors"
                     >
                       Save Changes
                     </button>
@@ -194,7 +189,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                   </div>
                   <button
                     onClick={() => startEditing(item)}
-                    className="px-4 py-2 text-sm font-medium text-meat-red hover:bg-red-50 rounded-md transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-accent hover:bg-red-50 rounded-md transition-colors"
                   >
                     Edit
                   </button>
@@ -225,5 +220,6 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
         ))}
       </div>
     </main>
+    </AdminLayout>
   );
 }
