@@ -688,6 +688,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                           src={suggestion.photo_url}
                           alt={suggestion.name}
                           className="w-16 h-16 object-cover rounded ml-2"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                       )}
                     </div>

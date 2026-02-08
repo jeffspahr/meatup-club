@@ -239,6 +239,7 @@ export default function RestaurantsPage({ loaderData, actionData }: Route.Compon
                         src={suggestion.photo_url}
                         alt={suggestion.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
                       />
                     </div>
                   )}
