@@ -13,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .all();
 
   return {
-    content: contentResult.results || [],
+    content: (contentResult.results || []) as unknown as ContentItem[],
   };
 }
 

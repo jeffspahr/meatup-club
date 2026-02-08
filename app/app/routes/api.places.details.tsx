@@ -20,7 +20,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           `https://places.googleapis.com/v1/places/${placeId}`,
           {
             headers: {
-              "X-Goog-Api-Key": apiKey,
+              "X-Goog-Api-Key": apiKey || "",
               "X-Goog-FieldMask": [
                 "id",
                 "displayName",
@@ -46,7 +46,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           throw new Error("Failed to fetch place details");
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as any;
         const photoUrl = data.photos?.[0]?.name
           ? `/api/places/photo?${new URLSearchParams({
               name: data.photos[0].name,

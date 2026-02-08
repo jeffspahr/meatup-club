@@ -1,4 +1,4 @@
-import type { Route } from "./+types/api.webhooks.email-rsvp";
+import type { AppLoadContext } from "react-router";
 import { Webhook } from "svix";
 import { upsertRsvp } from "../lib/rsvps.server";
 
@@ -6,7 +6,7 @@ import { upsertRsvp } from "../lib/rsvps.server";
  * Webhook handler for inbound emails from Resend
  * Parses calendar RSVP responses and updates the database
  */
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
   const db = context.cloudflare.env.DB;
 
   try {

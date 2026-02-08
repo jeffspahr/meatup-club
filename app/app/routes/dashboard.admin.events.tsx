@@ -128,7 +128,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         const recipientEmails = (usersResult.results || []).map((u: any) => u.email);
 
         if (recipientEmails.length > 0) {
-          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
 
           // Use waitUntil if available for background processing
           const invitePromise = sendEventInvites({
@@ -228,7 +228,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       request,
     });
 
-    const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+    const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
     if (resendApiKey) {
       const { sendRsvpOverrideEmail } = await import('../lib/email.server');
       const emailPromise = sendRsvpOverrideEmail({
@@ -309,7 +309,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           .all();
 
         if (usersResult.results && usersResult.results.length > 0) {
-          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
           const eventMeta = await db
             .prepare('SELECT calendar_sequence FROM events WHERE id = ?')
             .bind(eventId)
@@ -381,7 +381,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           .all();
 
         if (usersResult.results && usersResult.results.length > 0) {
-          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+          const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
           const calendarSequence = Number((event as any).calendar_sequence ?? 0) + 1;
           const eventTime = (event as any).event_time || '18:00';
 

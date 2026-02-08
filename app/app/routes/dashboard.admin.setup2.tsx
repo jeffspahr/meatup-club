@@ -4,6 +4,7 @@ import type { Route } from "./+types/dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import type { ContentItem } from "../lib/types";
+import { formatDateForDisplay } from "../lib/dateUtils";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireAdmin(request, context);

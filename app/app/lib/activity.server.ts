@@ -188,9 +188,9 @@ export async function getActivityStats(db: D1Database) {
     .all();
 
   return {
-    total: totalResult?.count || 0,
+    total: (totalResult?.count as number) || 0,
     byType: byTypeResult.results || [],
-    recentLogins: recentLoginsResult?.count || 0,
+    recentLogins: (recentLoginsResult?.count as number) || 0,
     mostActiveUsers: activeUsersResult.results || [],
   };
 }

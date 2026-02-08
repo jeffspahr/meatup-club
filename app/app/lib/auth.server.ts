@@ -1,5 +1,5 @@
 import { redirect } from "react-router";
-import type { Route } from "./+types/root";
+import type { AppLoadContext } from "react-router";
 import { getSession, commitSession, destroySession } from "./session.server";
 import { getUserByEmail, isUserActive } from "./db.server";
 
@@ -22,7 +22,7 @@ export type AuthUser = {
 // Get current user from session
 export async function getUser(
   request: Request,
-  context: Route.LoaderArgs["context"]
+  context: AppLoadContext
 ): Promise<AuthUser | null> {
   const session = await getSession(request.headers.get("Cookie"));
   const userId = session.get("userId");
@@ -45,7 +45,7 @@ export async function getUser(
 // Require authentication - redirect to login if not authenticated
 export async function requireAuth(
   request: Request,
-  context: Route.LoaderArgs["context"]
+  context: AppLoadContext
 ): Promise<AuthUser> {
   const user = await getUser(request, context);
 
@@ -64,7 +64,7 @@ export async function requireAuth(
 // Require active user - redirect if not active
 export async function requireActiveUser(
   request: Request,
-  context: Route.LoaderArgs["context"]
+  context: AppLoadContext
 ): Promise<AuthUser> {
   const user = await requireAuth(request, context);
 
@@ -78,7 +78,7 @@ export async function requireActiveUser(
 // Require admin user
 export async function requireAdmin(
   request: Request,
-  context: Route.LoaderArgs["context"]
+  context: AppLoadContext
 ): Promise<AuthUser> {
   const user = await requireActiveUser(request, context);
 

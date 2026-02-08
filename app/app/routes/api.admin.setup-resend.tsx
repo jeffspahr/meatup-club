@@ -1,11 +1,11 @@
-import type { Route } from "./+types/api.admin.setup-resend";
+import type { AppLoadContext } from "react-router";
 import { requireAdmin } from "../lib/auth.server";
 
 /**
  * Admin endpoint to configure Resend inbound email routing
  * This sets up rsvp@mail.meatup.club to forward to our webhook
  */
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
   await requireAdmin(request, context);
 
   const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
@@ -33,7 +33,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       }, { status: 500 });
     }
 
-    const domainsData = await domainsResponse.json();
+    const domainsData = (await domainsResponse.json()) as any;
     console.log('Domains:', domainsData);
 
     // Find mail.meatup.club domain
@@ -62,7 +62,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     let existingRoutes = [];
     if (routesResponse.ok) {
-      const routesData = await routesResponse.json();
+      const routesData = (await routesResponse.json()) as any;
       existingRoutes = routesData.data || [];
       console.log('Existing routes:', existingRoutes);
     }

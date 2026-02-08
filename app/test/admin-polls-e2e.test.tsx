@@ -81,7 +81,7 @@ describe('Admin Polls E2E', () => {
       expect(screen.getByText('Close Poll')).toBeInTheDocument();
 
       // Verify restaurant dropdown
-      const restaurantSelect = screen.getByLabelText('Restaurant') as HTMLSelectElement;
+      const restaurantSelect = screen.getByLabelText('Restaurant') as unknown as HTMLSelectElement;
       expect(restaurantSelect).toBeInTheDocument();
       expect(restaurantSelect.value).toBe('10'); // Default to topRestaurant
 
@@ -98,7 +98,7 @@ describe('Admin Polls E2E', () => {
       ]);
 
       // Verify date dropdown
-      const dateSelect = screen.getByLabelText('Date') as HTMLSelectElement;
+      const dateSelect = screen.getByLabelText('Date') as unknown as HTMLSelectElement;
       expect(dateSelect).toBeInTheDocument();
       expect(dateSelect.value).toBe('20'); // Default to topDate
 
@@ -324,7 +324,7 @@ describe('Admin Polls E2E', () => {
 
       render(<TestComponent />);
 
-      const select = screen.getByTestId('restaurant-select') as HTMLSelectElement;
+      const select = screen.getByTestId('restaurant-select') as unknown as HTMLSelectElement;
       expect(select.options.length).toBe(1);
       expect(select.value).toBe('10');
       expect(select.options[0].text).toBe('Only Restaurant');

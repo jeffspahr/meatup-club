@@ -24,10 +24,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   // Exchange code for tokens
   const redirectUri = `${url.origin}/auth/google/callback`;
-  const tokens = await getGoogleTokens(code, redirectUri);
+  const tokens = (await getGoogleTokens(code, redirectUri)) as any;
 
   // Get user info from Google
-  const googleUser = await getGoogleUserInfo(tokens.access_token);
+  const googleUser = (await getGoogleUserInfo(tokens.access_token)) as any;
 
   // Ensure user exists in database
   const db = context.cloudflare.env.DB;

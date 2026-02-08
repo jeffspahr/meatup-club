@@ -94,8 +94,8 @@ describe('Webhook Handler - Signature Verification', () => {
         },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Webhook not configured');
@@ -119,8 +119,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(401);
       expect(data.error).toBe('Missing signature headers');
@@ -142,8 +142,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(401);
       expect(data.error).toBe('Missing signature headers');
@@ -165,8 +165,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(401);
       expect(data.error).toBe('Missing signature headers');
@@ -197,8 +197,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(401);
       expect(data.error).toBe('Invalid signature');
@@ -229,8 +229,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.message).toBe('Ignored: not an email.received event');
@@ -259,8 +259,8 @@ describe('Webhook Handler - Signature Verification', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.message).toBe('No RSVP data found');
@@ -320,8 +320,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(404);
       expect(data.message).toBe('User not found');
@@ -357,8 +357,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -399,7 +399,7 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
+      const response = await action({ request, context } as any);
 
       expect(response.status).toBe(200);
       expect(mockDb.bind).toHaveBeenCalledWith('user@example.com'); // Lowercased
@@ -433,8 +433,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.message).toBe('No RSVP data found');
@@ -466,8 +466,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(404);
       expect(data.message).toBe('Event not found');
@@ -505,8 +505,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -550,8 +550,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('no');
       expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no', 1);
@@ -586,8 +586,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('maybe');
       expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'maybe', 1);
@@ -624,8 +624,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -667,8 +667,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('no');
       expect(mockDb.bind).toHaveBeenCalledWith('no', 123, 1);
@@ -700,8 +700,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(500);
       expect(data.success).toBe(false);
@@ -739,8 +739,8 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      const response = await action({ request, context, params: {} });
-      const data = await response.json();
+      const response = await action({ request, context } as any);
+      const data = (await response.json()) as any;
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -777,7 +777,7 @@ describe('Webhook Handler - Database Operations', () => {
         cloudflare: { env: mockEnv },
       } as any;
 
-      await action({ request, context, params: {} });
+      await action({ request, context } as any);
 
       expect(consoleSpy).toHaveBeenCalledWith('Redirecting RSVP from event 2 to event 3');
       consoleSpy.mockRestore();

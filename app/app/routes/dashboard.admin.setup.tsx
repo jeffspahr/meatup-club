@@ -1,14 +1,14 @@
 import { Form, Link } from "react-router";
+import type { AppLoadContext } from "react-router";
 import { useState } from "react";
-import type { Route } from "./+types/dashboard.admin.setup";
 import { requireAdmin } from "../lib/auth.server";
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ request, context }: { request: Request; context: AppLoadContext }) {
   await requireAdmin(request, context);
   return {};
 }
 
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
   const formData = await request.formData();
   const _action = formData.get('_action');
 
@@ -26,7 +26,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
-export default function AdminSetupPage({ actionData }: Route.ComponentProps) {
+export default function AdminSetupPage({ actionData }: { actionData: any }) {
   const [isLoading, setIsLoading] = useState(false);
 
   return (

@@ -38,14 +38,14 @@ export async function action({ request, context }: Route.ActionArgs) {
           `https://places.googleapis.com/v1/places/${restaurant.google_place_id}`,
           {
             headers: {
-              "X-Goog-Api-Key": apiKey,
+              "X-Goog-Api-Key": apiKey || "",
               "X-Goog-FieldMask": "currentOpeningHours",
             },
           }
         );
 
         if (response.ok) {
-          const data = await response.json();
+          const data = (await response.json()) as any;
           const openingHours = data.currentOpeningHours?.weekdayDescriptions
             ? JSON.stringify(data.currentOpeningHours.weekdayDescriptions)
             : null;

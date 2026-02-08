@@ -54,6 +54,7 @@ export interface RsvpWithUser extends Rsvp {
 export interface Poll {
   id: number;
   title: string;
+  description?: string;
   status: "active" | "closed";
   start_date: string | null;
   end_date: string | null;

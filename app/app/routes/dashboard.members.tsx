@@ -13,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind('active')
     .all();
 
-  const members = membersResult.results || [];
+  const members = (membersResult.results || []) as unknown as Member[];
 
   return { members };
 }

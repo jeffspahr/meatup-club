@@ -45,7 +45,7 @@ export async function getComments(
     .bind(commentableType, commentableId)
     .all();
 
-  const allComments = (result.results as Comment[]) || [];
+  const allComments = (result.results as unknown as Comment[]) || [];
 
   // Build threaded structure
   const commentMap = new Map<number, Comment>();

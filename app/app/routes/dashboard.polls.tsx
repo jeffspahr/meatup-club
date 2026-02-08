@@ -27,14 +27,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const db = context.cloudflare.env.DB;
 
   // Get the current active poll
-  const activePoll = await db
+  const activePoll = (await db
     .prepare(`
       SELECT * FROM polls
       WHERE status = 'active'
       ORDER BY created_at DESC
       LIMIT 1
     `)
-    .first();
+    .first()) as Poll | null;
 
   // Get date suggestions for active poll
   const dateSuggestionsResult = await db
@@ -131,9 +131,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const action = formData.get('_action');
 
   // Require active poll for all actions
-  const activePoll = await db
+  const activePoll = (await db
     .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
-    .first();
+    .first()) as Pick<Poll, 'id'> | null;
 
   if (!activePoll) {
     return { error: 'No active poll. Actions require an active poll.' };
@@ -473,7 +473,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           originalComment: parentComment.content as string,
           replyContent: content.trim(),
           pollUrl,
-          resendApiKey,
+          resendApiKey: resendApiKey || "",
         }).then(result => {
           console.log('Email send result:', result);
           return result;
@@ -542,7 +542,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
   function handleDateClick(dateStr: string) {
     if (!activePoll) return;
 
-    const existingSuggestion = dateSuggestions.find(
+    const existingSuggestion: any = dateSuggestions.find(
       (s: any) => s.suggested_date === dateStr
     );
 

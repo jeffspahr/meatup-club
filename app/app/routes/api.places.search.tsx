@@ -22,7 +22,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "X-Goog-Api-Key": apiKey,
+              "X-Goog-Api-Key": apiKey || "",
               "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types",
             },
             body: JSON.stringify({
@@ -46,7 +46,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
           throw new Error("Failed to fetch places");
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as any;
         return Response.json(data);
       },
       "public, max-age=600, stale-while-revalidate=3600"

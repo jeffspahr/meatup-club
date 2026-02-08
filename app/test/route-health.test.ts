@@ -43,14 +43,14 @@ describe('Route Health - All Routes Should Load Without 404', () => {
 
   describe('Public Routes', () => {
     it('/ should load (landing page)', async () => {
-      const { loader } = await import('../app/routes/_index');
+      const route = await import('../app/routes/_index');
 
-      if (loader) {
-        const result = await loader({ request: mockRequest, context: mockContext, params: {} });
+      if ((route as any).loader) {
+        const result = await (route as any).loader({ request: mockRequest, context: mockContext, params: {} });
         expect(result).toBeDefined();
       }
       // If no loader, the route still exists and should work
-      expect(true).toBe(true);
+      expect(route.default).toBeDefined();
     });
 
     it('/login should have loader (redirect-only route)', async () => {
@@ -160,10 +160,7 @@ describe('Route Health - All Routes Should Load Without 404', () => {
       expect(route.loader).toBeDefined();
     });
 
-    it('/home should have component', async () => {
-      const route = await import('../app/routes/home');
-      expect(route.default).toBeDefined();
-    });
+    // home.tsx was a dead scaffold template, removed in favor of _index.tsx
   });
 
   describe('Route Export Validation', () => {

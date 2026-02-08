@@ -146,7 +146,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       // Validation 1: Check if date is in the past
       const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
-      if (isDateInPastInTimeZone(date.suggested_date, appTimeZone)) {
+      if (isDateInPastInTimeZone(date.suggested_date as string, appTimeZone)) {
         return { error: 'Cannot create event for a date in the past' };
       }
 
@@ -187,12 +187,12 @@ export async function action({ request, context }: Route.ActionArgs) {
           // Use waitUntil if available for background processing
           const invitePromise = sendEventInvites({
             eventId: Number(createdEventId),
-            restaurantName: restaurant.name,
-            restaurantAddress: restaurant.address,
-            eventDate: date.suggested_date,
+            restaurantName: restaurant.name as string,
+            restaurantAddress: (restaurant.address as string | null),
+            eventDate: date.suggested_date as string,
             eventTime: eventTime,
             recipientEmails: usersResult.results.map((u: any) => u.email),
-            resendApiKey,
+            resendApiKey: resendApiKey || "",
           }).then(result => {
             console.log(`Sent ${result.sentCount} calendar invites for event ${createdEventId}`);
             if (result.errors.length > 0) {

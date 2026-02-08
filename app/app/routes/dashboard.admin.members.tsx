@@ -91,9 +91,9 @@ export async function action({ request, context }: Route.ActionArgs) {
           acceptLink,
           resendApiKey,
           template: {
-            subject: template.subject,
-            html: template.html_body,
-            text: template.text_body,
+            subject: template.subject as string,
+            html: template.html_body as string,
+            text: template.text_body as string,
           },
         });
 

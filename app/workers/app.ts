@@ -1,24 +1,15 @@
+/// <reference types="@cloudflare/workers-types" />
+
 import { createRequestHandler } from "react-router";
+// @ts-expect-error — generated build output has no type declarations
 import * as build from "../build/server/index.js";
 import { sendScheduledSmsReminders } from "../app/lib/sms.server";
-
-declare global {
-  interface CloudflareEnvironment extends Env {}
-}
-
-type Env = {
-  DB: D1Database;
-  ASSETS: Fetcher;
-  TWILIO_ACCOUNT_SID?: string;
-  TWILIO_AUTH_TOKEN?: string;
-  TWILIO_FROM_NUMBER?: string;
-  APP_TIMEZONE?: string;
-};
+import type { CloudflareEnv } from "../app/env";
 
 const requestHandler = createRequestHandler(build, "production");
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
     try {
       return requestHandler(request, {
         cloudflare: { env, ctx },
@@ -28,7 +19,11 @@ export default {
       return new Response("Internal Server Error", { status: 500 });
     }
   },
-  async scheduled(event, env, ctx) {
+  async scheduled(
+    _event: ScheduledController,
+    env: CloudflareEnv,
+    ctx: ExecutionContext
+  ) {
     try {
       const reminderPromise = sendScheduledSmsReminders({
         db: env.DB,
@@ -43,4 +38,4 @@ export default {
       console.error("Scheduled SMS reminder error:", error);
     }
   },
-} satisfies ExportedHandler<CloudflareEnvironment>;
+} satisfies ExportedHandler<CloudflareEnv>;

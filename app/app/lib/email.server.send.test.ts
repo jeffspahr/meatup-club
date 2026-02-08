@@ -20,7 +20,7 @@ describe('Email Sending - Resend API Integration', () => {
       json: async () => ({ id: 'email-123' }),
       text: async () => 'OK',
       statusText: 'OK',
-    } as Response);
+    } as unknown as Response);
   });
 
   afterEach(() => {
@@ -121,7 +121,7 @@ describe('Email Sending - Resend API Integration', () => {
         ok: false,
         statusText: 'Bad Request',
         text: async () => 'Invalid API key',
-      } as Response);
+      } as unknown as Response);
 
       const result = await sendInviteEmail({
         to: 'test@example.com',
@@ -283,7 +283,7 @@ describe('Email Sending - Resend API Integration', () => {
         ok: false,
         statusText: 'Rate Limited',
         text: async () => 'Too many requests',
-      } as Response);
+      } as unknown as Response);
 
       const result = await sendCommentReplyEmail({
         to: 'user@example.com',
@@ -364,7 +364,7 @@ describe('Email Sending - Resend API Integration', () => {
         ok: true,
         json: async () => { throw new Error('Invalid JSON'); },
         text: async () => 'Not JSON',
-      } as Response);
+      } as unknown as Response);
 
       const result = await sendInviteEmail({
         to: 'test@example.com',

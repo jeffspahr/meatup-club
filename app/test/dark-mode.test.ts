@@ -30,8 +30,9 @@ describe('Dark Mode CSS System', () => {
       expect(cssContent).toContain('--border:');
     });
 
-    it('should have dark mode media query', () => {
-      expect(cssContent).toContain('@media (prefers-color-scheme: dark)');
+    it('should have light mode media query (dark-first pattern)', () => {
+      // The CSS uses dark-first: :root has dark colors, light media query overrides
+      expect(cssContent).toContain('@media (prefers-color-scheme: light)');
     });
 
     it('should override background colors to use CSS variables', () => {
@@ -68,33 +69,37 @@ describe('Dark Mode CSS System', () => {
       expect(cssContent).toContain('rgb(var(--border))');
     });
 
-    it('should define different colors for dark mode', () => {
+    it('should define dark colors in :root and light overrides in media query', () => {
       const lines = cssContent.split('\n');
 
-      // Find the dark mode media query
-      const darkModeStart = lines.findIndex(line =>
-        line.includes('@media (prefers-color-scheme: dark)')
+      // Dark-first pattern: :root has dark colors
+      // Verify :root defines the core variables (dark palette)
+      const rootStart = lines.findIndex(line => line.includes(':root {'));
+      expect(rootStart).toBeGreaterThan(-1);
+
+      // Find the light mode media query
+      const lightModeStart = lines.findIndex(line =>
+        line.includes('@media (prefers-color-scheme: light)')
       );
+      expect(lightModeStart).toBeGreaterThan(-1);
 
-      expect(darkModeStart).toBeGreaterThan(-1);
-
-      // Find the closing brace of the media query
+      // Find the closing brace of the light media query
       let braceCount = 0;
-      let darkModeEnd = darkModeStart;
-      for (let i = darkModeStart; i < lines.length; i++) {
+      let lightModeEnd = lightModeStart;
+      for (let i = lightModeStart; i < lines.length; i++) {
         braceCount += (lines[i].match(/{/g) || []).length;
         braceCount -= (lines[i].match(/}/g) || []).length;
-        if (braceCount === 0 && i > darkModeStart) {
-          darkModeEnd = i;
+        if (braceCount === 0 && i > lightModeStart) {
+          lightModeEnd = i;
           break;
         }
       }
 
-      const darkModeSection = lines.slice(darkModeStart, darkModeEnd + 1).join('\n');
+      const lightModeSection = lines.slice(lightModeStart, lightModeEnd + 1).join('\n');
 
-      // Dark mode should redefine the variables
-      expect(darkModeSection).toContain('--background:');
-      expect(darkModeSection).toContain('--foreground:');
+      // Light mode should redefine the variables
+      expect(lightModeSection).toContain('--background:');
+      expect(lightModeSection).toContain('--foreground:');
     });
   });
 

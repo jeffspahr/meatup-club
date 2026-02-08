@@ -35,7 +35,7 @@ export function RestaurantAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const debounceTimer = useRef<NodeJS.Timeout>();
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export function RestaurantAutocomplete({
         const response = await fetch(
           `/api/places/search?input=${encodeURIComponent(value)}`
         );
-        const data = await response.json();
+        const data = (await response.json()) as any;
         setSuggestions(data.places || []);
         setShowDropdown(true);
       } catch (error) {
@@ -95,7 +95,7 @@ export function RestaurantAutocomplete({
       const response = await fetch(
         `/api/places/details?placeId=${encodeURIComponent(place.id)}`
       );
-      const placeDetails = await response.json();
+      const placeDetails = (await response.json()) as PlaceDetails;
       onSelect(placeDetails);
       onChange(placeDetails.name);
     } catch (error) {

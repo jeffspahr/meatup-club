@@ -1,13 +1,12 @@
-import { Form, useSubmit } from "react-router";
+import { Form, useSubmit, redirect } from "react-router";
+import type { AppLoadContext } from "react-router";
 import { formatDateForDisplay } from "../lib/dateUtils";
 import { useState } from "react";
-import type { Route } from "./+types/dashboard.dates";
 import { requireActiveUser } from "../lib/auth.server";
-import { redirect } from "react-router";
 import { DateCalendar } from "../components/DateCalendar";
 import { PageHeader, Button, Alert, Badge, Card, EmptyState } from "../components/ui";
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ request, context }: { request: Request; context: AppLoadContext }) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
 
@@ -49,7 +48,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
-export async function action({ request, context }: Route.ActionArgs) {
+export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
@@ -174,7 +173,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
-export default function DatesPage({ loaderData, actionData }: Route.ComponentProps) {
+export default function DatesPage({ loaderData, actionData }: { loaderData: any; actionData: any }) {
   const { suggestions, activePoll, currentUser } = loaderData;
   const [showForm, setShowForm] = useState(false);
   const [showNewPollForm, setShowNewPollForm] = useState(false);
