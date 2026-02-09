@@ -10,6 +10,13 @@ const requestHandler = createRequestHandler(build, "production");
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
+    // Redirect www to bare domain to avoid OAuth redirect_uri_mismatch
+    const url = new URL(request.url);
+    if (url.hostname === "www.meatup.club") {
+      url.hostname = "meatup.club";
+      return Response.redirect(url.toString(), 301);
+    }
+
     try {
       return requestHandler(request, {
         cloudflare: { env, ctx },
