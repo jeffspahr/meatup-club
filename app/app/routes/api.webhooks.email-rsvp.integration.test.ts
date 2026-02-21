@@ -715,6 +715,8 @@ describe('Webhook Handler - Database Operations', () => {
       // Mock user lookup
       mockDb.first
         .mockResolvedValueOnce({ id: 123, email: 'user@example.com', name: 'Test User' }) // User
+        .mockResolvedValueOnce(null) // Event 2 not found
+        .mockResolvedValueOnce({ canonical_event_id: 3 }) // Alias lookup
         .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' }) // Event 3 (redirect target)
         .mockResolvedValueOnce(null); // No existing RSVP
 
@@ -753,6 +755,8 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.first
         .mockResolvedValueOnce({ id: 123, email: 'user@example.com', name: 'Test User' })
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ canonical_event_id: 3 })
         .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' })
         .mockResolvedValueOnce(null);
 

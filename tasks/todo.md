@@ -1,3 +1,41 @@
+# Critical Review Remediation (2026-02-21)
+
+## Goal
+Address all prioritized review findings: auth/session hardening, poll/date data integrity, transactional poll closing, webhook redirect cleanup, places endpoint security controls, and missing regression coverage.
+
+## Acceptance Criteria
+- [x] OAuth login no longer auto-activates invited/pending users.
+- [x] Session secret has no insecure production fallback.
+- [x] Date vote/delete actions reject cross-poll payloads server-side.
+- [x] Admin poll close validates winner IDs against the active poll and writes atomically.
+- [x] Email RSVP webhook redirect logic is data-driven (no hardcoded event map).
+- [x] Places API endpoints require authenticated active users and enforce rate limits/input validation.
+- [x] Regression tests cover all above invariants.
+- [x] Docs reflect corrected auth/session and setup guidance.
+
+## Checklist
+- [x] Review existing auth/session implementation details and patch safely.
+- [x] Add/adjust tests for auth flow behavior and secret handling.
+- [x] Patch dashboard poll/date actions with strict poll scoping checks.
+- [x] Patch admin poll close action with active-poll guard + transaction.
+- [x] Add tests for crafted cross-poll payloads and invalid close selections.
+- [x] Add event alias table migration and webhook alias lookup.
+- [x] Update webhook integration tests for alias-based redirect.
+- [x] Add API rate-limit utility + migration; apply to places routes.
+- [x] Add places route auth/validation tests.
+- [x] Update README and rerun verification (test/typecheck/build).
+
+## Working Notes
+- Current branch: `main` tracking `origin/main`.
+- Existing untracked file before work: `.claude/settings.local.json` (do not modify).
+- Use smallest safe deltas; avoid unrelated refactors.
+
+## Results
+- Updated auth/session safety paths, poll/date data-integrity checks, admin close transaction handling, webhook alias resolution, and places API protections.
+- Added migrations for `event_aliases` and `api_rate_limits`.
+- Added regression tests for DB user sync logic, poll/date cross-poll guards, admin close transaction behavior, and places route security gates.
+- Verification: `npm run test:run` (188 passed), `npm run typecheck` (pass), `npm run build` (pass).
+
 # Architecture Improvement Plan: Reusability & Consistency
 
 ## Executive Summary

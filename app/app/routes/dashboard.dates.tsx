@@ -117,6 +117,15 @@ export async function action({ request, context }: { request: Request; context: 
       return { error: 'No active poll. Voting requires an active poll.' };
     }
 
+    const suggestion = await db
+      .prepare('SELECT id, poll_id FROM date_suggestions WHERE id = ?')
+      .bind(suggestionId)
+      .first();
+
+    if (!suggestion || suggestion.poll_id !== activePoll.id) {
+      return { error: 'Suggestion not found in active poll.' };
+    }
+
     if (remove) {
       // Remove this specific date vote (users can vote for multiple dates)
       await db
@@ -148,14 +157,26 @@ export async function action({ request, context }: { request: Request; context: 
       return { error: 'Suggestion ID is required' };
     }
 
+    const activePoll = await db
+      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
+      .first();
+
+    if (!activePoll) {
+      return { error: 'No active poll. Date management requires an active poll.' };
+    }
+
     // Check if user owns this suggestion or is admin
     const suggestion = await db
-      .prepare('SELECT user_id FROM date_suggestions WHERE id = ?')
+      .prepare('SELECT user_id, poll_id FROM date_suggestions WHERE id = ?')
       .bind(suggestionId)
       .first();
 
     if (!suggestion) {
       return { error: 'Suggestion not found' };
+    }
+
+    if (suggestion.poll_id !== activePoll.id) {
+      return { error: 'Suggestion not found in active poll.' };
     }
 
     // Allow deletion if user is admin or owns the suggestion

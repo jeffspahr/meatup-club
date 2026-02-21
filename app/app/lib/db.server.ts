@@ -19,9 +19,8 @@ export async function ensureUser(
   if (existing) {
     // Update name and picture from OAuth on every login (keep them synced)
     // Also clear requires_reauth flag after successful login
-    // Set status to 'active' when user completes OAuth (in case they were 'invited')
     await db
-      .prepare("UPDATE users SET name = ?, picture = ?, requires_reauth = 0, status = 'active' WHERE id = ?")
+      .prepare("UPDATE users SET name = ?, picture = ?, requires_reauth = 0 WHERE id = ?")
       .bind(name || null, picture || null, existing.id)
       .run();
 

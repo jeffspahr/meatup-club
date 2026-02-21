@@ -195,6 +195,15 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Suggestion ID is required' };
     }
 
+    const suggestion = await db
+      .prepare('SELECT id, poll_id, suggested_date FROM date_suggestions WHERE id = ?')
+      .bind(suggestionId)
+      .first();
+
+    if (!suggestion || suggestion.poll_id !== activePoll.id) {
+      return { error: 'Suggestion not found in active poll' };
+    }
+
     if (remove) {
       // Always allow removing votes, even for past dates
       await db
@@ -212,12 +221,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       });
     } else {
       // Prevent adding NEW votes for past dates
-      const suggestion = await db
-        .prepare('SELECT suggested_date FROM date_suggestions WHERE id = ?')
-        .bind(suggestionId)
-        .first();
-
-      if (suggestion && isDateInPastUTC(suggestion.suggested_date as string)) {
+      if (isDateInPastUTC(suggestion.suggested_date as string)) {
         return { error: 'Cannot vote on dates in the past' };
       }
 
@@ -254,11 +258,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     const suggestion = await db
-      .prepare('SELECT user_id FROM date_suggestions WHERE id = ?')
+      .prepare('SELECT user_id, poll_id FROM date_suggestions WHERE id = ?')
       .bind(suggestionId)
       .first();
 
-    if (!suggestion || (suggestion.user_id !== user.id && user.is_admin !== 1)) {
+    if (!suggestion || suggestion.poll_id !== activePoll.id) {
+      return { error: 'Suggestion not found in active poll' };
+    }
+
+    if (suggestion.user_id !== user.id && user.is_admin !== 1) {
       return { error: 'Permission denied' };
     }
 

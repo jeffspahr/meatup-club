@@ -114,12 +114,60 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Poll ID is required' };
     }
 
-    let createdEventId: number | null = null;
+    const parsedPollId = Number(pollId);
+    if (!Number.isInteger(parsedPollId) || parsedPollId <= 0) {
+      return { error: 'Invalid poll ID' };
+    }
 
-    // If creating an event, validate and create
-    if (createEvent && winningRestaurantId && winningDateId) {
-      // Get restaurant with vote count
-      const restaurant = await db
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(eventTime)) {
+      return { error: 'Invalid event time format' };
+    }
+
+    const parsedWinningRestaurantId = winningRestaurantId
+      ? Number(winningRestaurantId)
+      : null;
+    const parsedWinningDateId = winningDateId
+      ? Number(winningDateId)
+      : null;
+
+    if (winningRestaurantId) {
+      if (
+        parsedWinningRestaurantId === null ||
+        !Number.isInteger(parsedWinningRestaurantId) ||
+        parsedWinningRestaurantId <= 0
+      ) {
+        return { error: 'Invalid restaurant selection' };
+      }
+    }
+
+    if (winningDateId) {
+      if (
+        parsedWinningDateId === null ||
+        !Number.isInteger(parsedWinningDateId) ||
+        parsedWinningDateId <= 0
+      ) {
+        return { error: 'Invalid date selection' };
+      }
+    }
+
+    const activePoll = await db
+      .prepare("SELECT id FROM polls WHERE id = ? AND status = 'active'")
+      .bind(parsedPollId)
+      .first();
+
+    if (!activePoll) {
+      return { error: 'Poll is not active or does not exist' };
+    }
+
+    if (createEvent && (!parsedWinningRestaurantId || !parsedWinningDateId)) {
+      return { error: 'Winning restaurant and date are required to create an event' };
+    }
+
+    let selectedRestaurant: any = null;
+    let selectedDate: any = null;
+
+    if (parsedWinningRestaurantId) {
+      selectedRestaurant = await db
         .prepare(`
           SELECT r.*, COUNT(rv.id) as vote_count
           FROM restaurants r
@@ -127,113 +175,133 @@ export async function action({ request, context }: Route.ActionArgs) {
           WHERE r.id = ?
           GROUP BY r.id
         `)
-        .bind(pollId, winningRestaurantId)
+        .bind(parsedPollId, parsedWinningRestaurantId)
         .first();
 
-      // Get date with vote count
-      const date = await db
-        .prepare(`
-          SELECT ds.*, COUNT(dv.id) as vote_count
-          FROM date_suggestions ds
-          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id
-          WHERE ds.id = ?
-          GROUP BY ds.id
-        `)
-        .bind(winningDateId)
-        .first();
-
-      if (!restaurant || !date) {
-        return { error: 'Selected restaurant or date not found' };
+      if (!selectedRestaurant) {
+        return { error: 'Selected restaurant not found' };
       }
 
-      // Validation 1: Check if date is in the past
-      const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
-      if (isDateInPastInTimeZone(date.suggested_date as string, appTimeZone)) {
-        return { error: 'Cannot create event for a date in the past' };
-      }
-
-      // Validation 2: Require minimum vote threshold
-      if (restaurant.vote_count === 0 || date.vote_count === 0) {
-        return { error: 'Cannot create event: winning options must have at least 1 vote' };
-      }
-
-      // Validation 3: Warn if restaurant has no address
-      if (!restaurant.address && sendInvites) {
-        return { error: 'Cannot send calendar invites: restaurant is missing an address. Please add an address first.' };
-      }
-
-      // Create the event
-      const eventResult = await db
-        .prepare(`
-          INSERT INTO events (restaurant_name, restaurant_address, event_date, event_time, status)
-          VALUES (?, ?, ?, ?, 'upcoming')
-        `)
-        .bind(restaurant.name, restaurant.address, date.suggested_date, eventTime)
-        .run();
-
-      createdEventId = eventResult.meta.last_row_id;
-
-      // Send calendar invites if requested
-      if (sendInvites && createdEventId) {
-        const { sendEventInvites } = await import('../lib/email.server');
-
-        // Get all active users
-        const usersResult = await db
-          .prepare('SELECT email FROM users WHERE status = ?')
-          .bind('active')
-          .all();
-
-        if (usersResult.results && usersResult.results.length > 0) {
-          const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
-
-          // Use waitUntil if available for background processing
-          const invitePromise = sendEventInvites({
-            eventId: Number(createdEventId),
-            restaurantName: restaurant.name as string,
-            restaurantAddress: (restaurant.address as string | null),
-            eventDate: date.suggested_date as string,
-            eventTime: eventTime,
-            recipientEmails: usersResult.results.map((u: any) => u.email),
-            resendApiKey: resendApiKey || "",
-          }).then(result => {
-            console.log(`Sent ${result.sentCount} calendar invites for event ${createdEventId}`);
-            if (result.errors.length > 0) {
-              console.error('Some invites failed:', result.errors);
-            }
-            return result;
-          }).catch(err => {
-            console.error('Failed to send calendar invites:', err);
-          });
-
-          if (context.cloudflare.ctx?.waitUntil) {
-            context.cloudflare.ctx.waitUntil(invitePromise);
-          } else {
-            await invitePromise;
-          }
-        }
+      if (Number(selectedRestaurant.vote_count) < 1) {
+        return { error: 'Cannot select a restaurant with zero votes' };
       }
     }
 
-    // Close the poll
-    await db
-      .prepare(`
-        UPDATE polls
-        SET status = 'closed',
-            closed_by = ?,
-            closed_at = CURRENT_TIMESTAMP,
-            winning_restaurant_id = ?,
-            winning_date_id = ?,
-            created_event_id = ?
-        WHERE id = ?
-      `)
-      .bind(
-        user.id,
-        winningRestaurantId || null,
-        winningDateId || null,
-        createdEventId || null,
-        pollId
-      )
-      .run();
+    if (parsedWinningDateId) {
+      selectedDate = await db
+        .prepare(`
+          SELECT ds.*, COUNT(dv.id) as vote_count
+          FROM date_suggestions ds
+          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
+          WHERE ds.id = ? AND ds.poll_id = ?
+          GROUP BY ds.id
+        `)
+        .bind(parsedPollId, parsedWinningDateId, parsedPollId)
+        .first();
+
+      if (!selectedDate) {
+        return { error: 'Selected date not found in this poll' };
+      }
+
+      if (Number(selectedDate.vote_count) < 1) {
+        return { error: 'Cannot select a date with zero votes' };
+      }
+    }
+
+    // Event-specific validation
+    if (createEvent && selectedDate) {
+      const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+      if (isDateInPastInTimeZone(selectedDate.suggested_date as string, appTimeZone)) {
+        return { error: 'Cannot create event for a date in the past' };
+      }
+    }
+
+    if (createEvent && sendInvites && selectedRestaurant && !selectedRestaurant.address) {
+      return { error: 'Cannot send calendar invites: restaurant is missing an address. Please add an address first.' };
+    }
+
+    let createdEventId: number | null = null;
+    try {
+      await db.prepare('BEGIN TRANSACTION').run();
+
+      if (createEvent && selectedRestaurant && selectedDate) {
+        const eventResult = await db
+          .prepare(`
+            INSERT INTO events (restaurant_name, restaurant_address, event_date, event_time, status)
+            VALUES (?, ?, ?, ?, 'upcoming')
+          `)
+          .bind(selectedRestaurant.name, selectedRestaurant.address, selectedDate.suggested_date, eventTime)
+          .run();
+
+        createdEventId = eventResult.meta.last_row_id;
+      }
+
+      const closeResult = await db
+        .prepare(`
+          UPDATE polls
+          SET status = 'closed',
+              closed_by = ?,
+              closed_at = CURRENT_TIMESTAMP,
+              winning_restaurant_id = ?,
+              winning_date_id = ?,
+              created_event_id = ?
+          WHERE id = ? AND status = 'active'
+        `)
+        .bind(
+          user.id,
+          parsedWinningRestaurantId,
+          parsedWinningDateId,
+          createdEventId,
+          parsedPollId
+        )
+        .run();
+
+      if ((closeResult.meta?.changes ?? 0) === 0) {
+        throw new Error('Poll close failed due to concurrent status change');
+      }
+
+      await db.prepare('COMMIT').run();
+    } catch (error) {
+      await db.prepare('ROLLBACK').run().catch(() => null);
+      console.error('Failed to close poll transaction:', error);
+      return { error: 'Failed to close poll. Please try again.' };
+    }
+
+    if (sendInvites && createdEventId && selectedRestaurant && selectedDate) {
+      const { sendEventInvites } = await import('../lib/email.server');
+
+      const usersResult = await db
+        .prepare('SELECT email FROM users WHERE status = ?')
+        .bind('active')
+        .all();
+
+      if (usersResult.results && usersResult.results.length > 0) {
+        const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+        const invitePromise = sendEventInvites({
+          eventId: Number(createdEventId),
+          restaurantName: selectedRestaurant.name as string,
+          restaurantAddress: (selectedRestaurant.address as string | null),
+          eventDate: selectedDate.suggested_date as string,
+          eventTime: eventTime,
+          recipientEmails: usersResult.results.map((u: any) => u.email),
+          resendApiKey: resendApiKey || "",
+        }).then(result => {
+          console.log(`Sent ${result.sentCount} calendar invites for event ${createdEventId}`);
+          if (result.errors.length > 0) {
+            console.error('Some invites failed:', result.errors);
+          }
+          return result;
+        }).catch(err => {
+          console.error('Failed to send calendar invites:', err);
+        });
+
+        if (context.cloudflare.ctx?.waitUntil) {
+          context.cloudflare.ctx.waitUntil(invitePromise);
+        } else {
+          await invitePromise;
+        }
+      }
+    }
 
     return redirect('/dashboard/admin/polls');
   }

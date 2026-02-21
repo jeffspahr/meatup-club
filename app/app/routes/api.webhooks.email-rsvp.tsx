@@ -105,25 +105,25 @@ export async function action({ request, context }: { request: Request; context: 
     }
 
     let eventId = parseInt(uidMatch[1]);
-
-    // HOTFIX: Redirect duplicate event RSVPs to canonical event
-    // Event 2 was a duplicate of Event 3 created due to a bug
-    // Both calendar invites were sent, so we transparently redirect to Event 3
-    const EVENT_REDIRECTS: Record<number, number> = {
-      2: 3, // Redirect event-2@meatup.club RSVPs to event 3
-    };
-
     const originalEventId = eventId;
-    if (EVENT_REDIRECTS[eventId]) {
-      eventId = EVENT_REDIRECTS[eventId];
-      console.log(`Redirecting RSVP from event ${originalEventId} to event ${eventId}`);
-    }
 
     // Verify event exists
-    const event = await db
+    let event = await db
       .prepare('SELECT id, restaurant_name, event_date FROM events WHERE id = ?')
       .bind(eventId)
       .first();
+
+    if (!event) {
+      const aliasedEventId = await resolveCanonicalEventId(db, originalEventId);
+      if (aliasedEventId !== originalEventId) {
+        eventId = aliasedEventId;
+        console.log(`Redirecting RSVP from event ${originalEventId} to event ${eventId}`);
+        event = await db
+          .prepare('SELECT id, restaurant_name, event_date FROM events WHERE id = ?')
+          .bind(eventId)
+          .first();
+      }
+    }
 
     if (!event) {
       console.log(`Event not found: ${eventId}`);
@@ -172,6 +172,27 @@ export async function action({ request, context }: { request: Request; context: 
       },
       { status: 500 }
     );
+  }
+}
+
+async function resolveCanonicalEventId(db: any, eventId: number): Promise<number> {
+  try {
+    const alias = await db
+      .prepare('SELECT canonical_event_id FROM event_aliases WHERE alias_event_id = ?')
+      .bind(eventId)
+      .first();
+
+    if (alias?.canonical_event_id) {
+      return Number(alias.canonical_event_id);
+    }
+
+    return eventId;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.toLowerCase().includes('no such table')) {
+      console.error('Failed to resolve event alias:', error);
+    }
+    return eventId;
   }
 }
 

@@ -67,9 +67,12 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
    Update `wrangler.toml` with your database ID.
 
-   Run migrations:
+   Apply the base schema and migrations (from `app/`):
    ```bash
-   wrangler d1 execute meatup-club-db --file=schema.sql
+   wrangler d1 execute meatup-club-db --file=../schema.sql
+   for f in ../migrations/*.sql ./migrations/*.sql; do
+     wrangler d1 execute meatup-club-db --file="$f"
+   done
    ```
 
 5. **Run development server**
@@ -91,7 +94,7 @@ The app uses the following database structure:
 - **date_suggestions** - Date nominations
 - **date_votes** - Votes for dates
 
-See `schema.sql` for the complete schema.
+See `../schema.sql`, `../migrations/`, and `./migrations/` for the complete schema history.
 
 ## Deployment
 
@@ -172,6 +175,8 @@ app/
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `SESSION_SECRET` - Random string for session encryption
 - `RESEND_API_KEY` - Resend API key for email sending and calendar invites
+- `RESEND_WEBHOOK_SECRET` - Svix webhook secret for inbound RSVP email verification
+- `GOOGLE_PLACES_API_KEY` - Google Places API key for restaurant search/details/photo proxy routes
 - `TWILIO_ACCOUNT_SID` - Twilio Account SID for SMS sending and webhooks
 - `TWILIO_AUTH_TOKEN` - Twilio Auth Token for SMS sending and webhook signature validation
 - `TWILIO_FROM_NUMBER` - Twilio phone number used for reminders
@@ -194,8 +199,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed setup instructions and tro
 
 1. User clicks "Sign in with Google" on landing page
 2. Redirects to Google OAuth
-3. Callback creates or updates user in database
-4. New users have status "invited" and see pending page
+3. Callback creates or updates the user profile (without auto-promoting account status)
+4. Users without active status are sent to the pending flow
 5. Admin can activate users to grant access
 6. Invited users can accept invitation to become active
 

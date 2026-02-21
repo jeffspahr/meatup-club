@@ -10,6 +10,13 @@ type SessionFlashData = {
   error: string;
 };
 
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && process.env.NODE_ENV !== "test") {
+  throw new Error("SESSION_SECRET must be configured");
+}
+
+const sessionSecrets = [sessionSecret || "test-session-secret"];
+
 // Session storage using cookies (works well with Cloudflare)
 export const sessionStorage = createCookieSessionStorage<
   SessionData,
@@ -21,7 +28,7 @@ export const sessionStorage = createCookieSessionStorage<
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
     sameSite: "lax",
-    secrets: [process.env.SESSION_SECRET || "default-secret-change-in-production"],
+    secrets: sessionSecrets,
     secure: process.env.NODE_ENV === "production",
   },
 });

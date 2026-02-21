@@ -1,15 +1,67 @@
 import type { Route } from "./+types/api.places.photo";
+import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
+import { enforceRateLimit } from "../lib/rate-limit.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const name = url.searchParams.get("name");
+  const name = url.searchParams.get("name")?.trim();
   const maxHeightPx = url.searchParams.get("maxHeightPx") || "400";
   const maxWidthPx = url.searchParams.get("maxWidthPx") || "400";
   const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
 
   if (!name) {
     return Response.json({ error: "Photo name is required" }, { status: 400 });
+  }
+
+  if (!/^places\/[^/]+\/photos\/[^/]+$/.test(name) || name.length > 255) {
+    return Response.json({ error: "Invalid photo name format" }, { status: 400 });
+  }
+
+  const parsedHeight = Number(maxHeightPx);
+  const parsedWidth = Number(maxWidthPx);
+  if (
+    !Number.isInteger(parsedHeight) ||
+    !Number.isInteger(parsedWidth) ||
+    parsedHeight < 1 ||
+    parsedHeight > 1600 ||
+    parsedWidth < 1 ||
+    parsedWidth > 1600
+  ) {
+    return Response.json({ error: "Invalid photo dimensions" }, { status: 400 });
+  }
+
+  const user = await getUser(request, context);
+  if (!user || user.status !== "active") {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!apiKey) {
+    return Response.json({ error: "Places API is not configured" }, { status: 500 });
+  }
+
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const identifier = `user:${user.id}:ip:${ip}`;
+  const rateLimit = await enforceRateLimit({
+    db: context.cloudflare.env.DB,
+    scope: "places.photo",
+    identifier,
+    limit: 120,
+    windowSeconds: 60,
+    ctx: context.cloudflare.ctx,
+  });
+
+  if (!rateLimit.allowed) {
+    const retryAfter = Math.max(rateLimit.resetAt - Math.floor(Date.now() / 1000), 1);
+    return Response.json(
+      { error: "Rate limit exceeded. Please try again shortly." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfter),
+        },
+      }
+    );
   }
 
   try {

@@ -66,21 +66,89 @@ export async function action({ request, context }: Route.ActionArgs) {
       return Response.json({ error: 'Poll ID is required' }, { status: 400 });
     }
 
+    const parsedPollId = Number(pollId);
+    if (!Number.isInteger(parsedPollId) || parsedPollId <= 0) {
+      return Response.json({ error: 'Invalid poll ID' }, { status: 400 });
+    }
+
+    const parsedWinningRestaurantId = winningRestaurantId
+      ? Number(winningRestaurantId)
+      : null;
+    const parsedWinningDateId = winningDateId
+      ? Number(winningDateId)
+      : null;
+
+    if (createEvent && (!parsedWinningRestaurantId || !parsedWinningDateId)) {
+      return Response.json(
+        { error: 'Winning restaurant and date are required to create an event' },
+        { status: 400 }
+      );
+    }
+
+    if (winningRestaurantId) {
+      if (
+        parsedWinningRestaurantId === null ||
+        !Number.isInteger(parsedWinningRestaurantId) ||
+        parsedWinningRestaurantId <= 0
+      ) {
+        return Response.json({ error: 'Invalid restaurant ID' }, { status: 400 });
+      }
+    }
+
+    if (winningDateId) {
+      if (
+        parsedWinningDateId === null ||
+        !Number.isInteger(parsedWinningDateId) ||
+        parsedWinningDateId <= 0
+      ) {
+        return Response.json({ error: 'Invalid date ID' }, { status: 400 });
+      }
+    }
+
+    const activePoll = await db
+      .prepare(`SELECT id FROM polls WHERE id = ? AND status = 'active'`)
+      .bind(parsedPollId)
+      .first();
+
+    if (!activePoll) {
+      return Response.json({ error: 'Poll is not active or does not exist' }, { status: 400 });
+    }
+
+    if (parsedWinningDateId) {
+      const dateInPoll = await db
+        .prepare(`SELECT id FROM date_suggestions WHERE id = ? AND poll_id = ?`)
+        .bind(parsedWinningDateId, parsedPollId)
+        .first();
+
+      if (!dateInPoll) {
+        return Response.json({ error: 'Winning date must belong to the poll being closed' }, { status: 400 });
+      }
+    }
+
     let createdEventId = null;
 
     // If creating an event, get the winner details and create event
-    if (createEvent && winningRestaurantId && winningDateId) {
+    if (createEvent && parsedWinningRestaurantId && parsedWinningDateId) {
       const restaurant = await db
         .prepare(`SELECT * FROM restaurants WHERE id = ?`)
-        .bind(winningRestaurantId)
+        .bind(parsedWinningRestaurantId)
         .first();
 
       const date = await db
-        .prepare(`SELECT * FROM date_suggestions WHERE id = ?`)
-        .bind(winningDateId)
+        .prepare(`SELECT * FROM date_suggestions WHERE id = ? AND poll_id = ?`)
+        .bind(parsedWinningDateId, parsedPollId)
         .first();
 
-      if (restaurant && date) {
+      if (!restaurant || !date) {
+        return Response.json(
+          { error: 'Selected winning options were not found in the target poll' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        await db.prepare('BEGIN TRANSACTION').run();
+
         const eventResult = await db
           .prepare(`
             INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
@@ -90,33 +158,65 @@ export async function action({ request, context }: Route.ActionArgs) {
           .run();
 
         createdEventId = eventResult.meta.last_row_id;
+
+        const closeResult = await db
+          .prepare(`
+            UPDATE polls
+            SET status = 'closed',
+                closed_by = ?,
+                closed_at = CURRENT_TIMESTAMP,
+                winning_restaurant_id = ?,
+                winning_date_id = ?,
+                created_event_id = ?
+            WHERE id = ? AND status = 'active'
+          `)
+          .bind(
+            user.id,
+            parsedWinningRestaurantId,
+            parsedWinningDateId,
+            createdEventId,
+            parsedPollId
+          )
+          .run();
+
+        if ((closeResult.meta?.changes ?? 0) === 0) {
+          throw new Error('Poll close failed due to concurrent status change');
+        }
+
+        await db.prepare('COMMIT').run();
+      } catch (error) {
+        await db.prepare('ROLLBACK').run().catch(() => null);
+        return Response.json({ error: 'Failed to close poll' }, { status: 500 });
+      }
+    } else {
+      const closeResult = await db
+        .prepare(`
+          UPDATE polls
+          SET status = 'closed',
+              closed_by = ?,
+              closed_at = CURRENT_TIMESTAMP,
+              winning_restaurant_id = ?,
+              winning_date_id = ?,
+              created_event_id = ?
+          WHERE id = ? AND status = 'active'
+        `)
+        .bind(
+          user.id,
+          parsedWinningRestaurantId,
+          parsedWinningDateId,
+          createdEventId,
+          parsedPollId
+        )
+        .run();
+
+      if ((closeResult.meta?.changes ?? 0) === 0) {
+        return Response.json({ error: 'Failed to close poll' }, { status: 409 });
       }
     }
 
-    // Close the poll
-    await db
-      .prepare(`
-        UPDATE polls
-        SET status = 'closed',
-            closed_by = ?,
-            closed_at = CURRENT_TIMESTAMP,
-            winning_restaurant_id = ?,
-            winning_date_id = ?,
-            created_event_id = ?
-        WHERE id = ?
-      `)
-      .bind(
-        user.id,
-        winningRestaurantId || null,
-        winningDateId || null,
-        createdEventId || null,
-        pollId
-      )
-      .run();
-
     const closedPoll = await db
       .prepare(`SELECT * FROM polls WHERE id = ?`)
-      .bind(pollId)
+      .bind(parsedPollId)
       .first();
 
     return Response.json({ poll: closedPoll, eventId: createdEventId });
