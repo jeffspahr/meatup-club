@@ -87,6 +87,10 @@ export default function Home() {
           <span className="text-sm text-muted-foreground">
             Meatup.Club &middot; {new Date().getFullYear()}
           </span>
+          <span className="text-sm text-muted-foreground">&middot;</span>
+          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
+            Privacy
+          </Link>
         </div>
       </footer>
     </main>

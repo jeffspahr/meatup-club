@@ -59,6 +59,11 @@ describe('Route Health - All Routes Should Load Without 404', () => {
       expect(typeof loader).toBe('function');
       // This is a loader-only route that redirects to Google OAuth
     });
+
+    it('/privacy should load (public policy page)', async () => {
+      const route = await import('../app/routes/privacy');
+      expect(route.default).toBeDefined();
+    });
   });
 
   describe('Auth Routes', () => {
