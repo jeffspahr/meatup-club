@@ -73,8 +73,8 @@ export default function Home() {
               <p className="text-sm text-muted-foreground mt-2">member-voted</p>
             </div>
             <div>
-              <p className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">&lt;60s</p>
-              <p className="text-sm text-muted-foreground mt-2">avg RSVP time</p>
+              <p className="text-4xl sm:text-5xl font-bold text-foreground tracking-tight">50+</p>
+              <p className="text-sm text-muted-foreground mt-2">Raleigh-area steakhouses</p>
             </div>
           </div>
         </div>
