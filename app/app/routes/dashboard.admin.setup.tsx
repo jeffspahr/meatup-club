@@ -16,7 +16,8 @@ export async function action({ request, context }: { request: Request; context: 
 
   if (_action === 'setup-resend') {
     // Call our setup endpoint
-    const response = await fetch('/api/admin/setup-resend', {
+    const setupUrl = new URL('/api/admin/setup-resend', request.url);
+    const response = await fetch(setupUrl, {
       method: 'POST',
       headers: request.headers,
     });

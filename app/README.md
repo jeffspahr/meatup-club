@@ -67,13 +67,13 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
    Update `wrangler.toml` with your database ID.
 
-   Apply the base schema and migrations (from `app/`):
+   Apply the canonical schema (from `app/`):
    ```bash
    wrangler d1 execute meatup-club-db --file=../schema.sql
-   for f in ../migrations/*.sql ./migrations/*.sql; do
-     wrangler d1 execute meatup-club-db --file="$f"
-   done
    ```
+
+   Optional: if you are upgrading an older database instead of creating a fresh one,
+   apply historical migrations in `../migrations/` and `./migrations/` as needed.
 
 5. **Run development server**
    ```bash
@@ -84,21 +84,29 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
 ## Database Schema
 
-The app uses the following database structure:
+The canonical schema includes:
 
 - **users** - Member information and authentication
 - **events** - Quarterly meetup events
 - **rsvps** - Event attendance responses
-- **restaurant_suggestions** - Restaurant nominations
-- **restaurant_votes** - Votes for restaurants
+- **restaurants** - Global restaurant catalog for voting
+- **restaurant_votes** - Per-poll restaurant votes
+- **poll_excluded_restaurants** - Per-poll restaurant exclusions
 - **date_suggestions** - Date nominations
 - **date_votes** - Votes for dates
+- **polls** - Poll lifecycle and winning selections
+- **comments** - Threaded comments on polls/events
+- **activity_log** - Auditable user activity
+- **site_content** - Editable copy
+- **email_templates** - Admin-managed invite templates
+- **event_aliases** - Calendar RSVP alias mapping
+- **api_rate_limits** - API request throttling buckets
 
-See `../schema.sql`, `../migrations/`, and `./migrations/` for the complete schema history.
+See `../schema.sql` for fresh installs and `../migrations/` + `./migrations/` for historical upgrades.
 
 ## Deployment
 
-### Deploy to Cloudflare Pages
+### Deploy to Cloudflare Workers
 
 1. **Configure secrets**
    ```bash
@@ -162,7 +170,7 @@ app/
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
-- `npm run deploy` - Build and deploy to Cloudflare Pages
+- `npm run deploy` - Run tests, build, and deploy to Cloudflare Workers
 - `npm run preview` - Preview production build locally
 - `npm run typecheck` - Run TypeScript type checking
 - `npm run cf-typegen` - Generate Cloudflare types

@@ -26,6 +26,16 @@ jobs:
           cd app
           npm ci
 
+      - name: Typecheck
+        run: |
+          cd app
+          npm run typecheck
+
+      - name: Run tests
+        run: |
+          cd app
+          npm run test:run
+
       - name: Build React Router application
         run: |
           cd app
