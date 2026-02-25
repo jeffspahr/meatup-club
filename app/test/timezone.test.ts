@@ -70,6 +70,20 @@ describe('Timezone Safety - Local Time Handling', () => {
       expect(formatted).not.toContain('28');
     });
 
+    it('should format SQL timestamps using their date prefix', () => {
+      const timestamp = '2026-02-24 17:41:01';
+      const formatted = formatDateForDisplay(timestamp);
+
+      expect(formatted.toLowerCase()).toContain('feb');
+      expect(formatted).toContain('24');
+      expect(formatted).toContain('2026');
+    });
+
+    it('should return empty string for invalid date input', () => {
+      expect(formatDateForDisplay('not-a-date')).toBe('');
+      expect(formatDateForDisplay(undefined)).toBe('');
+    });
+
     it('should compare dates in local timezone, not UTC', () => {
       // Set up dates
       const yesterday = new Date();

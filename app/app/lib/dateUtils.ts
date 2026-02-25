@@ -132,14 +132,23 @@ export function isDateTodayLocal(dateString: string): boolean {
   return dateString === today;
 }
 
+const LOCAL_DATE_PREFIX_PATTERN = /^(\d{4})-(\d{2})-(\d{2})/;
+
 /**
  * Parse a YYYY-MM-DD date string as a local date (not UTC).
- * This prevents timezone offset issues when displaying dates.
+ * Also accepts timestamp-like values that start with YYYY-MM-DD.
  *
  * Example: "2025-12-27" becomes Dec 27 in all timezones, not Dec 26 in EST.
  */
 export function parseLocalDate(dateString: string): Date {
-  const [year, month, day] = dateString.split('-').map(Number);
+  const match = dateString.trim().match(LOCAL_DATE_PREFIX_PATTERN);
+  if (!match) {
+    return new Date(dateString);
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
   return new Date(year, month - 1, day);
 }
 
@@ -148,10 +157,19 @@ export function parseLocalDate(dateString: string): Date {
  * Handles timezone correctly by parsing as local date first.
  */
 export function formatDateForDisplay(
-  dateString: string,
+  dateString: string | null | undefined,
   options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
 ): string {
-  return parseLocalDate(dateString).toLocaleDateString('en-US', options);
+  if (!dateString) {
+    return '';
+  }
+
+  const date = parseLocalDate(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date.toLocaleDateString('en-US', options);
 }
 
 /**
