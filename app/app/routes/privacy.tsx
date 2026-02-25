@@ -10,15 +10,15 @@ export default function PrivacyPage() {
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground">
           Privacy Policy & SMS Consent
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">Last updated: February 21, 2026</p>
+        <p className="mt-3 text-sm text-muted-foreground">Last updated: February 25, 2026</p>
 
         <div className="mt-10 space-y-8 text-muted-foreground">
           <section>
             <h2 className="text-xl font-semibold text-foreground">Overview</h2>
             <p className="mt-3">
               Meatup.Club is a private dining club application used to coordinate member voting,
-              RSVPs, and event reminders. This page explains how we collect and use personal data,
-              including SMS consent.
+              RSVPs, and event reminders. It is operated by Jeff Spahr as a sole proprietor. This
+              page explains how we collect and use personal data, including SMS consent.
             </p>
           </section>
 
@@ -95,10 +95,14 @@ export default function PrivacyPage() {
               To opt in, a user enters a valid mobile number and checks the box labeled{" "}
               <span className="font-medium text-foreground">
                 &quot;I agree to receive SMS reminders from Meatup.Club. Message frequency varies.
-                Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help.&quot;
+                Msg &amp; data rates may apply. Reply HELP for help and STOP to opt out.&quot;
               </span>{" "}
-              before saving preferences. Consent is stored with the user record and can be revoked
-              anytime by replying STOP or disabling SMS in profile settings.
+              before saving preferences. SMS reminders are optional and are not required to use
+              Meatup.Club. Consent is stored with the user record and can be revoked anytime by
+              replying STOP or disabling SMS in profile settings.
+            </p>
+            <p className="mt-3">
+              New enrollees actively opt in using that checkbox. They are not subscribed by default.
             </p>
           </section>
 

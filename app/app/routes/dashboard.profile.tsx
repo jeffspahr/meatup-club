@@ -195,7 +195,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
       <Card className="mt-8">
         <h2 className="text-xl font-semibold text-foreground mb-4">SMS Reminders</h2>
         <p className="text-sm text-muted-foreground mb-6">
-          Get text reminders before each meetup. Reply YES or NO to update your RSVP. Reply STOP to opt out anytime.
+          Get text reminders before each meetup. SMS is optional and not required to use
+          Meatup.Club.
         </p>
 
         {user.sms_opt_out_at && (
@@ -233,9 +234,12 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
               className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <div>
-              <div className="font-medium text-foreground">I agree to receive SMS reminders</div>
+              <div className="font-medium text-foreground">
+                I agree to receive SMS reminders from Meatup.Club. Message frequency varies. Msg &
+                data rates may apply. Reply HELP for help and STOP to opt out.
+              </div>
               <div className="text-sm text-muted-foreground">
-                Message & data rates may apply. No marketing texts.
+                Reminder and RSVP update messages only. No marketing texts.
               </div>
             </div>
           </label>
