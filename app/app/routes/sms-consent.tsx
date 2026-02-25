@@ -20,10 +20,11 @@ export default function SmsConsentPage() {
               <li>Go to Profile settings.</li>
               <li>Enter a valid mobile number.</li>
               <li>
-                Check the SMS consent box that states:{" "}
+                Check the optional SMS consent box (not checked by default for new enrollment) that
+                states:{" "}
                 <span className="font-medium text-foreground">
                   "I agree to receive SMS reminders from Meatup.Club. Message frequency varies. Msg
-                  & data rates may apply. Reply STOP to opt out, HELP for help."
+                  & data rates may apply. Reply HELP for help and STOP to opt out."
                 </span>
               </li>
               <li>Save preferences to enroll in SMS reminders.</li>
@@ -39,6 +40,9 @@ export default function SmsConsentPage() {
               <li>Help: reply HELP for instructions.</li>
               <li>Fees: message and data rates may apply.</li>
             </ul>
+            <p className="mt-3">
+              SMS reminders are optional and are not required to use Meatup.Club.
+            </p>
           </section>
 
           <section>

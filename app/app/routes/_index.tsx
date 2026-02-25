@@ -17,7 +17,7 @@ export default function Home() {
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 lg:px-16 py-6 max-w-6xl mx-auto">
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-background">
             <LogoMark className="w-5 h-5" />
           </span>
           <span className="text-base font-semibold tracking-tight text-foreground">Meatup</span>
@@ -88,8 +88,20 @@ export default function Home() {
             Meatup.Club &middot; {new Date().getFullYear()}
           </span>
           <span className="text-sm text-muted-foreground">&middot;</span>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+            Home
+          </Link>
+          <span className="text-sm text-muted-foreground">&middot;</span>
+          <Link to="/sms-consent" className="text-sm text-muted-foreground hover:text-foreground">
+            SMS Consent
+          </Link>
+          <span className="text-sm text-muted-foreground">&middot;</span>
           <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
             Privacy
+          </Link>
+          <span className="text-sm text-muted-foreground">&middot;</span>
+          <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground">
+            Terms
           </Link>
         </div>
       </footer>

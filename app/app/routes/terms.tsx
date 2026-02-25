@@ -17,7 +17,8 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-foreground">Service Overview</h2>
             <p className="mt-3">
               Meatup.Club is an invite-only application used to coordinate dining events,
-              member RSVPs, and operational reminders.
+              member RSVPs, and operational reminders. The service is operated by Jeff Spahr as a
+              sole proprietor.
             </p>
           </section>
 
@@ -42,6 +43,9 @@ export default function TermsPage() {
               </li>
               <li>
                 Consent: users opt in via profile settings with an explicit SMS consent checkbox.
+              </li>
+              <li>
+                Optionality: SMS reminders are optional and not required to use the service.
               </li>
               <li>
                 Opt-out: reply STOP at any time to stop SMS messages.
