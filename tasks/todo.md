@@ -338,3 +338,43 @@ Add direct loader/action coverage for the remaining admin-only routes so the res
   - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.content.tsx`: `0%` -> `65.07%`
   - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.email-templates.tsx`: `0%` -> `72.28%`
   - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.setup.tsx`: `0%` -> `100.00%`
+
+## Testing Roadmap PR5 (2026-03-06)
+
+### Goal
+Add cross-layer workflow tests for the highest-value meetup journeys so the suite protects full user and admin flows, not just individual modules.
+
+### Acceptance Criteria
+- [x] Add a workflow test covering invite acceptance through the route and resulting state transition.
+- [x] Add a workflow test covering poll date and restaurant voting across the member-facing routes/helpers.
+- [x] Add a workflow test covering close poll -> create event across the poll-closing and event-creation boundaries.
+- [x] Add a workflow test covering email RSVP webhook processing reflected in member-visible event state.
+- [x] Add a workflow test covering comment reply creation and reply-notification dispatch.
+- [x] Verification passes for targeted workflow tests, `npm run typecheck`, and a full coverage run.
+- [x] Record the updated baseline, workflow coverage gains, and remaining suite-governance work.
+
+### Active Tasks
+- [x] Inspect the route/helper seams for the workflow suite and choose the minimal durable test boundaries.
+- [x] Implement the workflow truth-suite tests.
+- [x] Run final verification and summarize the new baseline.
+- [x] Commit and publish the PR slice.
+
+### Working Notes
+- Clean worktree for this slice: `/Users/jspahr/repo/meatup-club-pr5a` on branch `codex/testing-roadmap-pr5`.
+- PR4 merged into `main` as commit `6d7e56a`, so PR5 can branch directly from current `origin/main`.
+- This slice uses a real in-memory SQLite database with the canonical `/Users/jspahr/repo/meatup-club-pr5a/schema.sql` loaded into a D1-style adapter, so route loaders/actions and shared helpers all mutate the same state.
+- Background email work in these routes uses `context.cloudflare.ctx.waitUntil`, so tests need to await the queued promise before asserting side effects.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr5a/app/test/support/sqlite-d1.ts` and `/Users/jspahr/repo/meatup-club-pr5a/app/test/workflow-truth-suite.test.ts`.
+- The new workflow suite covers invite acceptance -> active dashboard access, member date/restaurant voting -> admin poll close -> event creation, email RSVP webhook -> events dashboard state, and comment reply -> notification delivery.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr5a/app && npm run test:run -- test/workflow-truth-suite.test.ts` passed (`4` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr5a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr5a/app && npm run test:coverage` passed (`47` files, `361` tests).
+- Coverage improvements from the prior PR 4 baseline:
+  - Overall statements: `61.05%` -> `61.71%`
+  - Overall branches: `48.63%` -> `49.59%`
+  - Overall functions: `48.15%` -> `49.46%`
+  - `/Users/jspahr/repo/meatup-club-pr5a/app/app/lib/activity.server.ts`: `0%` -> `33.33%`
+  - `/Users/jspahr/repo/meatup-club-pr5a/app/app/routes/dashboard.admin.polls.tsx`: `46.55%` -> `50.86%`

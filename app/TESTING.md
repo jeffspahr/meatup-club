@@ -51,22 +51,22 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-06, after roadmap PR 4 slice)
+## Current Baseline (2026-03-06, after roadmap PR 5 slice)
 
 Live numbers from `npm run test:coverage`:
 
-- `46` passing test files
-- `355` passing tests
-- `61.05%` statements
-- `48.63%` branches
-- `48.15%` functions
-- `61.18%` lines
+- `47` passing test files
+- `361` passing tests
+- `61.71%` statements
+- `49.59%` branches
+- `49.46%` functions
+- `61.80%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `72.95%` statements
-- `app/app/routes`: `53.15%` statements
-- `app/app/components`: `85.95%` statements
+- `app/app/lib`: `73.95%` statements
+- `app/app/routes`: `53.45%` statements
+- `app/app/components`: `86.56%` statements
 
 Best-covered production files:
 
@@ -94,24 +94,26 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/lib/activity.server.ts`: `0%`
 - `app/lib/auth.server.ts`: `0%`
 - `app/routes/dashboard.about.tsx`: `0%`
 - `app/routes/dashboard.members.tsx`: `0%`
 - `app/routes/dashboard.rsvp.tsx`: `0%`
 - `app/components/DashboardLeadersCard.tsx`: `0%`
+- `app/lib/activity.server.ts`: `33.33%`
+- `app/lib/email-templates.ts`: `35.71%`
 - `app/routes/dashboard.admin.events.tsx`: `23.04%`
 - `app/routes/dashboard.restaurants.tsx`: `39.17%`
 - `app/routes/dashboard.dates.tsx`: `42.05%`
-- `app/routes/dashboard.admin.polls.tsx`: `46.55%`
+- `app/routes/dashboard.admin.polls.tsx`: `50.86%`
 - `app/routes/dashboard.admin.members.tsx`: `49.07%`
 
 Important interpretation notes:
 
 - `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
 - `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
-- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, and the remaining admin setup/analytics/content routes.
+- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, the remaining admin setup/analytics/content routes, and the highest-value workflow seams.
 - This slice also surfaced a real security issue: `dashboard.admin.setup.tsx` was proxying a POST to `/api/admin/setup-resend` without re-checking admin access in its `action`, so the route now enforces `requireAdmin` before forwarding the request.
+- The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps multi-route tests honest without requiring an external test database.
 
 ## Ideal State
 
@@ -327,6 +329,16 @@ Exit criteria:
 
 - The app’s highest-value cross-layer journeys have dedicated workflow protection
 
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  Added `test/workflow-truth-suite.test.ts` and `test/support/sqlite-d1.ts` to run real cross-layer workflows against an in-memory SQLite copy of the production schema.
+  The suite now covers invite acceptance -> active dashboard access, member voting -> poll close -> event creation, email RSVP webhook -> member-visible RSVP state, and comment reply -> email notification.
+  `activity.server.ts` moved to `33.33%` statements / `30.76%` branches.
+  `dashboard.admin.polls.tsx` moved to `50.86%` statements / `46.56%` branches.
+  Global coverage moved to `61.71%` statements / `49.59%` branches / `49.46%` functions.
+
 ### PR 6: Suite Hygiene and Governance
 
 Work items:
@@ -367,4 +379,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-06
-- Baseline suite: `355` tests in `46` files
+- Baseline suite: `361` tests in `47` files
