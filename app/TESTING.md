@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document describes the current test setup, the live coverage baseline, and the plan for improving confidence in the highest-risk parts of the app.
+This document describes the current test setup, the live coverage baseline, the ideal state for the test suite, and the roadmap for getting there.
 
 ## Current Stack
 
@@ -51,46 +51,79 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-06)
+## Current Baseline (2026-03-06, after roadmap PR 1 slice)
 
 Live numbers from `npm run test:coverage`:
 
-- `17` passing test files
-- `196` passing tests
-- `15.09%` statements
-- `10.38%` branches
-- `6.64%` functions
-- `15.24%` lines
+- `30` passing test files
+- `295` passing tests
+- `42.55%` statements
+- `31.93%` branches
+- `23.55%` functions
+- `42.75%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `24.95%` statements
-- `app/app/routes`: `13.82%` statements
-- `app/app/components`: `2.66%` statements
+- `app/app/lib`: `72.67%` statements
+- `app/app/routes`: `32.52%` statements
+- `app/app/components`: `46.28%` statements
 
 Best-covered production files:
 
 - `app/routes/api.webhooks.email-rsvp.tsx`: `92.68%` statements
+- `app/routes/api.polls.tsx`: `88.57%` statements
+- `app/lib/email.server.ts`: `90.62%` statements
+- `app/lib/sms.server.ts`: `88.27%` statements
+- `app/lib/comments.server.ts`: `100%` statements
+- `app/lib/restaurants.server.ts`: `100%` statements
+- `app/lib/polls.server.ts`: `100%` statements
+- `app/components/DoodleView.tsx`: `100%` statements
+- `app/components/DateCalendar.tsx`: `82.41%` statements
 - `app/lib/rsvps.server.ts`: `100%` statements
-- `app/lib/session.server.ts`: `83.33%` statements
-- `app/lib/db.server.ts`: `60%` statements
-- `app/routes/dashboard.admin.polls.tsx`: `46.55%` statements
 
-Largest uncovered files by statement count:
+Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.admin.events.tsx`: `0%`
-- `app/routes/dashboard.polls.tsx`: `10.81%`
-- `app/lib/sms.server.ts`: `20.69%`
-- `app/lib/email.server.ts`: `29.38%`
-- `app/routes/dashboard.admin.members.tsx`: `0%`
-- `app/routes/dashboard.restaurants.tsx`: `0%`
-- `app/components/DateCalendar.tsx`: `0%`
+- `app/routes/dashboard.events.tsx`: `0%`
+- `app/routes/dashboard._index.tsx`: `0%`
+- `app/routes/dashboard.profile.tsx`: `0%`
+- `app/routes/accept-invite.tsx`: `0%`
+- `app/routes/api.places.details.tsx`: `37.83%`
+- `app/routes/api.places.photo.tsx`: `18.51%`
+- `app/routes/dashboard.polls.tsx`: `63.24%`
+- `app/components/RestaurantAutocomplete.tsx`: `0%`
+- `app/components/CommentThread.tsx`: `11.11%`
 
 Important interpretation notes:
 
 - `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
 - `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
-- The current suite is strongest around webhook security, RSVP parsing, email sending, and a few admin poll flows. It is weakest in dashboard UI behavior and mutation-heavy route modules.
+- The current suite is strongest around webhook security, RSVP parsing, notifications, and a growing set of poll/date/admin flows. It is still weakest in member-facing dashboard routes, shared interactive components, and helper modules that own restaurant/comment/poll state transitions.
+
+## Ideal State
+
+The target is not "100% everywhere." The target is a codebase where a real regression in a core workflow is likely to fail a test quickly.
+
+For this repo, the ideal state is:
+
+- Every mutation-heavy route has real loader/action coverage for success, validation, permission denial, and failure branches.
+- Every domain helper that owns business rules has direct tests, not just incidental route coverage.
+- Every shared interactive component used in core flows has behavior tests for user-visible state changes and callback payloads.
+- A small workflow suite exercises the most important cross-layer journeys end to end.
+- Smoke suites remain in place, but they are treated as structural checks rather than substantive behavior coverage.
+- No important product file remains at `0%` coverage.
+
+If this state is reached, breaking poll creation, voting, event creation, invites, comment replies, or webhook handling should be difficult to do without at least one failing test.
+
+## Long-Term Coverage Goals
+
+Use these as the ideal-state targets:
+
+- Global coverage: `70%+` statements and `60%+` branches.
+- Critical route/action and server modules: `85-95%+` statements with meaningful branch coverage.
+- Important product files at `0%`: `0`.
+- Major workflows covered: each one should have direct route/helper coverage, and the highest-value flows should also have at least one cross-layer workflow test.
+
+These numbers are not the point by themselves. They are a forcing function to make sure the core meetup workflows are actually defended.
 
 ## Testing Strategy
 
@@ -108,119 +141,158 @@ What to optimize for:
 - Focus on security, permissions, data integrity, and external integration failures before cosmetic UI coverage.
 - Keep mocks at the system boundary. Prefer real parsing, validation, and branching logic inside the unit under test.
 
-## Coverage Improvement Plan
+## Test Standards for This Repo
 
-### Priority 0: Close the highest-risk server and mutation gaps
+Use these standards for all new work and all future coverage expansion:
+
+- Any behavior change should include a new test or an update to an existing test, unless the change is strictly static copy, styling, or docs.
+- Bug fixes should add a regression test that fails on the pre-fix behavior.
+- Smoke tests are useful, but they do not replace behavioral tests for route logic, business rules, or user interactions.
+- Tests should cover both the happy path and the most important failure branch for the touched code.
+- Security-sensitive code must exercise malformed input, unauthorized access, and external failure cases.
+- Route tests should assert on returned data, redirects, status codes, permission checks, and side effects.
+- Helper tests should cover business-rule branches directly, especially when the helper owns mutation or validation logic.
+- Component tests should render the real component under test rather than a simplified inline stand-in when the goal is to validate app behavior.
+- Workflow tests should be used selectively for cross-layer journeys that lower-level tests would not protect well on their own.
+- The suite should optimize for trustworthiness, not raw test count.
+
+## Multi-PR Roadmap
+
+This is the concrete roadmap to reach the ideal state without turning the suite into an unstructured pile of tests.
+
+### PR 1: Poll Core and Domain Helpers
 
 Target files:
 
 - `app/routes/dashboard.polls.tsx`
-- `app/routes/dashboard.admin.events.tsx`
-- `app/lib/email.server.ts`
-- `app/lib/sms.server.ts`
+- `app/lib/restaurants.server.ts`
+- `app/lib/comments.server.ts`
+- `app/lib/polls.server.ts`
 
-Add tests for:
+Focus:
 
-- Loader and action success paths
-- Invalid form payloads and input validation
-- Auth and permission rejection paths
-- Provider or DB failures
-- Side effects such as event creation, invite generation, or outbound message dispatch
+- Poll loader data shaping
+- Restaurant suggest/vote/change/unvote/delete behavior
+- Comment add/reply/delete behavior
+- Permission checks and invalid payload handling
+- Side effects such as notifications or activity logging
 
-Suggested exit criteria:
+Exit criteria:
 
-- No mutation-heavy server module above remains effectively untested
-- Overall statement coverage reaches roughly `25%`
-- Branch coverage improves materially in route actions and provider adapters
+- Poll mutations have real route-level coverage beyond date-only branches
+- Restaurant/comment/poll helper modules are no longer at `0%`
+- `dashboard.polls.tsx` is above roughly `50%` statement coverage with meaningful branch movement
 
-### Priority 1: Cover the main dashboard and admin workflows
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  `dashboard.polls.tsx` moved to `63.24%` statements / `56.47%` branches.
+  `restaurants.server.ts`, `comments.server.ts`, and `polls.server.ts` are now at `100%` statement coverage.
+
+### PR 2: Member-Facing Dashboard Routes
 
 Target files:
 
-- `app/routes/dashboard.admin.members.tsx`
-- `app/routes/dashboard.restaurants.tsx`
-- `app/routes/dashboard.dates.tsx`
-- `app/routes/api.polls.tsx`
+- `app/routes/dashboard.events.tsx`
+- `app/routes/dashboard._index.tsx`
+- `app/routes/dashboard.profile.tsx`
+- `app/routes/accept-invite.tsx`
+
+Focus:
+
+- Loader states
+- Empty and populated rendering states
+- RSVP-related actions and validation
+- Invite acceptance and edge cases
+
+Exit criteria:
+
+- Main member-facing dashboard surfaces are no longer untested
+- Core event viewing and invite acceptance paths have direct coverage
+
+### PR 3: Shared Interactive Components and Places API
+
+Target files:
+
+- `app/components/RestaurantAutocomplete.tsx`
+- `app/components/AddRestaurantModal.tsx`
+- `app/components/CommentThread.tsx`
+- `app/components/CommentSection.tsx`
+- `app/components/DashboardNav.tsx`
 - `app/routes/api.places.search.tsx`
 - `app/routes/api.places.details.tsx`
 - `app/routes/api.places.photo.tsx`
 
-Add tests for:
+Focus:
 
-- Loader data shaping
-- Form submissions and mutations
-- Empty states
-- Invalid query parameters
-- Permission and rate-limit behavior where applicable
+- Input behavior
+- Disabled/loading/error states
+- Keyboard and mouse interactions
+- Callback payload correctness
+- Invalid query handling, auth, and rate-limit behavior for places endpoints
 
-Suggested exit criteria:
+Exit criteria:
 
-- Core admin and dashboard mutations have route-level tests
-- Zero-coverage route files are no longer concentrated in active product areas
-- Overall statement coverage reaches roughly `35%`
+- Shared interactive UI in the poll/restaurant/comment flows has direct behavior coverage
+- Places API routes are protected by real request/response tests
 
-### Priority 2: Replace misleading coverage with real behavior coverage
-
-Work items:
-
-- Keep `test/route-health.test.ts` as a smoke suite, but treat it as structural validation only.
-- Replace or rename `test/admin-polls-e2e.test.tsx` so it either tests the real route module or no longer implies full E2E coverage.
-- For any route that currently has only export/import checks, add at least one behavior test before counting it as covered.
-
-Suggested exit criteria:
-
-- High test counts no longer mask low behavior coverage
-- Route-level coverage better reflects real user-visible or server-visible behavior
-
-### Priority 3: Add shared component behavior coverage
+### PR 4: Remaining Admin Surfaces
 
 Target files:
 
-- `app/components/DateCalendar.tsx`
-- `app/components/RestaurantAutocomplete.tsx`
-- `app/components/AddRestaurantModal.tsx`
-- `app/components/DashboardNav.tsx`
-- `app/components/CommentThread.tsx`
-- `app/components/CommentSection.tsx`
+- `app/routes/dashboard.admin.email-templates.tsx`
+- `app/routes/dashboard.admin.setup.tsx`
+- `app/routes/dashboard.admin.analytics.tsx`
+- `app/routes/dashboard.admin.content.tsx`
+- `app/routes/dashboard.admin.backfill-hours.tsx`
+- `app/routes/dashboard.admin._index.tsx`
 
-Focus on:
+Focus:
 
-- Keyboard and mouse interactions
-- Disabled and loading states
-- Error and empty states
-- Callback payloads and form semantics
-- Rendering of key content for authenticated workflows
+- Admin-only access
+- Loader shaping
+- Form submissions and mutations
+- Empty/error states
 
-Suggested exit criteria:
+Exit criteria:
 
-- Shared dashboard components have direct behavior tests
-- Component statement coverage is no longer near zero
+- No important admin workflow route remains effectively untested
+- Admin mutation routes have at least one success-path and one rejection/failure-path test
 
-### Priority 4: Add a small number of true workflow tests
+### PR 5: Workflow Truth Suite
 
-High-value candidate flows:
+High-value flows:
 
 - Accept invite
-- Vote in poll
+- Vote on poll dates and restaurants
 - Close poll and create event
-- RSVP webhook update reflected in application state
+- RSVP webhook update reflected in app state
+- Comment reply notification
 
 Guidance:
 
-- Add a workflow test only when the behavior spans multiple layers and lower-level tests would miss the regression.
-- Prefer a few reliable workflow tests over a large brittle suite.
+- Prefer a small number of durable workflow tests over broad brittle end-to-end coverage.
+- Each workflow should prove something lower-level tests could still miss.
 
-## Test Standards for This Repo
+Exit criteria:
 
-Use these standards for new work:
+- The app’s highest-value cross-layer journeys have dedicated workflow protection
 
-- Any behavior change should include a new test or an update to an existing test, unless the change is strictly static copy, styling, or docs.
-- Bug fixes should add a regression test that fails on the pre-fix behavior.
-- Smoke tests are allowed, but they do not replace behavioral tests for route or business logic changes.
-- Tests should cover both the happy path and the most important failure branch for the touched code.
-- Security-sensitive code must exercise malformed input, unauthorized access, and external failure cases.
-- Route tests should assert on returned data, redirects, status codes, and side effects, not only the presence of exported functions.
-- Component tests should render the real component under test rather than a simplified inline stand-in when the goal is to validate app behavior.
+### PR 6: Suite Hygiene and Governance
+
+Work items:
+
+- Rework or rename `test/admin-polls-e2e.test.tsx` so its name matches what it actually proves
+- Keep `test/route-health.test.ts` as a smoke suite, but document and treat it as structural-only coverage
+- Refresh this file whenever the baseline changes materially
+- Add or tighten CI expectations only after the suite reaches stable, trustworthy coverage
+
+Exit criteria:
+
+- Test names and docs accurately describe what the suite proves
+- Coverage numbers no longer overstate confidence
+- The test suite is maintainable, not just large
 
 ## Verification Checklist
 
@@ -247,4 +319,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-06
-- Baseline suite: `196` tests in `17` files
+- Baseline suite: `295` tests in `30` files
