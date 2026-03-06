@@ -11,6 +11,7 @@ export async function loader({ request, context }: { request: Request; context: 
 }
 
 export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
+  await requireAdmin(request, context);
   const formData = await request.formData();
   const _action = formData.get('_action');
 

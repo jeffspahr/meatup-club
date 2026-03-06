@@ -51,28 +51,33 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-06, after roadmap PR 3 slice)
+## Current Baseline (2026-03-06, after roadmap PR 4 slice)
 
 Live numbers from `npm run test:coverage`:
 
-- `40` passing test files
-- `331` passing tests
-- `53.75%` statements
-- `42.61%` branches
-- `36.22%` functions
-- `53.87%` lines
+- `46` passing test files
+- `355` passing tests
+- `61.05%` statements
+- `48.63%` branches
+- `48.15%` functions
+- `61.18%` lines
 
 Coverage by area:
 
 - `app/app/lib`: `72.95%` statements
-- `app/app/routes`: `42.90%` statements
-- `app/app/components`: `82.64%` statements
+- `app/app/routes`: `53.15%` statements
+- `app/app/components`: `85.95%` statements
 
 Best-covered production files:
 
-- `app/routes/api.webhooks.email-rsvp.tsx`: `92.68%` statements
+- `app/routes/dashboard.admin._index.tsx`: `100%` statements
+- `app/routes/dashboard.admin.setup.tsx`: `100%` statements
+- `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
+- `app/routes/accept-invite.tsx`: `93.33%` statements
+- `app/routes/api.webhooks.email-rsvp.tsx`: `92.50%` statements
+- `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%` statements
 - `app/routes/api.polls.tsx`: `88.57%` statements
-- `app/lib/email.server.ts`: `90.62%` statements
+- `app/lib/email.server.ts`: `89.14%` statements
 - `app/lib/sms.server.ts`: `88.27%` statements
 - `app/lib/comments.server.ts`: `100%` statements
 - `app/lib/restaurants.server.ts`: `100%` statements
@@ -89,23 +94,24 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.admin._index.tsx`: `0%`
-- `app/routes/dashboard.admin.analytics.tsx`: `0%`
-- `app/routes/dashboard.admin.backfill-hours.tsx`: `0%`
-- `app/routes/dashboard.admin.content.tsx`: `0%`
-- `app/routes/dashboard.admin.email-templates.tsx`: `0%`
-- `app/routes/dashboard.admin.setup.tsx`: `0%`
+- `app/lib/activity.server.ts`: `0%`
+- `app/lib/auth.server.ts`: `0%`
 - `app/routes/dashboard.about.tsx`: `0%`
 - `app/routes/dashboard.members.tsx`: `0%`
 - `app/routes/dashboard.rsvp.tsx`: `0%`
 - `app/components/DashboardLeadersCard.tsx`: `0%`
-- `app/components/PageHeader.tsx`: `0%`
+- `app/routes/dashboard.admin.events.tsx`: `23.04%`
+- `app/routes/dashboard.restaurants.tsx`: `39.17%`
+- `app/routes/dashboard.dates.tsx`: `42.05%`
+- `app/routes/dashboard.admin.polls.tsx`: `46.55%`
+- `app/routes/dashboard.admin.members.tsx`: `49.07%`
 
 Important interpretation notes:
 
 - `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
 - `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
-- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, and the Places API. It is still weakest in admin-only routes and a handful of low-coverage dashboard support surfaces.
+- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, and the remaining admin setup/analytics/content routes.
+- This slice also surfaced a real security issue: `dashboard.admin.setup.tsx` was proxying a POST to `/api/admin/setup-resend` without re-checking admin access in its `action`, so the route now enforces `requireAdmin` before forwarding the request.
 
 ## Ideal State
 
@@ -290,6 +296,18 @@ Exit criteria:
 - No important admin workflow route remains effectively untested
 - Admin mutation routes have at least one success-path and one rejection/failure-path test
 
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  `dashboard.admin._index.tsx` moved to `100.00%` statements / `100.00%` branches.
+  `dashboard.admin.analytics.tsx` moved to `93.75%` statements / `82.35%` branches.
+  `dashboard.admin.backfill-hours.tsx` moved to `91.66%` statements / `72.72%` branches.
+  `dashboard.admin.content.tsx` moved to `65.07%` statements / `64.28%` branches.
+  `dashboard.admin.email-templates.tsx` moved to `72.28%` statements / `63.63%` branches.
+  `dashboard.admin.setup.tsx` moved to `100.00%` statements / `100.00%` branches.
+  The new setup route tests exposed and closed a missing admin guard in the `dashboard.admin.setup.tsx` `action`.
+
 ### PR 5: Workflow Truth Suite
 
 High-value flows:
@@ -349,4 +367,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-06
-- Baseline suite: `295` tests in `30` files
+- Baseline suite: `355` tests in `46` files

@@ -293,3 +293,48 @@ Add real behavioral coverage for shared interactive UI used in restaurant/commen
   - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.search.tsx`: `37.93%` -> `79.31%`
   - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.details.tsx`: `36.84%` -> `73.68%`
   - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.photo.tsx`: `19.23%` -> `76.92%`
+
+## Testing Roadmap PR4 (2026-03-06)
+
+### Goal
+Add direct loader/action coverage for the remaining admin-only routes so the rest of the operational dashboard is no longer effectively untested.
+
+### Acceptance Criteria
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.email-templates.tsx`.
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.setup.tsx`.
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.analytics.tsx`.
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.content.tsx`.
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.backfill-hours.tsx`.
+- [x] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin._index.tsx`.
+- [x] Verification passes for targeted tests, `npm run typecheck`, and a full coverage run.
+- [x] Record the updated coverage baseline and remaining follow-up work.
+
+### Active Tasks
+- [x] Inspect the target admin routes and current test patterns.
+- [x] Add loader/action tests for the remaining admin routes.
+- [x] Run final verification and summarize the new coverage baseline.
+- [x] Commit and publish the PR slice.
+
+### Working Notes
+- Clean worktree for this slice: `/Users/jspahr/repo/meatup-club-pr4a` on branch `codex/testing-roadmap-pr4`.
+- PR3 merged into `main` as commit `94953aa`, so PR4 can branch directly from current `origin/main`.
+- The new `dashboard.admin.setup.tsx` tests exposed a real auth gap: the route `action` was forwarding the setup POST without calling `requireAdmin`, so the route now enforces admin access before proxying.
+- Generated React Router route prop types are stricter than most test scenarios, so route component tests need a single cast at the render boundary to keep `npm run typecheck` green without weakening runtime assertions.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.setup.test.tsx`, `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.analytics.test.tsx`, `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.backfill-hours.test.tsx`, `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin._index.test.tsx`, `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.content.test.tsx`, and `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.email-templates.test.tsx`.
+- Hardened `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.setup.tsx` so the `action` checks `requireAdmin` before posting to `/api/admin/setup-resend`.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr4a/app && npm run test:run -- app/routes/dashboard.admin.setup.test.tsx app/routes/dashboard.admin.analytics.test.tsx app/routes/dashboard.admin.backfill-hours.test.tsx app/routes/dashboard.admin._index.test.tsx app/routes/dashboard.admin.content.test.tsx app/routes/dashboard.admin.email-templates.test.tsx` passed (`24` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr4a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr4a/app && npm run test:coverage` passed (`46` files, `355` tests).
+- Coverage improvements from the prior PR 3 baseline:
+  - Overall statements: `53.75%` -> `61.05%`
+  - Overall branches: `42.61%` -> `48.63%`
+  - Overall functions: `36.22%` -> `48.15%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin._index.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.analytics.tsx`: `0%` -> `93.75%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.backfill-hours.tsx`: `0%` -> `91.66%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.content.tsx`: `0%` -> `65.07%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.email-templates.tsx`: `0%` -> `72.28%`
+  - `/Users/jspahr/repo/meatup-club-pr4a/app/app/routes/dashboard.admin.setup.tsx`: `0%` -> `100.00%`
