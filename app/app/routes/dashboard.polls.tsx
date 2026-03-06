@@ -578,6 +578,14 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
     submit(formData, { method: 'post' });
   }
 
+  function handleDoodleVoteToggle(suggestionId: number, remove: boolean) {
+    const formData = new FormData();
+    formData.append('_action', 'vote_date');
+    formData.append('suggestion_id', suggestionId.toString());
+    formData.append('remove', remove ? 'true' : 'false');
+    submit(formData, { method: 'post' });
+  }
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <PageHeader
@@ -623,6 +631,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                     dateSuggestions={dateSuggestions as any}
                     dateVotes={dateVotes as any}
                     currentUserId={currentUser.id}
+                    onVoteToggle={handleDoodleVoteToggle}
                   />
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { isDateInPastLocal, getTodayDateStringLocal } from "../lib/dateUtils";
+import { isDateInPastLocal } from "../lib/dateUtils";
 import { CheckIcon } from "@heroicons/react/24/outline";
 
 interface DateVote {
@@ -20,9 +20,15 @@ interface DoodleViewProps {
   dateSuggestions: DateSuggestion[];
   dateVotes: DateVote[];
   currentUserId: number;
+  onVoteToggle: (suggestionId: number, remove: boolean) => void;
 }
 
-export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: DoodleViewProps) {
+export function DoodleView({
+  dateSuggestions,
+  dateVotes,
+  currentUserId,
+  onVoteToggle,
+}: DoodleViewProps) {
   // Only render on client-side to use local timezone consistently
   const [isMounted, setIsMounted] = useState(false);
 
@@ -134,20 +140,49 @@ export function DoodleView({ dateSuggestions, dateVotes, currentUserId }: Doodle
                       <span className="ml-1 text-[10px] text-blue-600 dark:text-blue-400">(you)</span>
                     )}
                   </td>
-                  {votedDates.map(date => (
-                    <td
-                      key={date.id}
-                      className={`border border-border text-center ${
-                        userVotes.has(date.suggested_date)
-                          ? 'bg-green-100 dark:bg-green-900/30'
-                          : ''
-                      }`}
-                    >
-                      {userVotes.has(date.suggested_date) && (
-                        <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
-                      )}
-                    </td>
-                  ))}
+                  {votedDates.map(date => {
+                    const hasVoted = userVotes.has(date.suggested_date);
+                    const isCurrentUserRow = user.id === currentUserId;
+                    const [year, month, day] = date.suggested_date.split("-").map(Number);
+                    const localDate = new Date(year, month - 1, day);
+                    const dateLabel = localDate.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    });
+
+                    return (
+                      <td
+                        key={date.id}
+                        className={`border border-border text-center ${
+                          hasVoted ? 'bg-green-100 dark:bg-green-900/30' : ''
+                        }`}
+                      >
+                        {isCurrentUserRow ? (
+                          <button
+                            type="button"
+                            onClick={() => onVoteToggle(date.id, hasVoted)}
+                            aria-label={`${hasVoted ? "Remove your vote for" : "Vote for"} ${dateLabel}`}
+                            aria-pressed={hasVoted}
+                            className={`flex min-h-12 w-full items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset ${
+                              hasVoted
+                                ? 'hover:bg-green-200/80 dark:hover:bg-green-900/50'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            {hasVoted && (
+                              <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            )}
+                          </button>
+                        ) : (
+                          hasVoted && (
+                            <div className="flex min-h-12 items-center justify-center">
+                              <CheckIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            </div>
+                          )
+                        )}
+                      </td>
+                    );
+                  })}
                   <td className="border border-border px-3 py-2 text-center text-xs font-semibold text-foreground">
                     {voteCount}
                   </td>
