@@ -245,3 +245,51 @@ Add real coverage for the next member-facing dashboard routes so the core logged
   - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard._index.tsx`: `0%` -> `50.72%`
   - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.profile.tsx`: `0%` -> `90.00%`
   - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/accept-invite.tsx`: `0%` -> `93.33%`
+
+## Testing Roadmap PR3 (2026-03-06)
+
+### Goal
+Add real behavioral coverage for shared interactive UI used in restaurant/comment flows and for the Places API request handlers that back those components.
+
+### Acceptance Criteria
+- [ ] Add behavioral tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/RestaurantAutocomplete.tsx`.
+- [ ] Add behavioral tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/AddRestaurantModal.tsx`.
+- [ ] Add behavioral tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentThread.tsx`.
+- [ ] Add behavioral tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentSection.tsx`.
+- [ ] Add behavioral tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/DashboardNav.tsx`.
+- [ ] Add request/response tests for `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.search.tsx`, `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.details.tsx`, and `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.photo.tsx`.
+- [ ] Verification passes for targeted tests, `npm run typecheck`, and a full coverage run.
+- [ ] Record the updated coverage baseline and any remaining high-value gaps.
+
+### Active Tasks
+- [x] Inspect the target components/routes and current test patterns.
+- [x] Add component tests for shared interactive UI.
+- [x] Add route tests for the Places API handlers.
+- [x] Run final verification and summarize the new coverage baseline.
+- [ ] Commit and publish the PR slice.
+
+### Working Notes
+- Clean worktree for this slice: `/Users/jspahr/repo/meatup-club-pr3a` on branch `codex/testing-roadmap-pr3`.
+- PR2 merged into `main` as commit `61dda8e`, so PR3 can branch directly from current `origin/main`.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/RestaurantAutocomplete.test.tsx` with debounce, keyboard-selection, empty-result, and click-outside coverage.
+- Added `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/AddRestaurantModal.test.tsx` with closed-state, selection, submit, and cancel/reset coverage.
+- Added `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentThread.test.tsx`, `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentSection.test.tsx`, and `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/DashboardNav.test.tsx` with real interaction coverage for reply state, delete confirmation, empty state, and mobile-nav behavior.
+- Added `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.test.ts` with request/response coverage for search success/failure, details transformation, media proxying, and stale-photo refresh handling.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr3a/app && npm run test:run -- app/components/RestaurantAutocomplete.test.tsx app/components/AddRestaurantModal.test.tsx app/components/CommentThread.test.tsx app/components/CommentSection.test.tsx app/components/DashboardNav.test.tsx app/routes/api.places.test.ts` passed (`18` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr3a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr3a/app && npm run test:coverage` passed (`40` files, `331` tests).
+- Coverage improvements from the prior PR 2 baseline:
+  - Overall statements: `47.60%` -> `53.75%`
+  - Overall branches: `35.59%` -> `42.61%`
+  - Overall functions: `26.68%` -> `36.22%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/RestaurantAutocomplete.tsx`: `0%` -> `80.64%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/AddRestaurantModal.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentThread.tsx`: `11.11%` -> `88.88%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/CommentSection.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/components/DashboardNav.tsx`: `0%` -> `88.23%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.search.tsx`: `37.93%` -> `79.31%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.details.tsx`: `36.84%` -> `73.68%`
+  - `/Users/jspahr/repo/meatup-club-pr3a/app/app/routes/api.places.photo.tsx`: `19.23%` -> `76.92%`

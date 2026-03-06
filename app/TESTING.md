@@ -51,22 +51,22 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-06, after roadmap PR 2 slice)
+## Current Baseline (2026-03-06, after roadmap PR 3 slice)
 
 Live numbers from `npm run test:coverage`:
 
-- `34` passing test files
-- `313` passing tests
-- `47.60%` statements
-- `35.59%` branches
-- `26.68%` functions
-- `47.79%` lines
+- `40` passing test files
+- `331` passing tests
+- `53.75%` statements
+- `42.61%` branches
+- `36.22%` functions
+- `53.87%` lines
 
 Coverage by area:
 
 - `app/app/lib`: `72.95%` statements
-- `app/app/routes`: `39.53%` statements
-- `app/app/components`: `46.28%` statements
+- `app/app/routes`: `42.90%` statements
+- `app/app/components`: `82.64%` statements
 
 Best-covered production files:
 
@@ -77,28 +77,35 @@ Best-covered production files:
 - `app/lib/comments.server.ts`: `100%` statements
 - `app/lib/restaurants.server.ts`: `100%` statements
 - `app/lib/polls.server.ts`: `100%` statements
+- `app/components/AddRestaurantModal.tsx`: `100%` statements
+- `app/components/CommentSection.tsx`: `100%` statements
 - `app/components/DoodleView.tsx`: `100%` statements
 - `app/components/DateCalendar.tsx`: `82.41%` statements
+- `app/components/RestaurantAutocomplete.tsx`: `80.64%` statements
+- `app/routes/api.places.search.tsx`: `79.31%` statements
+- `app/routes/api.places.details.tsx`: `73.68%` statements
+- `app/routes/api.places.photo.tsx`: `76.92%` statements
 - `app/lib/rsvps.server.ts`: `100%` statements
 
 Largest remaining gaps in active product code:
 
 - `app/routes/dashboard.admin._index.tsx`: `0%`
 - `app/routes/dashboard.admin.analytics.tsx`: `0%`
+- `app/routes/dashboard.admin.backfill-hours.tsx`: `0%`
 - `app/routes/dashboard.admin.content.tsx`: `0%`
 - `app/routes/dashboard.admin.email-templates.tsx`: `0%`
 - `app/routes/dashboard.admin.setup.tsx`: `0%`
-- `app/routes/api.places.details.tsx`: `36.84%`
-- `app/routes/api.places.photo.tsx`: `19.23%`
-- `app/components/RestaurantAutocomplete.tsx`: `0%`
-- `app/components/CommentSection.tsx`: `0%`
-- `app/components/CommentThread.tsx`: `11.11%`
+- `app/routes/dashboard.about.tsx`: `0%`
+- `app/routes/dashboard.members.tsx`: `0%`
+- `app/routes/dashboard.rsvp.tsx`: `0%`
+- `app/components/DashboardLeadersCard.tsx`: `0%`
+- `app/components/PageHeader.tsx`: `0%`
 
 Important interpretation notes:
 
 - `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
 - `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
-- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, and the main member dashboard route actions. It is still weakest in shared interactive components, Places API surfaces, and several admin-only routes.
+- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, and the Places API. It is still weakest in admin-only routes and a handful of low-coverage dashboard support surfaces.
 
 ## Ideal State
 
@@ -246,6 +253,19 @@ Exit criteria:
 
 - Shared interactive UI in the poll/restaurant/comment flows has direct behavior coverage
 - Places API routes are protected by real request/response tests
+
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  `RestaurantAutocomplete.tsx` moved to `80.64%` statements / `73.80%` branches.
+  `AddRestaurantModal.tsx` moved to `100.00%` statements / `94.11%` branches.
+  `CommentThread.tsx` moved to `88.88%` statements / `86.95%` branches.
+  `CommentSection.tsx` moved to `100.00%` statements / `100.00%` branches.
+  `DashboardNav.tsx` moved to `88.23%` statements / `80.00%` branches.
+  `api.places.search.tsx` moved to `79.31%` statements / `72.72%` branches.
+  `api.places.details.tsx` moved to `73.68%` statements / `56.81%` branches.
+  `api.places.photo.tsx` moved to `76.92%` statements / `73.91%` branches.
 
 ### PR 4: Remaining Admin Surfaces
 
