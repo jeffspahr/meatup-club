@@ -413,3 +413,52 @@ Align the suite names, docs, and CI wiring with what the tests actually prove so
   - `cd /Users/jspahr/repo/meatup-club-pr6a/app && npm run typecheck` passed.
   - `cd /Users/jspahr/repo/meatup-club-pr6a/app && npm run test:coverage` passed (`47` files, `361` tests) with thresholds enabled.
 - Coverage baseline remains above the new floor: `61.71%` statements, `49.59%` branches, `49.46%` functions, `61.80%` lines.
+
+## Post-Roadmap Testing Slice 1 (2026-03-06)
+
+### Goal
+Reduce the remaining zero-coverage blind spots in core auth helpers and member-facing routes, while adding direct tests for low-covered pure business helpers that shape important emails and analytics logging.
+
+### Acceptance Criteria
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/auth.server.ts`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/activity.server.ts`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/email-templates.ts`.
+- [x] Add route/component tests for `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.members.tsx`.
+- [x] Add route/component tests for `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.about.tsx`.
+- [x] Add redirect coverage for `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.rsvp.tsx`.
+- [x] Run targeted verification plus `npm run typecheck` and `npm run test:coverage`.
+- [x] Record the updated baseline and any new follow-up gaps.
+
+### Active Tasks
+- [x] Review current coverage docs, lessons, and target modules.
+- [x] Implement helper and route tests for the selected zero/low-coverage files.
+- [x] Run final verification and summarize the new baseline.
+- [x] Commit and publish the PR slice.
+
+### Working Notes
+- Fresh worktree for this slice: `/Users/jspahr/repo/meatup-club-pr7a` on branch `codex/testing-post-roadmap`.
+- The current merged testing guide still lists several active product files at `0%`, with `auth.server.ts`, `dashboard.members.tsx`, and `dashboard.rsvp.tsx` among the most meaningful remaining gaps.
+- `dashboard.about.tsx` is lower risk than auth or poll/event code, but it is still a real member-facing route and inexpensive to cover while the route harness is already open.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/auth.server.test.ts` with coverage for session lookup, auth/active/admin redirects, session creation/destruction, and Google OAuth helper fetch paths.
+- Added `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/activity.server.test.ts` with coverage for metadata capture, error swallowing, user/global activity retrieval, and summary statistics.
+- Added `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/email-templates.test.ts` with direct assertions on invite, comment-reply, and RSVP-override template shaping.
+- Added `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.members.test.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.about.test.tsx`, and `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.rsvp.test.ts` so those member-facing routes are no longer at `0%`.
+- Added `/Users/jspahr/repo/meatup-club-pr7a/app/app/components/VoteLeadersCard.test.tsx` to close the untested vote-leader display component used in admin poll/event flows.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr7a/app && npm run test:run -- app/lib/auth.server.test.ts app/lib/activity.server.test.ts app/lib/email-templates.test.ts app/routes/dashboard.members.test.tsx app/routes/dashboard.about.test.tsx app/routes/dashboard.rsvp.test.ts app/components/VoteLeadersCard.test.tsx` passed (`29` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr7a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr7a/app && npm run test:coverage` passed (`54` files, `390` tests).
+- Coverage improvements from the prior merged baseline:
+  - Overall statements: `61.71%` -> `65.06%`
+  - Overall branches: `49.59%` -> `52.44%`
+  - Overall functions: `49.46%` -> `55.43%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/auth.server.ts`: `0%` -> `95.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/activity.server.ts`: `33.33%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/lib/email-templates.ts`: `35.71%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.members.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.about.tsx`: `0%` -> `75.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.rsvp.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr7a/app/app/components/VoteLeadersCard.tsx`: `0%` -> `100.00%`
+- Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/api.admin.setup-resend.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/auth.google.callback.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/logout.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.admin.events.tsx`, and `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.restaurants.tsx`.
