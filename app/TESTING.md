@@ -1,502 +1,250 @@
-# Testing Strategy - Meatup.Club
+# Testing Guide - Meatup.Club
 
-## Overview
+## Purpose
 
-This document outlines the comprehensive testing strategy to catch bugs and regressions before deployment.
+This document describes the current test setup, the live coverage baseline, and the plan for improving confidence in the highest-risk parts of the app.
 
-## Test Framework
+## Current Stack
 
-- **Framework**: Vitest (fast, Vite-native testing framework)
-- **UI Testing**: @testing-library/react
-- **Coverage**: V8 coverage provider
+- Test runner: Vitest
+- UI testing: Testing Library
+- DOM environment: `happy-dom`
+- Coverage provider: V8
+- Coverage command: `npm run test:coverage`
+- HTML coverage report: `/Users/jspahr/repo/meatup-club/app/coverage/index.html`
 
-## Test Structure
+## Test Layout
 
-```
+```text
 app/
-├── vitest.config.ts          # Vitest configuration
+├── vitest.config.ts
 ├── test/
-│   └── setup.ts              # Global test setup
-├── app/
-│   ├── lib/
-│   │   └── email.server.test.ts    # Calendar invite tests
-│   └── routes/
-│       └── api.webhooks.email-rsvp.test.ts  # Webhook & RSVP parser tests
+│   ├── setup.ts
+│   ├── route-health.test.ts
+│   ├── timezone.test.ts
+│   └── admin-polls-e2e.test.tsx
+└── app/
+    ├── lib/
+    │   └── *.test.ts
+    └── routes/
+        └── *.test.ts
 ```
+
+Use colocated tests for feature-specific behavior in `app/app/**`, and reserve `app/test/` for cross-cutting guardrails, smoke tests, or multi-route suites.
 
 ## Running Tests
 
-### Available Commands
+Run all commands from `/Users/jspahr/repo/meatup-club/app`.
 
 ```bash
-# Run tests in watch mode (recommended during development)
-npm run test
-
-# Run tests once and exit
-npm run test:run
-
-# Run tests with UI
-npm run test:ui
-
-# Run tests with coverage report
-npm run test:coverage
-
-# Watch specific test file
-npm run test -- email.server.test.ts
-```
-
-### Pre-Deployment Checklist
-
-**Before deploying to production, always run:**
-
-```bash
-npm run test:run
+npm run test           # watch mode
+npm run test:run       # single run
+npm run test:coverage  # single run with coverage
+npm run test:ui        # Vitest UI
 npm run typecheck
 npm run build
 ```
 
-## Test Coverage
+Filter to a specific file or pattern when iterating:
 
-### Current Coverage (98 tests)
+```bash
+npm run test -- email.server.test.ts
+```
 
-#### ✅ Calendar RSVP Parsing (26 tests)
-- **File**: `app/routes/api.webhooks.email-rsvp.test.ts`
-- **What's Tested**:
-  - Valid RSVP parsing (ACCEPTED, DECLINED, TENTATIVE)
-  - Legacy UID format support
-  - Subject line fallback parsing
-  - HTML content parsing
-  - Security: SQL injection attempts
-  - Security: XSS attempts
-  - Security: Invalid UID formats
-  - Security: Wrong domain rejection
-  - Edge cases: Multiple UIDs, long input, null/undefined
-  - Event UID validation and extraction
-  - PARTSTAT to RSVP status mapping
+## Current Baseline (2026-03-06)
 
-**Security Focus**: This test suite heavily focuses on validating untrusted email input to prevent attacks.
+Live numbers from `npm run test:coverage`:
 
-#### ✅ Webhook Integration & Database Operations (18 tests)
-- **File**: `app/routes/api.webhooks.email-rsvp.integration.test.ts`
-- **What's Tested**:
-  - **Webhook Security** (7 tests):
-    - Missing webhook secret configuration
-    - Missing Svix signature headers (svix-id, svix-timestamp, svix-signature)
-    - Invalid signature rejection
-    - Valid signature processing
-    - Non-email.received event filtering
-    - Emails without RSVP data handling
-  - **Database Operations** (11 tests):
-    - User lookup by email (case-insensitive)
-    - Email extraction from "Name <email@domain.com>" format
-    - User not found (404) scenarios
-    - Event validation and not found (404) scenarios
-    - RSVP creation for new responses
-    - RSVP updates for existing responses
-    - PARTSTAT to status mapping (ACCEPTED→yes, DECLINED→no, TENTATIVE→maybe)
-    - Status change tracking (updated_via_calendar flag)
-    - Database error handling
+- `17` passing test files
+- `196` passing tests
+- `15.09%` statements
+- `10.38%` branches
+- `6.64%` functions
+- `15.24%` lines
 
-**Security Focus**: Critical tests for webhook signature verification using Svix. Ensures only authenticated webhooks from Resend can modify RSVPs.
+Coverage by area:
 
-**Quality Focus**: Full integration testing with mocked D1 database ensures the entire RSVP sync flow works correctly.
+- `app/app/lib`: `24.95%` statements
+- `app/app/routes`: `13.82%` statements
+- `app/app/components`: `2.66%` statements
 
-#### ✅ Calendar Invite Generation (21 tests)
-- **File**: `app/lib/email.server.test.ts`
-- **What's Tested**:
-  - RFC 5545 compliance
-  - Stable UID generation (critical for calendar updates)
-  - Date/time formatting (UTC ISO format)
-  - 2-hour event duration
-  - Custom event times
-  - Restaurant details (name, address)
-  - Location fallback when address is null
-  - SEQUENCE numbering (0 for original)
-  - PARTSTAT configuration (NEEDS-ACTION)
-  - RSVP=TRUE setting
-  - Organizer email (rsvp@mail.meatup.club)
-  - 24-hour reminder alarm
-  - Special characters handling
+Best-covered production files:
 
-**Quality Focus**: Ensures calendar invites work correctly across all major calendar applications (Google Calendar, Apple Calendar, Outlook).
+- `app/routes/api.webhooks.email-rsvp.tsx`: `92.68%` statements
+- `app/lib/rsvps.server.ts`: `100%` statements
+- `app/lib/session.server.ts`: `83.33%` statements
+- `app/lib/db.server.ts`: `60%` statements
+- `app/routes/dashboard.admin.polls.tsx`: `46.55%` statements
 
-#### ✅ Dark Mode System (14 tests)
-- **File**: `test/dark-mode.test.ts`
-- **What's Tested**:
-  - CSS variables configuration (`:root` and dark mode media query)
-  - Color overrides for gray-scale classes (bg, text, border)
-  - WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
-  - Light mode contrast validation
-  - Dark mode contrast validation
-  - Component best practices (no manual `dark:` prefixes for grays)
-  - Documentation for visual regression testing with Playwright
+Largest uncovered files by statement count:
 
-**Quality Focus**: Ensures the CSS variable-based dark mode system is properly configured and meets accessibility standards. Prevents regression to manual `dark:` class approach.
+- `app/routes/dashboard.admin.events.tsx`: `0%`
+- `app/routes/dashboard.polls.tsx`: `10.81%`
+- `app/lib/sms.server.ts`: `20.69%`
+- `app/lib/email.server.ts`: `29.38%`
+- `app/routes/dashboard.admin.members.tsx`: `0%`
+- `app/routes/dashboard.restaurants.tsx`: `0%`
+- `app/components/DateCalendar.tsx`: `0%`
 
-#### ✅ Email Sending (19 tests)
-- **File**: `app/lib/email.server.send.test.ts`
-- **What's Tested**:
-  - **Resend API Integration** (14 tests):
-    - Successful email sending with correct API calls
-    - Template variable replacement ({{inviteeName}}, {{inviterName}}, {{acceptLink}})
-    - Default values for null parameters
-    - Email metadata (from, to, reply_to, headers, tags)
-    - Resend API error handling (non-2xx responses)
-    - Network error handling
-    - Timeout error handling
-    - Multiple variable replacements in same field
-    - Special characters in template variables
-  - **Comment Reply Emails** (7 tests):
-    - Comment reply notification sending
-    - Correct metadata for reply emails
-    - Null recipient name handling
-    - Long comment text handling
-    - Special characters in comments
-    - API errors for comment replies
-    - Network errors for comment replies
-  - **Error Handling Edge Cases** (3 tests):
-    - Malformed JSON responses
-    - Empty API keys
-    - Invalid email addresses
+Important interpretation notes:
 
-**Security Focus**: Tests validate that API keys are properly included in Authorization headers and that errors don't expose sensitive information.
+- `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
+- `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
+- The current suite is strongest around webhook security, RSVP parsing, email sending, and a few admin poll flows. It is weakest in dashboard UI behavior and mutation-heavy route modules.
 
-**Quality Focus**: Comprehensive mocking of fetch API ensures email sending logic works correctly without making real API calls during testing.
+## Testing Strategy
 
-## Testing Philosophy
+Use the smallest test that proves the behavior:
 
-### 1. **Test Critical Paths First**
+- Pure utility and server helper logic: unit tests next to the module.
+- Route loaders and actions: integration-style tests using a real `Request`, mocked Cloudflare context, and mocked DB/provider boundaries.
+- React components: render the real component and assert on user-visible behavior, accessibility, and interaction.
+- Full workflows: reserve broader integration or end-to-end tests for high-value journeys that span multiple layers.
 
-Priority areas:
-1. **Security-sensitive code** (webhook signature verification, input validation)
-2. **Data integrity** (RSVP syncing, event creation)
-3. **External integrations** (calendar invites, email sending)
+What to optimize for:
 
-### 2. **Test Input Validation Thoroughly**
+- Behavior over implementation details.
+- Reproducible regression tests for every bug fix.
+- Focus on security, permissions, data integrity, and external integration failures before cosmetic UI coverage.
+- Keep mocks at the system boundary. Prefer real parsing, validation, and branching logic inside the unit under test.
 
-All user/external input should be tested with:
-- Valid inputs
-- Invalid inputs
-- Malicious inputs (SQL injection, XSS)
-- Edge cases (empty, null, extremely long)
-- Special characters
+## Coverage Improvement Plan
 
-### 3. **Test Edge Cases**
+### Priority 0: Close the highest-risk server and mutation gaps
 
-Examples of edge cases we test:
-- Multiple UIDs in one email
-- Missing required fields
-- Legacy format support
-- Case sensitivity
-- Timezone handling
+Target files:
 
-### 4. **Don't Test Implementation Details**
+- `app/routes/dashboard.polls.tsx`
+- `app/routes/dashboard.admin.events.tsx`
+- `app/lib/email.server.ts`
+- `app/lib/sms.server.ts`
+
+Add tests for:
+
+- Loader and action success paths
+- Invalid form payloads and input validation
+- Auth and permission rejection paths
+- Provider or DB failures
+- Side effects such as event creation, invite generation, or outbound message dispatch
+
+Suggested exit criteria:
+
+- No mutation-heavy server module above remains effectively untested
+- Overall statement coverage reaches roughly `25%`
+- Branch coverage improves materially in route actions and provider adapters
+
+### Priority 1: Cover the main dashboard and admin workflows
+
+Target files:
+
+- `app/routes/dashboard.admin.members.tsx`
+- `app/routes/dashboard.restaurants.tsx`
+- `app/routes/dashboard.dates.tsx`
+- `app/routes/api.polls.tsx`
+- `app/routes/api.places.search.tsx`
+- `app/routes/api.places.details.tsx`
+- `app/routes/api.places.photo.tsx`
+
+Add tests for:
+
+- Loader data shaping
+- Form submissions and mutations
+- Empty states
+- Invalid query parameters
+- Permission and rate-limit behavior where applicable
+
+Suggested exit criteria:
+
+- Core admin and dashboard mutations have route-level tests
+- Zero-coverage route files are no longer concentrated in active product areas
+- Overall statement coverage reaches roughly `35%`
+
+### Priority 2: Replace misleading coverage with real behavior coverage
+
+Work items:
+
+- Keep `test/route-health.test.ts` as a smoke suite, but treat it as structural validation only.
+- Replace or rename `test/admin-polls-e2e.test.tsx` so it either tests the real route module or no longer implies full E2E coverage.
+- For any route that currently has only export/import checks, add at least one behavior test before counting it as covered.
+
+Suggested exit criteria:
+
+- High test counts no longer mask low behavior coverage
+- Route-level coverage better reflects real user-visible or server-visible behavior
+
+### Priority 3: Add shared component behavior coverage
+
+Target files:
+
+- `app/components/DateCalendar.tsx`
+- `app/components/RestaurantAutocomplete.tsx`
+- `app/components/AddRestaurantModal.tsx`
+- `app/components/DashboardNav.tsx`
+- `app/components/CommentThread.tsx`
+- `app/components/CommentSection.tsx`
 
 Focus on:
-- **What** the code does (behavior)
-- **Not how** it does it (implementation)
 
-## What's NOT Tested Yet
+- Keyboard and mouse interactions
+- Disabled and loading states
+- Error and empty states
+- Callback payloads and form semantics
+- Rendering of key content for authenticated workflows
 
-### 🔴 Critical Gaps
+Suggested exit criteria:
 
-1. **Email Sending - Advanced Features**
-   - Calendar invite attachments (sendEventInvites, sendCalendarUpdate functions)
-   - Batch email sending to multiple recipients
-   - Email template loading from database
+- Shared dashboard components have direct behavior tests
+- Component statement coverage is no longer near zero
 
-2. **Authentication**
-   - Admin permission checks
-   - Session validation
+### Priority 4: Add a small number of true workflow tests
 
-### 🟡 Nice to Have
+High-value candidate flows:
 
-1. **Component Tests**
-   - AddRestaurantModal
-   - DashboardNav
-   - Form components
+- Accept invite
+- Vote in poll
+- Close poll and create event
+- RSVP webhook update reflected in application state
 
-2. **E2E Tests**
-   - Full RSVP flow (website → calendar → webhook → website)
-   - Event creation flow
-   - Restaurant voting flow
+Guidance:
 
-3. **Performance Tests**
-   - Large email payloads
-   - Concurrent webhook requests
-   - Database query performance
+- Add a workflow test only when the behavior spans multiple layers and lower-level tests would miss the regression.
+- Prefer a few reliable workflow tests over a large brittle suite.
 
-## Adding New Tests
+## Test Standards for This Repo
 
-### Test File Naming Convention
+Use these standards for new work:
 
-```
-# For route handlers
-app/routes/[route-name].test.ts
+- Any behavior change should include a new test or an update to an existing test, unless the change is strictly static copy, styling, or docs.
+- Bug fixes should add a regression test that fails on the pre-fix behavior.
+- Smoke tests are allowed, but they do not replace behavioral tests for route or business logic changes.
+- Tests should cover both the happy path and the most important failure branch for the touched code.
+- Security-sensitive code must exercise malformed input, unauthorized access, and external failure cases.
+- Route tests should assert on returned data, redirects, status codes, and side effects, not only the presence of exported functions.
+- Component tests should render the real component under test rather than a simplified inline stand-in when the goal is to validate app behavior.
 
-# For library functions
-app/lib/[module-name].test.ts
+## Verification Checklist
 
-# For components
-app/components/[ComponentName].test.tsx
-```
-
-### Example Test Template
-
-```typescript
-import { describe, it, expect } from 'vitest';
-
-describe('Feature Name', () => {
-  describe('Valid Input', () => {
-    it('should handle basic case', () => {
-      // Arrange
-      const input = 'test';
-
-      // Act
-      const result = myFunction(input);
-
-      // Assert
-      expect(result).toBe('expected');
-    });
-  });
-
-  describe('Invalid/Malicious Input', () => {
-    it('should reject SQL injection', () => {
-      const malicious = "'; DROP TABLE users; --";
-      const result = myFunction(malicious);
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle empty input', () => {
-      expect(myFunction('')).toBeNull();
-    });
-  });
-});
-```
-
-## CI/CD Integration (Future)
-
-### Recommended GitHub Actions Workflow
-
-```yaml
-name: Test
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      - run: cd app && npm ci
-      - run: cd app && npm run test:run
-      - run: cd app && npm run typecheck
-      - run: cd app && npm run build
-```
-
-### Pre-Commit Hooks (Future)
-
-When the project structure allows for it:
-
-```json
-// package.json
-{
-  "lint-staged": {
-    "**/*.{ts,tsx}": [
-      "npm run test:run -- --related",
-      "npm run typecheck"
-    ]
-  }
-}
-```
-
-## Testing Workflow
-
-### During Development
-
-1. **Write test first** (TDD recommended for critical features)
-2. Run `npm run test` in watch mode
-3. Write code until test passes
-4. Refactor if needed
-5. Ensure all tests still pass
-
-### Before Committing
+Before merging behavior changes:
 
 ```bash
 npm run test:run
 npm run typecheck
 ```
 
-### Before Deploying
+Run these as well when the change touches multiple routes, shared infrastructure, or coverage-sensitive areas:
 
 ```bash
-npm run test:coverage  # Check coverage
-npm run test:run       # All tests pass
-npm run typecheck      # No TypeScript errors
-npm run build          # Build succeeds
+npm run test:coverage
+npm run build
 ```
 
-## Coverage Goals
+## Debugging Tips
 
-### Current Coverage
-- **Calendar Parsing**: ~95% (excellent)
-- **Calendar Generation**: ~90% (excellent)
-- **Webhook Integration**: ~85% (excellent)
-- **RSVP Database Operations**: ~80% (good)
-- **Email Sending**: ~75% (good)
-- **Overall**: ~50% (good progress)
+- Use `npm run test` for watch mode while iterating.
+- Use `npm run test:ui` to inspect failing tests interactively.
+- Open `/Users/jspahr/repo/meatup-club/app/coverage/index.html` after a coverage run to inspect uncovered branches before adding tests.
 
-### Coverage Targets
-- **Critical Security Code**: 100%
-- **Business Logic**: 80%+
-- **UI Components**: 60%+
-- **Overall Project**: 70%+
+## Last Updated
 
-## Debugging Tests
-
-### View Test UI
-
-```bash
-npm run test:ui
-```
-
-This opens a browser interface showing:
-- Test results
-- Code coverage
-- File changes triggering re-runs
-
-### Run Single Test File
-
-```bash
-npm run test email.server.test.ts
-```
-
-### Debug in VS Code
-
-Add to `.vscode/launch.json`:
-
-```json
-{
-  "type": "node",
-  "request": "launch",
-  "name": "Debug Tests",
-  "runtimeExecutable": "npm",
-  "runtimeArgs": ["run", "test:run"],
-  "console": "integratedTerminal"
-}
-```
-
-## Best Practices
-
-### ✅ DO
-
-- Test behavior, not implementation
-- Use descriptive test names
-- Test happy path AND error cases
-- Test with malicious input for security-sensitive code
-- Keep tests fast and isolated
-- Mock external dependencies (APIs, database)
-
-### ❌ DON'T
-
-- Test framework code
-- Test third-party libraries
-- Make tests depend on each other
-- Hardcode dates/times (use relative dates)
-- Skip error cases
-- Test private functions directly
-
-## Security Testing
-
-### Input Validation Tests
-
-Every function that accepts external input MUST have tests for:
-
-```typescript
-describe('Security', () => {
-  it('should reject SQL injection attempts', () => {
-    const malicious = "'; DROP TABLE users; --";
-    expect(sanitize(malicious)).not.toContain('DROP');
-  });
-
-  it('should escape XSS attempts', () => {
-    const xss = '<script>alert("XSS")</script>';
-    const result = sanitize(xss);
-    expect(result).not.toContain('<script>');
-  });
-
-  it('should handle extremely long input', () => {
-    const long = 'A'.repeat(1000000);
-    expect(() => sanitize(long)).not.toThrow();
-  });
-});
-```
-
-## Performance Testing
-
-For performance-critical code:
-
-```typescript
-import { describe, it, expect } from 'vitest';
-
-describe('Performance', () => {
-  it('should process large input quickly', () => {
-    const start = Date.now();
-    const largeInput = Array(10000).fill('data');
-    processData(largeInput);
-    const duration = Date.now() - start;
-
-    expect(duration).toBeLessThan(1000); // Should complete in <1s
-  });
-});
-```
-
-## Regression Testing
-
-When a bug is found:
-
-1. **Write a failing test** that reproduces the bug
-2. Fix the bug
-3. Verify the test now passes
-4. Keep the test to prevent regression
-
-Example:
-
-```typescript
-// Bug: Restaurant addition failing with field name mismatch
-describe('Restaurant Addition Regression', () => {
-  it('should use google_place_id not place_id', async () => {
-    // This test would have caught the bug
-    const result = await addRestaurant({
-      google_place_id: '123',
-      name: 'Test Restaurant'
-    });
-    expect(result.success).toBe(true);
-  });
-});
-```
-
-## Continuous Improvement
-
-- **Monthly**: Review test coverage and add tests for untested code
-- **After bugs**: Add regression tests
-- **Before new features**: Write tests first (TDD)
-- **Code reviews**: Require tests for all PRs
-
-## Resources
-
-- [Vitest Documentation](https://vitest.dev/)
-- [Testing Library](https://testing-library.com/)
-- [RFC 5545 (iCalendar)](https://tools.ietf.org/html/rfc5545)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-
----
-
-**Last Updated**: 2025-12-28
-**Test Count**: 98 tests
-**All Tests**: ✅ Passing
+- Date: 2026-03-06
+- Baseline suite: `196` tests in `17` files
