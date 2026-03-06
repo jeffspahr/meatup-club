@@ -197,3 +197,51 @@ Implement the first high-value slice of the coverage improvement plan by adding 
   - `/Users/jspahr/repo/meatup-club/app/app/lib/email.server.ts`: `29.38%` -> `90.62%`
   - `/Users/jspahr/repo/meatup-club/app/app/lib/sms.server.ts`: `20.69%` -> `88.27%`
   - `/Users/jspahr/repo/meatup-club/app/app/routes/dashboard.polls.tsx`: `10.81%` -> `24.32%`
+
+## Testing Roadmap PR2 (2026-03-06)
+
+### Goal
+Add real coverage for the next member-facing dashboard routes so the core logged-in user flows are no longer sitting at `0%` or near-`0%`.
+
+### Acceptance Criteria
+- [ ] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.events.tsx`.
+- [ ] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard._index.tsx`.
+- [ ] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.profile.tsx`.
+- [ ] Add route-level behavioral tests for `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/accept-invite.tsx`.
+- [ ] Verification passes for targeted tests, `npm run typecheck`, and a full coverage run.
+- [ ] Record the updated coverage baseline and any blockers or follow-up work.
+
+### Active Tasks
+- [x] Inspect the target routes and current test patterns.
+- [x] Add tests for `dashboard.events.tsx`.
+- [x] Add tests for `dashboard._index.tsx`.
+- [x] Add tests for `dashboard.profile.tsx`.
+- [x] Add tests for `accept-invite.tsx`.
+- [x] Reconcile full-suite verification failures and keep the branch green.
+- [x] Run final verification and summarize the new coverage baseline.
+- [ ] Commit and publish the PR slice.
+
+### Working Notes
+- Clean worktree for this slice: `/Users/jspahr/repo/meatup-club-pr2a` on branch `codex/testing-roadmap-pr2`.
+- Targeted route tests pass.
+- Full coverage was initially blocked by two expectation mismatches in `/Users/jspahr/repo/meatup-club-pr2a/app/app/lib/email.server.notifications.test.ts`; the fix was to restore email redaction and normalize thrown error messages in `/Users/jspahr/repo/meatup-club-pr2a/app/app/lib/email.server.ts`, not to loosen the tests.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.events.test.ts` with loader coverage for upcoming/past event shaping plus RSVP create/update action coverage.
+- Added `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard._index.test.ts` with empty and populated dashboard loader coverage.
+- Added `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.profile.test.ts` with notification settings, SMS validation, duplicate-phone, and invalid-action coverage.
+- Added `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/accept-invite.test.ts` with loader redirects, invited-user handling, and activation coverage.
+- Hardened `/Users/jspahr/repo/meatup-club-pr2a/app/app/lib/email.server.ts` so invite-send failures redact recipient emails and thrown errors return the plain `Error.message`.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr2a/app && npm run test:run -- app/routes/dashboard.events.test.ts app/routes/dashboard._index.test.ts app/routes/dashboard.profile.test.ts app/routes/accept-invite.test.ts` passed (`18` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr2a/app && npm run test:run -- app/lib/email.server.notifications.test.ts` passed (`9` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr2a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr2a/app && npm run test:coverage` passed (`34` files, `313` tests).
+- Coverage improvements from the prior PR 1 baseline:
+  - Overall statements: `42.55%` -> `47.60%`
+  - Overall branches: `31.93%` -> `35.59%`
+  - Overall functions: `23.55%` -> `26.68%`
+  - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.events.tsx`: `0%` -> `61.53%`
+  - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard._index.tsx`: `0%` -> `50.72%`
+  - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/dashboard.profile.tsx`: `0%` -> `90.00%`
+  - `/Users/jspahr/repo/meatup-club-pr2a/app/app/routes/accept-invite.tsx`: `0%` -> `93.33%`

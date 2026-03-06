@@ -51,21 +51,21 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-06, after roadmap PR 1 slice)
+## Current Baseline (2026-03-06, after roadmap PR 2 slice)
 
 Live numbers from `npm run test:coverage`:
 
-- `30` passing test files
-- `295` passing tests
-- `42.55%` statements
-- `31.93%` branches
-- `23.55%` functions
-- `42.75%` lines
+- `34` passing test files
+- `313` passing tests
+- `47.60%` statements
+- `35.59%` branches
+- `26.68%` functions
+- `47.79%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `72.67%` statements
-- `app/app/routes`: `32.52%` statements
+- `app/app/lib`: `72.95%` statements
+- `app/app/routes`: `39.53%` statements
 - `app/app/components`: `46.28%` statements
 
 Best-covered production files:
@@ -83,21 +83,22 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.events.tsx`: `0%`
-- `app/routes/dashboard._index.tsx`: `0%`
-- `app/routes/dashboard.profile.tsx`: `0%`
-- `app/routes/accept-invite.tsx`: `0%`
-- `app/routes/api.places.details.tsx`: `37.83%`
-- `app/routes/api.places.photo.tsx`: `18.51%`
-- `app/routes/dashboard.polls.tsx`: `63.24%`
+- `app/routes/dashboard.admin._index.tsx`: `0%`
+- `app/routes/dashboard.admin.analytics.tsx`: `0%`
+- `app/routes/dashboard.admin.content.tsx`: `0%`
+- `app/routes/dashboard.admin.email-templates.tsx`: `0%`
+- `app/routes/dashboard.admin.setup.tsx`: `0%`
+- `app/routes/api.places.details.tsx`: `36.84%`
+- `app/routes/api.places.photo.tsx`: `19.23%`
 - `app/components/RestaurantAutocomplete.tsx`: `0%`
+- `app/components/CommentSection.tsx`: `0%`
 - `app/components/CommentThread.tsx`: `11.11%`
 
 Important interpretation notes:
 
 - `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
 - `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
-- The current suite is strongest around webhook security, RSVP parsing, notifications, and a growing set of poll/date/admin flows. It is still weakest in member-facing dashboard routes, shared interactive components, and helper modules that own restaurant/comment/poll state transitions.
+- The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, and the main member dashboard route actions. It is still weakest in shared interactive components, Places API surfaces, and several admin-only routes.
 
 ## Ideal State
 
@@ -210,6 +211,15 @@ Exit criteria:
 
 - Main member-facing dashboard surfaces are no longer untested
 - Core event viewing and invite acceptance paths have direct coverage
+
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  `dashboard.events.tsx` moved to `61.53%` statements / `27.39%` branches.
+  `dashboard._index.tsx` moved to `50.72%` statements / `14.39%` branches.
+  `dashboard.profile.tsx` moved to `90.00%` statements / `50.00%` branches.
+  `accept-invite.tsx` moved to `93.33%` statements / `80.00%` branches.
 
 ### PR 3: Shared Interactive Components and Places API
 

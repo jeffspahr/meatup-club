@@ -6,6 +6,21 @@ interface EmailTemplate {
   text: string;
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function redactEmailAddress(email: string): string {
+  const [localPart, domain] = email.split('@');
+
+  if (!localPart || !domain) {
+    return '***';
+  }
+
+  const visibleLocalPart = localPart.slice(0, Math.min(2, localPart.length));
+  return `${visibleLocalPart}***@${domain}`;
+}
+
 interface SendInviteEmailParams {
   to: string;
   inviteeName: string | null;
@@ -346,6 +361,8 @@ export async function sendEventInvites({
 
   // Send to each recipient individually (better for tracking and personalized ATTENDEE)
   for (const email of recipientEmails) {
+    const redactedEmail = redactEmailAddress(email);
+
     try {
       // Generate personalized calendar invite for this recipient
       const personalizedIcsContent = generateCalendarInvite({
@@ -459,15 +476,16 @@ A calendar invite is attached to this email.
 
       if (!response.ok) {
         const error = await response.text();
-        console.error(`Failed to send to ${email}:`, error);
-        errors.push(`${email}: ${response.statusText}`);
+        console.error(`Failed to send to ${redactedEmail}:`, error);
+        errors.push(`${redactedEmail}: ${response.statusText}`);
       } else {
         sentCount++;
-        console.log(`Calendar invite sent to ${email}`);
+        console.log(`Calendar invite sent to ${redactedEmail}`);
       }
     } catch (error) {
-      console.error(`Error sending to ${email}:`, error);
-      errors.push(`${email}: ${error}`);
+      const errorMessage = getErrorMessage(error);
+      console.error(`Error sending to ${redactedEmail}:`, errorMessage);
+      errors.push(`${redactedEmail}: ${errorMessage}`);
     }
   }
 
@@ -682,7 +700,7 @@ An updated calendar invite is attached. It will update the existing event in you
     return { success: true };
   } catch (error) {
     console.error('Calendar update error:', error);
-    return { success: false, error: String(error) };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -873,7 +891,7 @@ An updated calendar invite is attached. It will update the existing event in you
     return { success: true };
   } catch (error) {
     console.error('Event update error:', error);
-    return { success: false, error: String(error) };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -1049,6 +1067,6 @@ A cancellation notice is attached to remove the event from your calendar.
     return { success: true };
   } catch (error) {
     console.error('Event cancellation error:', error);
-    return { success: false, error: String(error) };
+    return { success: false, error: getErrorMessage(error) };
   }
 }
