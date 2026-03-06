@@ -27,7 +27,7 @@
     "svix": "^1.86.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.26.0",
+    "@cloudflare/vite-plugin": "^1.26.1",
     "@react-router/dev": "7.13.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
