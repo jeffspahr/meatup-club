@@ -378,3 +378,38 @@ Add cross-layer workflow tests for the highest-value meetup journeys so the suit
   - Overall functions: `48.15%` -> `49.46%`
   - `/Users/jspahr/repo/meatup-club-pr5a/app/app/lib/activity.server.ts`: `0%` -> `33.33%`
   - `/Users/jspahr/repo/meatup-club-pr5a/app/app/routes/dashboard.admin.polls.tsx`: `46.55%` -> `50.86%`
+
+## Testing Roadmap PR6 (2026-03-06)
+
+### Goal
+Align the suite names, docs, and CI wiring with what the tests actually prove so coverage confidence is not overstated and regressions are enforced in the real repository workflows.
+
+### Acceptance Criteria
+- [x] Rename the old admin polls pseudo-E2E suite so its filename and descriptions match its actual form-contract scope.
+- [x] Rename the route smoke suite so its filename and descriptions clearly communicate structural-only coverage.
+- [x] Update testing docs so the renamed suites and their limits are explicit.
+- [x] Add or tighten real CI coverage enforcement in the repository-root workflow configuration.
+- [x] Verification passes for the renamed suites, `npm run typecheck`, and a full coverage run with thresholds enabled.
+- [x] Record the governance changes and any remaining non-threshold follow-up work.
+
+### Active Tasks
+- [x] Inspect the current smoke/E2E suite names, docs, and CI wiring.
+- [x] Implement the suite-governance cleanup and CI threshold enforcement.
+- [x] Run final verification and summarize the unchanged or updated baseline.
+- [ ] Commit and publish the PR slice.
+
+### Working Notes
+- Clean worktree for this slice: `/Users/jspahr/repo/meatup-club-pr6a` on branch `codex/testing-roadmap-pr6`.
+- PR5 merged into `main` as commit `e5da5d9`, so PR6 can branch directly from current `origin/main`.
+- GitHub Actions only executes workflows from the repository-root `.github/workflows/` directory, so the old nested `app/.github/workflows/test.yml` was not enforcing anything in GitHub.
+
+### Results
+- Renamed `/Users/jspahr/repo/meatup-club-pr6a/app/test/admin-polls-e2e.test.tsx` to `/Users/jspahr/repo/meatup-club-pr6a/app/test/admin-polls.form-contract.test.tsx` and updated its file/describe text so it no longer reads like a true end-to-end suite.
+- Renamed `/Users/jspahr/repo/meatup-club-pr6a/app/test/route-health.test.ts` to `/Users/jspahr/repo/meatup-club-pr6a/app/test/route-exports.smoke.test.ts` and made the smoke-only scope explicit in the file documentation.
+- Added repository-root CI enforcement in `/Users/jspahr/repo/meatup-club-pr6a/.github/workflows/test.yml`, removed the dead nested workflow in `/Users/jspahr/repo/meatup-club-pr6a/app/.github/workflows/test.yml`, and enabled Vitest coverage thresholds in `/Users/jspahr/repo/meatup-club-pr6a/app/vitest.config.ts` (`60%` statements/lines, `45%` branches/functions).
+- Updated `/Users/jspahr/repo/meatup-club-pr6a/app/TESTING.md` to reflect the renamed suites, their limits, and the new CI/threshold enforcement.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr6a/app && npm run test:run -- test/admin-polls.form-contract.test.tsx test/route-exports.smoke.test.ts` passed (`2` files, `42` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr6a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr6a/app && npm run test:coverage` passed (`47` files, `361` tests) with thresholds enabled.
+- Coverage baseline remains above the new floor: `61.71%` statements, `49.59%` branches, `49.46%` functions, `61.80%` lines.

@@ -20,9 +20,10 @@ app/
 ├── vitest.config.ts
 ├── test/
 │   ├── setup.ts
-│   ├── route-health.test.ts
+│   ├── route-exports.smoke.test.ts
 │   ├── timezone.test.ts
-│   └── admin-polls-e2e.test.tsx
+│   ├── workflow-truth-suite.test.ts
+│   └── admin-polls.form-contract.test.tsx
 └── app/
     ├── lib/
     │   └── *.test.ts
@@ -109,11 +110,12 @@ Largest remaining gaps in active product code:
 
 Important interpretation notes:
 
-- `test/route-health.test.ts` is mostly a route import/export smoke suite. It protects route registration and basic module shape, but it is not deep behavioral coverage.
-- `test/admin-polls-e2e.test.tsx` exercises test-only inline components and form data construction. It is useful as a guardrail, but it does not provide true route-level end-to-end coverage.
+- `test/route-exports.smoke.test.ts` is a structural smoke suite. It protects route registration and export shape, but it is not deep behavioral coverage.
+- `test/admin-polls.form-contract.test.tsx` validates close-poll loader/form contracts with inline test components. It is useful as a guardrail, but it is not true route-level end-to-end coverage.
 - The current suite is strongest around webhook security, RSVP parsing, notifications, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, the remaining admin setup/analytics/content routes, and the highest-value workflow seams.
 - This slice also surfaced a real security issue: `dashboard.admin.setup.tsx` was proxying a POST to `/api/admin/setup-resend` without re-checking admin access in its `action`, so the route now enforces `requireAdmin` before forwarding the request.
 - The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps multi-route tests honest without requiring an external test database.
+- CI now enforces modest global coverage thresholds through `vitest.config.ts` and the root `.github/workflows/test.yml` workflow.
 
 ## Ideal State
 
@@ -353,6 +355,15 @@ Exit criteria:
 - Test names and docs accurately describe what the suite proves
 - Coverage numbers no longer overstate confidence
 - The test suite is maintainable, not just large
+
+Current status:
+
+- Complete on 2026-03-06.
+- Result:
+  Renamed `test/admin-polls-e2e.test.tsx` to `test/admin-polls.form-contract.test.tsx` and `test/route-health.test.ts` to `test/route-exports.smoke.test.ts` so their names match what they actually verify.
+  Updated the suite descriptions and this guide so smoke coverage and form-contract coverage are explicitly called out as structural guardrails rather than end-to-end behavior tests.
+  Added global coverage thresholds in `vitest.config.ts` at `60%` statements, `45%` branches, `45%` functions, and `60%` lines.
+  Added a root `.github/workflows/test.yml` workflow so pull requests and pushes to `main` actually run `typecheck`, `test:run`, and threshold-enforced `test:coverage`.
 
 ## Verification Checklist
 

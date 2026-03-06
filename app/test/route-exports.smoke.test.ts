@@ -3,13 +3,13 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 /**
- * Route Health Tests
+ * Structural smoke tests for route modules.
  *
- * Ensures all routes are properly configured and don't return 404 errors.
- * This catches common issues like:
+ * These tests do not exercise real HTTP routing or end-to-end behavior.
+ * They catch structural issues like:
  * - Missing route exports (loader/action)
  * - Incorrect file naming
- * - Route configuration errors
+ * - Route manifest drift
  *
  * AUTOMATIC ROUTE DISCOVERY:
  * This test automatically discovers all route files in app/routes/
@@ -17,7 +17,7 @@ import { join } from 'path';
  * automatically tested - no manual updates needed!
  */
 
-describe('Route Health - All Routes Should Load Without 404', () => {
+describe('Route Exports Smoke - Structural Route Checks', () => {
   let mockContext: any;
   let mockRequest: Request;
 

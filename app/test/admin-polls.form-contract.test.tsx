@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 
 /**
- * E2E Tests for Admin Polls Page
+ * Form-contract tests for the admin poll closing UI.
  *
- * These tests simulate the full user flow of closing a poll to ensure
- * the form renders correctly and submits successfully.
+ * These tests do not mount the real route module. They validate that the
+ * loader-shaped data contract can drive a close-poll form with valid default
+ * selections and predictable submitted values.
  */
 
-describe('Admin Polls E2E', () => {
+describe('Admin Polls Close Form Contract', () => {
   describe('Close Poll Form Rendering', () => {
     it('should render form with valid default selections in dropdowns', async () => {
       // Mock loader data

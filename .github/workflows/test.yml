@@ -1,0 +1,53 @@
+name: Test Suite
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Typecheck, Tests, and Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'app/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd app
+          npm ci
+
+      - name: Typecheck
+        run: |
+          cd app
+          npm run typecheck
+
+      - name: Run tests
+        run: |
+          cd app
+          npm run test:run
+
+      - name: Enforce coverage thresholds
+        run: |
+          cd app
+          npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: app/coverage/
+          retention-days: 30
