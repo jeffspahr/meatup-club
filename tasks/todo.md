@@ -908,10 +908,19 @@ Move the post-merge testing commits off the already-merged `codex/testing-zero-r
 - [x] Identify the commits made after PR `#88` merged.
 - [x] Create a fresh `codex/*` branch from current `origin/main`.
 - [x] Replay the post-merge commits onto the fresh branch.
-- [ ] Push the fresh branch and open a replacement PR.
-- [ ] Summarize the corrected branch/PR state and any cleanup follow-up.
+- [x] Push the fresh branch and open a replacement PR.
+- [x] Summarize the corrected branch/PR state and any cleanup follow-up.
 
 ### Working Notes
 - `origin/main` already contains merge commit `4e081bd` for PR `#88`, so every later coverage commit on `codex/testing-zero-routes` needs to move to a new branch instead of staying attached to the merged PR.
 - Fresh replacement branch: `/Users/jspahr/repo/meatup-club-pr89a` on `codex/testing-post-pr88`.
 - Current `origin/main` also includes the shared `closePoll()` refactor that uses `session.batch()`, so the replayed `dashboard.admin.polls.action-coverage.test.ts` harness needed to move off old rollback assertions before `npm run test:coverage` would pass again.
+
+### Results
+- Published the replayed coverage slice on `codex/testing-post-pr88` and opened replacement PR `#91`: `https://github.com/jeffspahr/meatup-club/pull/91`.
+- Added a route-harness compatibility fix in `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.polls.action-coverage.test.ts` so the rebased branch matches the current shared `closePoll()` implementation on `main`.
+- Refreshed `/Users/jspahr/repo/meatup-club-pr89a/app/TESTING.md` to the verified replacement-branch baseline: `542` tests in `79` files, `92.23%` statements, `79.78%` branches, `89.61%` functions, `92.17%` lines.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:run -- app/routes/dashboard.admin.polls.action-coverage.test.ts`
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run typecheck`
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:coverage`
