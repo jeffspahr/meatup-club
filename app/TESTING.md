@@ -52,21 +52,21 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, after post-roadmap slice 9)
+## Current Baseline (2026-03-07, after post-roadmap slice 10)
 
 Live numbers from `npm run test:coverage`:
 
-- `75` passing test files
-- `474` passing tests
-- `87.36%` statements
-- `75.59%` branches
-- `84.50%` functions
-- `87.42%` lines
+- `76` passing test files
+- `491` passing tests
+- `88.66%` statements
+- `76.93%` branches
+- `84.92%` functions
+- `88.74%` lines
 
 Coverage by area:
 
 - `app/app/lib`: `90.46%` statements
-- `app/app/routes`: `86.10%` statements
+- `app/app/routes`: `88.09%` statements
 - `app/app/components`: `88.21%` statements
 
 Best-covered production files:
@@ -88,6 +88,7 @@ Best-covered production files:
 - `app/routes/logout.tsx`: `100%` statements
 - `app/routes/pending.tsx`: `100%` statements
 - `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
+- `app/routes/dashboard.admin.polls.tsx`: `95.68%` statements
 - `app/routes/dashboard.admin.members.tsx`: `88.88%` statements
 - `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
 - `app/routes/dashboard.events.tsx`: `100%` statements
@@ -117,13 +118,13 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.admin.polls.tsx`: `67.24%`
 - `app/routes/api.places.details.tsx`: `73.68%`
 - `app/routes/dashboard.about.tsx`: `75.00%`
 - `app/routes/api.places.photo.tsx`: `77.35%`
 - `app/routes/api.places.search.tsx`: `79.31%`
 - `app/lib/dateUtils.ts`: `79.71%`
 - `app/routes/dashboard.admin.events.tsx`: `80.86%`
+- `app/components/RestaurantAutocomplete.tsx`: `80.64%`
 
 Important interpretation notes:
 
@@ -645,6 +646,31 @@ Current status:
   Global coverage moved to `87.36%` statements / `75.59%` branches / `84.50%` functions.
   `app/app/routes` moved to `86.10%` statement coverage.
 
+### Post-Roadmap Slice 10: Admin Polls Action Validation and Transaction Coverage
+
+Target files:
+
+- `app/routes/dashboard.admin.polls.tsx`
+
+Focus:
+
+- Admin-only access and create-action validation
+- Close-action validation for IDs, winners, dates, and invite prerequisites
+- Transaction rollback behavior and calendar-invite scheduling
+
+Exit criteria:
+
+- The remaining `dashboard.admin.polls.tsx` action branches are covered directly instead of inferred from UI/data-contract tests
+- Poll-management route coverage is in line with the rest of the admin surface
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `dashboard.admin.polls.tsx` moved to `95.68%` statements / `90.07%` branches.
+  Global coverage moved to `88.66%` statements / `76.93%` branches / `84.92%` functions.
+  `app/app/routes` moved to `88.09%` statement coverage.
+
 ## Verification Checklist
 
 Before merging behavior changes:
@@ -670,4 +696,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-07
-- Baseline suite: `474` tests in `75` files
+- Baseline suite: `491` tests in `76` files

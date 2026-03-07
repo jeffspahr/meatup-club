@@ -774,3 +774,37 @@ Raise the remaining admin editor routes by covering route-state behavior that ac
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.content.tsx`: `65.07%` -> `85.71%`
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.email-templates.tsx`: `72.28%` -> `85.54%`
 - Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.details.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.photo.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.search.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/dateUtils.ts`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.events.tsx`.
+
+## Post-Roadmap Testing Slice 10 (2026-03-07)
+
+### Goal
+Raise `dashboard.admin.polls.tsx` by covering the remaining close/create action validation and transaction branches directly.
+
+### Acceptance Criteria
+- [ ] Add action-matrix coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`.
+- [ ] Run targeted verification plus `npm run typecheck` and `npm run test:coverage`.
+- [ ] Record the updated baseline and next remaining gaps.
+
+### Active Tasks
+- [x] Review the remaining uncovered action paths in `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`.
+- [x] Implement the new admin-polls action coverage additions.
+- [x] Run final verification and summarize the updated baseline.
+- [ ] Commit and publish the updated branch.
+
+### Working Notes
+- The existing admin-polls suites already cover loader/UI, data-shape consistency, and a few security checks; the remaining uncovered paths are mostly action validation, selection checks, and transaction/send-invites branches.
+- Keep this slice focused on the action function and DB/provider boundary mocks rather than broadening the UI surface again.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.action-coverage.test.ts` with direct action coverage for admin-only enforcement, create validation, close validation, winner selection checks, transaction rollback, and invite scheduling in `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`.
+- Updated `/Users/jspahr/repo/meatup-club-pr8a/app/TESTING.md` to reflect the new baseline and the post-admin-polls gap list.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:run -- app/routes/dashboard.admin.polls.action-coverage.test.ts` passed (`17` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:coverage` passed (`76` files, `491` tests).
+- Coverage improvements from the post-slice-9 baseline:
+  - Overall statements: `87.36%` -> `88.66%`
+  - Overall branches: `75.59%` -> `76.93%`
+  - Overall functions: `84.50%` -> `84.92%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`: `67.24%` -> `95.68%`
+- Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.details.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.photo.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.search.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/dateUtils.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.events.tsx`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/RestaurantAutocomplete.tsx`.
