@@ -52,21 +52,21 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, after post-roadmap slice 6)
+## Current Baseline (2026-03-07, after post-roadmap slice 7)
 
 Live numbers from `npm run test:coverage`:
 
-- `67` passing test files
-- `450` passing tests
-- `81.91%` statements
-- `68.12%` branches
-- `73.03%` functions
-- `81.97%` lines
+- `70` passing test files
+- `457` passing tests
+- `85.43%` statements
+- `74.20%` branches
+- `81.10%` functions
+- `85.46%` lines
 
 Coverage by area:
 
 - `app/app/lib`: `86.29%` statements
-- `app/app/routes`: `79.27%` statements
+- `app/app/routes`: `84.65%` statements
 - `app/app/components`: `88.21%` statements
 
 Best-covered production files:
@@ -86,6 +86,7 @@ Best-covered production files:
 - `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
 - `app/routes/dashboard.admin.members.tsx`: `88.88%` statements
 - `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
+- `app/routes/dashboard.events.tsx`: `100%` statements
 - `app/routes/accept-invite.tsx`: `93.33%` statements
 - `app/routes/api.admin.setup-resend.tsx`: `87.80%` statements
 - `app/routes/api.webhooks.email-rsvp.tsx`: `92.50%` statements
@@ -113,13 +114,13 @@ Best-covered production files:
 Largest remaining gaps in active product code:
 
 - `app/lib/cache.server.ts`: `0.00%`
-- `app/routes/dashboard._index.tsx`: `50.72%`
+- `app/lib/confirm.client.ts`: `0.00%`
 - `app/lib/webhook-idempotency.server.ts`: `58.33%`
 - `app/lib/db.server.ts`: `60.00%`
-- `app/routes/dashboard.events.tsx`: `61.54%`
-- `app/routes/dashboard.polls.tsx`: `64.25%`
 - `app/routes/dashboard.admin.content.tsx`: `65.08%`
 - `app/routes/dashboard.admin.polls.tsx`: `67.24%`
+- `app/routes/dashboard.admin.email-templates.tsx`: `72.29%`
+- `app/routes/api.places.details.tsx`: `73.68%`
 
 Important interpretation notes:
 
@@ -556,6 +557,34 @@ Current status:
   `dashboard.admin.polls.tsx` moved to `67.24%` statements / `67.17%` branches.
   Global coverage moved to `81.91%` statements / `68.12%` branches / `73.03%` functions.
 
+### Post-Roadmap Slice 7: Dashboard Home, Events, and Polls Route UI Coverage
+
+Target files:
+
+- `app/routes/dashboard._index.tsx`
+- `app/routes/dashboard.events.tsx`
+- `app/routes/dashboard.polls.tsx`
+
+Focus:
+
+- Route-component state coverage for first-visit onboarding, SMS prompt dismissal, and quick-action branching
+- Real RSVP list and auto-submit UI coverage on the events page
+- Poll page submit wiring for calendar clicks, doodle toggles, restaurant suggestions, and historical poll rendering
+
+Exit criteria:
+
+- Remaining member dashboard route blind spots are covered by real route/UI tests, not just loader/action tests
+- The main logged-in dashboard routes are no longer sitting in the coverage-gap shortlist
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `dashboard._index.tsx` moved to `88.40%` statements / `60.60%` branches.
+  `dashboard.events.tsx` moved to `100.00%` statements / `76.71%` branches.
+  `dashboard.polls.tsx` moved to `88.26%` statements / `81.32%` branches.
+  Global coverage moved to `85.43%` statements / `74.20%` branches / `81.10%` functions.
+
 ## Verification Checklist
 
 Before merging behavior changes:
@@ -581,4 +610,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-07
-- Baseline suite: `450` tests in `67` files
+- Baseline suite: `457` tests in `70` files

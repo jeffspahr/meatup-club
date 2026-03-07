@@ -654,3 +654,43 @@ Replace the remaining admin route blind spots with real loader/UI coverage for m
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.members.tsx`: `49.07%` -> `88.88%`
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`: `50.86%` -> `67.24%`
 - Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.events.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.content.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/rate-limit.server.ts`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/dateUtils.ts`.
+
+## Post-Roadmap Testing Slice 7 (2026-03-07)
+
+### Goal
+Replace the remaining member dashboard route blind spots with real component coverage for the dashboard home, events, and polls pages.
+
+### Acceptance Criteria
+- [ ] Add route/component coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.tsx`.
+- [ ] Add route/component coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.events.tsx`.
+- [ ] Add route/component coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.tsx`.
+- [ ] Run targeted verification plus `npm run typecheck` and `npm run test:coverage`.
+- [ ] Record the updated baseline and next remaining gaps.
+
+### Active Tasks
+- [x] Review the current route implementations and existing loader/action tests.
+- [x] Implement the new dashboard home, events, and polls route/UI tests.
+- [x] Run final verification and summarize the updated baseline.
+- [ ] Commit and publish the updated branch.
+
+### Working Notes
+- The existing suites already defend loader/action logic for these routes; the biggest remaining uncovered branches are in route component state, UI branching, and submit wiring.
+- Follow the thin route/UI pattern from the dates, restaurants, and admin route slices: mock child components only where the route wiring itself is the behavior under test.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.route-ui.test.tsx` with first-visit content/SMS prompt coverage, returning-admin branch coverage, and `HydrateFallback` coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.tsx`.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.events.route-ui.test.tsx` with RSVP grouping, radio auto-submit, past-event badge, and empty-state coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.events.tsx`.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.route-ui.test.tsx` with no-active-poll history coverage plus calendar/doodle/modal/restaurant submit wiring for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.tsx`.
+- Updated `/Users/jspahr/repo/meatup-club-pr8a/app/TESTING.md` and `/Users/jspahr/repo/meatup-club-pr8a/tasks/lessons.md` to reflect the new baseline and the localStorage test-harness lesson.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:run -- app/routes/dashboard._index.route-ui.test.tsx app/routes/dashboard.events.route-ui.test.tsx app/routes/dashboard.polls.route-ui.test.tsx` passed (`7` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:coverage` passed (`70` files, `457` tests).
+- Coverage improvements from the post-slice-6 baseline:
+  - Overall statements: `81.91%` -> `85.43%`
+  - Overall branches: `68.12%` -> `74.20%`
+  - Overall functions: `73.03%` -> `81.10%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.tsx`: `50.72%` -> `88.40%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.events.tsx`: `61.53%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.tsx`: `64.24%` -> `88.26%`
+- Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/cache.server.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/confirm.client.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/webhook-idempotency.server.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/db.server.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.content.tsx`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`.
