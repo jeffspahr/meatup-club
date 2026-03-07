@@ -52,21 +52,21 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, after post-roadmap slice 2)
+## Current Baseline (2026-03-07, after post-roadmap slices 4 and 5)
 
 Live numbers from `npm run test:coverage`:
 
-- `59` passing test files
-- `411` passing tests
-- `68.81%` statements
-- `54.93%` branches
-- `57.96%` functions
-- `68.96%` lines
+- `65` passing test files
+- `443` passing tests
+- `79.47%` statements
+- `65.26%` branches
+- `69.00%` functions
+- `79.49%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `83.77%` statements
-- `app/app/routes`: `60.12%` statements
+- `app/app/lib`: `86.28%` statements
+- `app/app/routes`: `75.52%` statements
 - `app/app/components`: `88.03%` statements
 
 Best-covered production files:
@@ -78,15 +78,21 @@ Best-covered production files:
 - `app/routes/dashboard.tsx`: `100%` statements
 - `app/routes/dashboard.admin._index.tsx`: `100%` statements
 - `app/routes/dashboard.admin.setup.tsx`: `100%` statements
+- `app/routes/login.tsx`: `100%` statements
 - `app/routes/dashboard.members.tsx`: `100%` statements
 - `app/routes/dashboard.rsvp.tsx`: `100%` statements
 - `app/routes/logout.tsx`: `100%` statements
+- `app/routes/pending.tsx`: `100%` statements
 - `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
+- `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
 - `app/routes/accept-invite.tsx`: `93.33%` statements
 - `app/routes/api.admin.setup-resend.tsx`: `87.80%` statements
 - `app/routes/api.webhooks.email-rsvp.tsx`: `92.50%` statements
+- `app/routes/api.webhooks.sms.tsx`: `100%` statements
 - `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%` statements
 - `app/routes/api.polls.tsx`: `88.57%` statements
+- `app/routes/dashboard.dates.tsx`: `83.17%` statements
+- `app/routes/dashboard.restaurants.tsx`: `95.18%` statements
 - `app/lib/email.server.ts`: `89.14%` statements
 - `app/lib/sms.server.ts`: `88.27%` statements
 - `app/lib/comments.server.ts`: `100%` statements
@@ -105,25 +111,24 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/routes/login.tsx`: `0%`
-- `app/routes/pending.tsx`: `0%`
-- `app/routes/dashboard.admin.events.tsx`: `23.04%`
-- `app/routes/api.webhooks.sms.tsx`: `43.47%`
-- `app/routes/dashboard.dates.tsx`: `42.05%`
-- `app/routes/dashboard.restaurants.tsx`: `45.78%`
 - `app/routes/dashboard.admin.members.tsx`: `49.07%`
 - `app/routes/dashboard.admin.polls.tsx`: `50.86%`
 - `app/routes/dashboard._index.tsx`: `50.72%`
+- `app/routes/dashboard.events.tsx`: `61.53%`
+- `app/routes/dashboard.polls.tsx`: `64.24%`
 - `app/lib/rate-limit.server.ts`: `58.33%`
+- `app/routes/dashboard.admin.content.tsx`: `65.07%`
+- `app/lib/dateUtils.ts`: `79.71%`
 
 Important interpretation notes:
 
 - `test/route-exports.smoke.test.ts` is a structural smoke suite. It protects route registration and export shape, but it is not deep behavioral coverage.
 - `test/admin-polls.form-contract.test.tsx` validates close-poll loader/form contracts with inline test components. It is useful as a guardrail, but it is not true route-level end-to-end coverage.
-- The current suite is strongest around auth/session behavior, Google OAuth callback handling, logout and dashboard shell routes, webhook security, RSVP parsing, notifications, email template shaping, activity logging, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, the remaining admin setup/analytics/content routes, and the highest-value workflow seams.
+- The current suite is strongest around auth/session behavior, Google OAuth callback handling, login/logout/pending/dashboard shell routes, webhook security, RSVP parsing, notifications, email template shaping, activity logging, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, the remaining admin setup/analytics/content routes, and the highest-value workflow seams.
 - This slice also surfaced a real security issue: `dashboard.admin.setup.tsx` was proxying a POST to `/api/admin/setup-resend` without re-checking admin access in its `action`, so the route now enforces `requireAdmin` before forwarding the request.
 - The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps multi-route tests honest without requiring an external test database.
 - CI now enforces modest global coverage thresholds through `vitest.config.ts` and the root `.github/workflows/test.yml` workflow.
+- The suite now exceeds the long-term numeric target of `70%+` statements and `60%+` branches, so the remaining work is mostly about closing important route gaps rather than chasing aggregate percentages.
 
 ## Ideal State
 
@@ -444,6 +449,86 @@ Current status:
   `logout.tsx` moved to `100.00%` statements / `75.00%` branches.
   Global coverage moved to `68.81%` statements / `54.93%` branches / `57.96%` functions.
 
+### Post-Roadmap Slice 3: Login, Pending, and Rate-Limit Coverage
+
+Target files:
+
+- `app/routes/login.tsx`
+- `app/routes/pending.tsx`
+- `app/lib/rate-limit.server.ts`
+
+Focus:
+
+- Login state generation and session persistence
+- Pending-page loader and user-facing copy branches
+- Direct helper coverage for rate-limit success, cleanup, and fail-open behavior
+
+Exit criteria:
+
+- Remaining easy auth-lifecycle `0%` routes are no longer untested
+- Rate limiting has direct helper tests rather than only indirect route coverage assumptions
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `login.tsx` moved to `100.00%` statements / `100.00%` branches.
+  `pending.tsx` moved to `100.00%` statements / `100.00%` branches.
+  Added direct tests for `rate-limit.server.ts`; the helper still sits at `58.33%` statements / `41.66%` branches and remains a follow-up target.
+  Global coverage moved to `69.83%` statements / `55.20%` branches / `59.02%` functions.
+
+### Post-Roadmap Slice 4: Admin Events and SMS Webhook Coverage
+
+Target files:
+
+- `app/routes/dashboard.admin.events.tsx`
+- `app/routes/api.webhooks.sms.tsx`
+
+Focus:
+
+- Admin event loader shaping and event/member display state
+- Event update, cancellation, and ad hoc SMS reminder branches
+- SMS webhook signature validation, opt-out/help flows, and fallback event lookup
+
+Exit criteria:
+
+- The main admin event-management route has real loader/UI coverage instead of action-only coverage
+- The SMS webhook boundary has direct tests for both happy-path and rejection-path behavior
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `dashboard.admin.events.tsx` moved to `80.86%` statements / `68.20%` branches.
+  `api.webhooks.sms.tsx` moved to `100.00%` statements / `90.62%` branches.
+  Global coverage moved to `76.11%` statements / `61.24%` branches / `64.33%` functions.
+
+### Post-Roadmap Slice 5: Dates and Restaurants Route UI Coverage
+
+Target files:
+
+- `app/routes/dashboard.dates.tsx`
+- `app/routes/dashboard.restaurants.tsx`
+
+Focus:
+
+- Loader shaping for active-poll date suggestions and normalized restaurant records
+- Route-level submit wiring for calendar clicks, modal submission, and owner/admin deletion flows
+- Empty/error UI states on the member-facing voting surfaces
+
+Exit criteria:
+
+- Dates and restaurants routes are protected by route/UI tests, not just mutation-action tests
+- Member voting flows have direct coverage for the main submit paths users can trigger from the page
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `dashboard.dates.tsx` moved to `83.17%` statements / `78.94%` branches.
+  `dashboard.restaurants.tsx` moved to `95.18%` statements / `77.21%` branches.
+  Global coverage moved to `79.47%` statements / `65.26%` branches / `69.00%` functions.
+
 ## Verification Checklist
 
 Before merging behavior changes:
@@ -469,4 +554,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-07
-- Baseline suite: `411` tests in `59` files
+- Baseline suite: `443` tests in `65` files
