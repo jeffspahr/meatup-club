@@ -77,10 +77,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare(`
       SELECT
         p.*,
-        e.restaurant_name as winner_restaurant,
-        e.event_date as winner_date
+        r.name as winner_restaurant,
+        ds.suggested_date as winner_date
       FROM polls p
-      LEFT JOIN events e ON p.created_event_id = e.id
+      LEFT JOIN restaurants r ON p.winning_restaurant_id = r.id
+      LEFT JOIN date_suggestions ds ON p.winning_date_id = ds.id
       WHERE p.status = 'closed'
       ORDER BY p.created_at DESC
       LIMIT 10

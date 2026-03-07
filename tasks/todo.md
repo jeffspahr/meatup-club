@@ -1,5 +1,36 @@
 # Active Backlog (2026-02-23)
 
+## Bugfix - Poll Winner Visibility After Manual Event Creation (2026-03-07)
+
+### Goal
+Preserve closed-poll winner visibility after an admin manually creates an event from the events page and later closes the poll without creating another event.
+
+### Acceptance Criteria
+- [x] Closed polls continue to display their winning restaurant and date even when no linked event exists.
+- [x] The admin events UI no longer implies that creating an event from vote leaders also closes the active poll.
+- [x] Regression coverage proves the no-created-event winner case.
+- [x] Verification passes for `npm run typecheck`, `npm run test:run`, and `npm run build`.
+
+### Active Tasks
+- [x] Reproduce the missing-winner path in the member polls loader and confirm where winner data is sourced.
+- [x] Update the previous-polls query to read persisted winner ids instead of `created_event_id`.
+- [x] Clarify admin events copy so manual event creation is described as a prefill, not poll finalization.
+- [x] Add regression coverage for closed polls without a created event.
+- [x] Run verification and record results.
+
+### Working Notes
+- Poll close already stores `winning_restaurant_id` and `winning_date_id`, so the prior member-page dependency on `events.created_event_id` was the wrong source of truth.
+- The confusing user path is specifically the admin events page action that prefills an event from current vote leaders without touching poll status.
+
+### Results
+- Updated `/Users/jspahr/repo/meatup-club/app/app/routes/dashboard.polls.tsx` so previous poll winners come from the poll's stored winning ids rather than a linked event row.
+- Updated `/Users/jspahr/repo/meatup-club/app/app/routes/dashboard.admin.events.tsx` copy to say `Prefill from Vote Leaders` and to explicitly note that creating an event there does not close the active poll.
+- Expanded `/Users/jspahr/repo/meatup-club/app/app/routes/dashboard.polls.route.test.ts` with regression coverage for closed polls that have winners but no created event.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club/app && npm run test:run` passed.
+  - `cd /Users/jspahr/repo/meatup-club/app && npm run build` passed.
+
 ## Goal
 Keep only unresolved, high-impact work and remove stale planning artifacts.
 

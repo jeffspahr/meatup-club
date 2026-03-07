@@ -584,7 +584,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   }
                 }}
               >
-                Create from Vote Winners
+                Prefill from Vote Leaders
               </Button>
             )}
             <Button
@@ -619,6 +619,9 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       {showCreateForm && (
         <Card className="p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Create New Event</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Creating an event here does not close the active poll. Use Poll Management to finalize winners and close voting.
+          </p>
           <Form method="post" id="create-form" className="space-y-4">
             <input type="hidden" name="_action" value="create" />
 

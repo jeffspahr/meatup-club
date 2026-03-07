@@ -103,7 +103,7 @@ function createMockDb({
         return { results: dateSuggestions };
       }
 
-      if (normalizedSql.includes("FROM polls p LEFT JOIN events e")) {
+      if (normalizedSql.includes("FROM polls p LEFT JOIN restaurants r")) {
         return { results: previousPolls };
       }
 
@@ -248,6 +248,34 @@ describe("dashboard.polls route", () => {
           content: "Looks good",
           replies: [],
         },
+      ]);
+    });
+
+    it("returns closed poll winners even when no event was created", async () => {
+      const db = createMockDb({
+        activePoll: null,
+        previousPolls: [
+          {
+            id: 9,
+            title: "Older Poll",
+            winner_restaurant: "Prime Steakhouse",
+            winner_date: "2026-05-01",
+          },
+        ],
+      });
+
+      const result = await loader({
+        request: createRequest(),
+        context: { cloudflare: { env: { DB: db } } } as never,
+        params: {},
+      } as never);
+
+      expect(result.previousPolls).toEqual([
+        expect.objectContaining({
+          id: 9,
+          winner_restaurant: "Prime Steakhouse",
+          winner_date: "2026-05-01",
+        }),
       ]);
     });
   });
