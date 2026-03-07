@@ -52,22 +52,22 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, after post-roadmap slice 11)
+## Current Baseline (2026-03-07, after post-roadmap slice 12)
 
 Live numbers from `npm run test:coverage`:
 
-- `77` passing test files
-- `521` passing tests
-- `90.80%` statements
-- `78.72%` branches
-- `87.04%` functions
-- `90.78%` lines
+- `79` passing test files
+- `538` passing tests
+- `92.30%` statements
+- `80.06%` branches
+- `89.17%` functions
+- `92.31%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `92.80%` statements
-- `app/app/routes`: `89.78%` statements
-- `app/app/components`: `92.66%` statements
+- `app/app/lib`: `93.64%` statements
+- `app/app/routes`: `90.69%` statements
+- `app/app/components`: `98.84%` statements
 
 Best-covered production files:
 
@@ -78,9 +78,12 @@ Best-covered production files:
 - `app/lib/confirm.client.ts`: `100%` statements
 - `app/lib/dateUtils.ts`: `100%` statements
 - `app/lib/db.server.ts`: `100%` statements
+- `app/lib/session.server.ts`: `100%` statements
 - `app/lib/webhook-idempotency.server.ts`: `100%` statements
+- `app/lib/restaurant-photo-url.ts`: `100%` statements
 - `app/routes/auth.google.callback.tsx`: `100%` statements
 - `app/routes/dashboard.tsx`: `100%` statements
+- `app/routes/dashboard.about.tsx`: `100%` statements
 - `app/routes/dashboard.admin._index.tsx`: `100%` statements
 - `app/routes/dashboard.admin.setup.tsx`: `100%` statements
 - `app/routes/login.tsx`: `100%` statements
@@ -95,6 +98,7 @@ Best-covered production files:
 - `app/routes/dashboard.admin.polls.tsx`: `95.68%` statements
 - `app/routes/dashboard.admin.members.tsx`: `88.88%` statements
 - `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
+- `app/routes/dashboard.dates.tsx`: `93.45%` statements
 - `app/routes/dashboard.events.tsx`: `100%` statements
 - `app/routes/accept-invite.tsx`: `93.33%` statements
 - `app/routes/api.admin.setup-resend.tsx`: `87.80%` statements
@@ -111,21 +115,23 @@ Best-covered production files:
 - `app/lib/polls.server.ts`: `100%` statements
 - `app/components/AddRestaurantModal.tsx`: `100%` statements
 - `app/components/CommentSection.tsx`: `100%` statements
+- `app/components/ui/UserAvatar.tsx`: `100%` statements
 - `app/components/DoodleView.tsx`: `100%` statements
 - `app/components/RestaurantAutocomplete.tsx`: `100%` statements
 - `app/components/VoteLeadersCard.tsx`: `100%` statements
-- `app/components/DateCalendar.tsx`: `82.41%` statements
+- `app/components/DateCalendar.tsx`: `100%` statements
 - `app/lib/rsvps.server.ts`: `100%` statements
 
 Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.about.tsx`: `75.00%`
 - `app/routes/dashboard.admin.events.tsx`: `80.86%`
-- `app/components/ui/UserAvatar.tsx`: `81.81%`
-- `app/lib/restaurant-photo-url.ts`: `81.81%`
-- `app/components/DateCalendar.tsx`: `82.41%`
-- `app/routes/dashboard.dates.tsx`: `83.17%`
-- `app/lib/session.server.ts`: `83.33%`
+- `app/routes/dashboard.admin.email-templates.tsx`: `85.54%`
+- `app/routes/dashboard.admin.content.tsx`: `85.71%`
+- `app/routes/api.admin.setup-resend.tsx`: `87.80%`
+- `app/components/DashboardNav.tsx`: `88.23%`
+- `app/routes/dashboard.polls.tsx`: `88.26%`
+- `app/lib/sms.server.ts`: `88.27%`
+- `app/routes/dashboard._index.tsx`: `88.40%`
 
 Important interpretation notes:
 
@@ -708,6 +714,44 @@ Current status:
   `app/app/lib` moved to `92.80%` statement coverage.
   `app/app/components` moved to `92.66%` statement coverage.
 
+### Post-Roadmap Slice 12: Member Date UX and Shared Helper Cleanup
+
+Target files:
+
+- `app/routes/dashboard.about.tsx`
+- `app/routes/dashboard.dates.tsx`
+- `app/components/DateCalendar.tsx`
+- `app/components/ui/UserAvatar.tsx`
+- `app/lib/restaurant-photo-url.ts`
+- `app/lib/session.server.ts`
+
+Focus:
+
+- Remaining member-facing date route/UI state branches
+- Calendar month-navigation and year-rollover behavior
+- Avatar and restaurant photo helper fallbacks
+- Session-secret configuration behavior outside the test environment
+
+Exit criteria:
+
+- The remaining lower-cost member route/helper/component gaps are brought in line with the rest of the suite
+- The next follow-up work is concentrated on the larger admin/dashboard route surfaces
+
+Current status:
+
+- Complete on 2026-03-07.
+- Result:
+  `dashboard.about.tsx` moved to `100.00%` statements / `100.00%` branches.
+  `dashboard.dates.tsx` moved to `93.45%` statements / `82.10%` branches.
+  `DateCalendar.tsx` moved to `100.00%` statements / `83.73%` branches.
+  `UserAvatar.tsx` moved to `100.00%` statements / `90.90%` branches.
+  `restaurant-photo-url.ts` moved to `100.00%` statements / `100.00%` branches.
+  `session.server.ts` moved to `100.00%` statements / `100.00%` branches.
+  Global coverage moved to `92.30%` statements / `80.06%` branches / `89.17%` functions.
+  `app/app/routes` moved to `90.69%` statement coverage.
+  `app/app/lib` moved to `93.64%` statement coverage.
+  `app/app/components` moved to `98.84%` statement coverage.
+
 ## Verification Checklist
 
 Before merging behavior changes:
@@ -733,4 +777,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-07
-- Baseline suite: `521` tests in `77` files
+- Baseline suite: `538` tests in `79` files

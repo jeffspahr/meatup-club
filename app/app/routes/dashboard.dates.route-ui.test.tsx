@@ -166,6 +166,27 @@ describe("dashboard.dates loader and UI", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the admin-specific no-poll message and ignores calendar clicks without an active poll", () => {
+    render(
+      <DatesPage
+        loaderData={{
+          suggestions: [],
+          activePoll: null,
+          currentUser: { id: 123, isAdmin: true },
+        }}
+        actionData={undefined}
+      />
+    );
+
+    expect(
+      screen.getByText("No active poll. Start one from Admin Polls to begin voting on dates.")
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Calendar new date" }));
+
+    expect(submitSpy).not.toHaveBeenCalled();
+  });
+
   it("toggles the suggest form and resets its state on cancel", () => {
     render(
       <DatesPage
@@ -186,6 +207,30 @@ describe("dashboard.dates loader and UI", () => {
     expect(input).toHaveValue("2026-06-20");
 
     fireEvent.click(screen.getAllByRole("button", { name: /^Cancel$/i })[1]!);
+    expect(screen.queryByRole("heading", { name: "Suggest a Date" })).not.toBeInTheDocument();
+  });
+
+  it("opens the empty-state suggest action and clears the form after submit", () => {
+    const { container } = render(
+      <DatesPage
+        loaderData={{
+          suggestions: [],
+          activePoll: { id: 12, title: "June Poll", created_at: "2026-05-01T12:00:00.000Z" },
+          currentUser: { id: 123, isAdmin: false },
+        }}
+        actionData={undefined}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^Suggest Date$/i }));
+    expect(screen.getByRole("heading", { name: "Suggest a Date" })).toBeInTheDocument();
+
+    const input = screen.getByLabelText("Proposed Date *");
+    fireEvent.change(input, { target: { value: "2026-06-21" } });
+    expect(input).toHaveValue("2026-06-21");
+
+    fireEvent.submit(container.querySelector("form")!);
+
     expect(screen.queryByRole("heading", { name: "Suggest a Date" })).not.toBeInTheDocument();
   });
 
@@ -253,5 +298,52 @@ describe("dashboard.dates loader and UI", () => {
 
     expect(confirmAction).toHaveBeenCalled();
     expect((submitSpy.mock.calls[4][0] as FormData).get("_action")).toBe("delete");
+  });
+
+  it("submits vote actions from the list and respects declined delete confirmations", () => {
+    vi.mocked(confirmAction).mockReturnValue(false);
+
+    render(
+      <DatesPage
+        loaderData={{
+          suggestions: [
+            {
+              id: 11,
+              user_id: 999,
+              poll_id: 12,
+              suggested_date: "2026-06-11",
+              suggested_by_name: "Alex",
+              suggested_by_email: "alex@example.com",
+              vote_count: 2,
+              user_has_voted: 0,
+            },
+            {
+              id: 13,
+              user_id: 123,
+              poll_id: 12,
+              suggested_date: "2026-06-13",
+              suggested_by_name: "User",
+              suggested_by_email: "user@example.com",
+              vote_count: 1,
+              user_has_voted: 1,
+            },
+          ],
+          activePoll: { id: 12, title: "June Poll", created_at: "2026-05-01T12:00:00.000Z" },
+          currentUser: { id: 123, isAdmin: false },
+        }}
+        actionData={undefined}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Vote" }));
+
+    expect((submitSpy.mock.calls[0][0] as FormData).get("_action")).toBe("vote");
+    expect((submitSpy.mock.calls[0][0] as FormData).get("suggestion_id")).toBe("11");
+    expect((submitSpy.mock.calls[0][0] as FormData).get("remove")).toBe("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(confirmAction).toHaveBeenCalled();
+    expect(submitSpy).toHaveBeenCalledTimes(1);
   });
 });

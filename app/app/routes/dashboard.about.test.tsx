@@ -51,8 +51,28 @@ describe("dashboard.about route", () => {
     expect(result).toEqual({ content });
   });
 
+  it("falls back to an empty content list when the content query returns no rows", async () => {
+    const result = await loader({
+      request: new Request("http://localhost/dashboard/about"),
+      context: {
+        cloudflare: {
+          env: {
+            DB: {
+              prepare: vi.fn(() => ({
+                all: async () => ({ results: undefined }),
+              })),
+            },
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ content: [] });
+  });
+
   it("renders markdown-backed content cards and the info alert", () => {
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={["/dashboard/about"]}>
         <AboutPage
           {...({
@@ -67,9 +87,30 @@ describe("dashboard.about route", () => {
                 },
                 {
                   id: 2,
+                  key: "goals",
+                  title: "Goals",
+                  content: "1. Plan\n2. Vote",
+                  updated_at: "2026-03-06",
+                },
+                {
+                  id: 3,
+                  key: "guidelines",
+                  title: "Guidelines",
+                  content: "_Stay classy_",
+                  updated_at: "2026-03-06",
+                },
+                {
+                  id: 4,
+                  key: "membership",
+                  title: "Membership",
+                  content: "# Member Expectations",
+                  updated_at: "2026-03-06",
+                },
+                {
+                  id: 5,
                   key: "safety",
                   title: "Safety",
-                  content: "## Ground Rules\nStay sharp.",
+                  content: "## Ground Rules\n### Stay sharp.",
                   updated_at: "2026-03-06",
                 },
               ],
@@ -81,10 +122,19 @@ describe("dashboard.about route", () => {
 
     expect(screen.getByText("Everything you need to know about our quarterly steakhouse adventures")).toBeInTheDocument();
     expect(screen.getByText("What We Are About")).toBeInTheDocument();
+    expect(screen.getByText("Goals")).toBeInTheDocument();
+    expect(screen.getByText("Guidelines")).toBeInTheDocument();
+    expect(screen.getByText("Membership")).toBeInTheDocument();
     expect(screen.getByText("Safety")).toBeInTheDocument();
     expect(screen.getByText("steakhouse")).toBeInTheDocument();
     expect(screen.getByText("Vote together")).toBeInTheDocument();
+    expect(screen.getByText("Plan")).toBeInTheDocument();
+    expect(screen.getByText("Vote")).toBeInTheDocument();
+    expect(screen.getByText("Stay classy")).toBeInTheDocument();
+    expect(screen.getByText("Member Expectations")).toBeInTheDocument();
     expect(screen.getByText("Ground Rules")).toBeInTheDocument();
+    expect(screen.getByText("Stay sharp.")).toBeInTheDocument();
     expect(screen.getByText("Questions or Suggestions?")).toBeInTheDocument();
+    expect(container.querySelectorAll("svg")).toHaveLength(5);
   });
 });

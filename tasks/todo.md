@@ -825,7 +825,7 @@ Raise the remaining low-coverage date and Places code by covering guard, fallbac
 - [x] Review the remaining uncovered branches in the target files.
 - [x] Implement the new date/Places/autocomplete coverage additions.
 - [x] Run final verification and summarize the updated baseline.
-- [ ] Commit and publish the updated branch.
+- [x] Commit and publish the updated branch.
 
 ### Working Notes
 - `app/coverage/coverage-final.json` shows the remaining misses are mostly validation guards, fallback transforms, stale-photo failure branches, and autocomplete keyboard/error state transitions.
@@ -851,3 +851,50 @@ Raise the remaining low-coverage date and Places code by covering guard, fallbac
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.places.photo.tsx`: `76.92%` -> `100.00%`
   - `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/RestaurantAutocomplete.tsx`: `80.64%` -> `100.00%`
 - Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.events.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/ui/UserAvatar.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/restaurant-photo-url.ts`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DateCalendar.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.tsx`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/session.server.ts`.
+
+## Post-Roadmap Testing Slice 12 (2026-03-07)
+
+### Goal
+Raise the remaining member-facing date surfaces and small shared helper/component gaps that are still below the branch baseline.
+
+### Acceptance Criteria
+- [x] Extend route coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`.
+- [x] Extend route/UI coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.tsx`.
+- [x] Extend component coverage for `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DateCalendar.tsx`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/ui/UserAvatar.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/restaurant-photo-url.ts`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/session.server.ts`.
+- [x] Run targeted verification plus `npm run typecheck` and `npm run test:coverage`.
+- [x] Record the updated baseline and next remaining gaps.
+
+### Active Tasks
+- [x] Review the remaining uncovered branches in the target route/helper/component files.
+- [x] Implement the new about/date/calendar/helper coverage additions.
+- [x] Run final verification and summarize the updated baseline.
+- [ ] Commit and publish the updated branch.
+
+### Working Notes
+- `dashboard.admin.events.tsx` is still a meaningful gap, but it is a larger follow-up route matrix; this slice stays on the cheaper wins around member-facing date UX and small shared utilities.
+- The uncovered lines in `dashboard.about.tsx` are mostly icon/markdown variant branches, while `restaurant-photo-url.ts`, `session.server.ts`, and `UserAvatar.tsx` can likely be closed with small direct tests.
+
+### Results
+- Expanded `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.test.tsx` to cover empty-content fallback plus the remaining icon and markdown rendering branches in `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`.
+- Expanded `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.route-ui.test.tsx` to cover the admin no-poll state, empty-state suggest shortcut, form submit reset, list vote submissions, and declined delete confirmations in `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.tsx`.
+- Expanded `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DateCalendar.test.tsx` to cover month navigation, today reset, and previous/next year rollover dates in `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DateCalendar.tsx`.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/ui/UserAvatar.test.tsx` for image, initials, email fallback, and question-mark fallback coverage in `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/ui/UserAvatar.tsx`.
+- Expanded `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/restaurant-photo-url.test.ts` to cover null/proxied inputs, unrelated app origins, default dimensions, and malformed URL fallbacks in `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/restaurant-photo-url.ts`.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/session.server.test.ts` to cover test fallback secrets, secure production cookies, and the missing-secret throw path in `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/session.server.ts`.
+- Updated `/Users/jspahr/repo/meatup-club-pr8a/app/TESTING.md` to reflect the new baseline and the updated remaining route gap list.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:run -- app/routes/dashboard.about.test.tsx app/components/DateCalendar.test.tsx app/components/ui/UserAvatar.test.tsx app/lib/restaurant-photo-url.test.ts app/lib/session.server.test.ts app/routes/dashboard.dates.route-ui.test.tsx` passed (`30` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:coverage` passed (`79` files, `538` tests).
+- Coverage improvements from the post-slice-11 baseline:
+  - Overall statements: `90.80%` -> `92.30%`
+  - Overall branches: `78.72%` -> `80.06%`
+  - Overall functions: `87.04%` -> `89.17%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.about.tsx`: `75.00%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.tsx`: `83.17%` -> `93.45%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DateCalendar.tsx`: `82.41%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/ui/UserAvatar.tsx`: `81.81%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/restaurant-photo-url.ts`: `81.81%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/session.server.ts`: `83.33%` -> `100.00%`
+- Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.events.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.email-templates.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.content.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.admin.setup-resend.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/components/DashboardNav.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.polls.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/sms.server.ts`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard._index.tsx`.
