@@ -462,3 +462,46 @@ Reduce the remaining zero-coverage blind spots in core auth helpers and member-f
   - `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.rsvp.tsx`: `0%` -> `100.00%`
   - `/Users/jspahr/repo/meatup-club-pr7a/app/app/components/VoteLeadersCard.tsx`: `0%` -> `100.00%`
 - Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/api.admin.setup-resend.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/auth.google.callback.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/logout.tsx`, `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.admin.events.tsx`, and `/Users/jspahr/repo/meatup-club-pr7a/app/app/routes/dashboard.restaurants.tsx`.
+
+## Post-Roadmap Testing Slice 2 (2026-03-07)
+
+### Goal
+Remove the remaining easy `0%` route blind spots by adding direct loader/action coverage for the setup resend API route, Google auth callback, dashboard shell loader, and logout route.
+
+### Acceptance Criteria
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.admin.setup-resend.tsx`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/auth.google.callback.tsx`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.tsx`.
+- [x] Add direct tests for `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/logout.tsx`.
+- [x] Run targeted verification plus `npm run typecheck` and `npm run test:coverage`.
+- [x] Record the updated baseline and the next remaining gaps.
+
+### Active Tasks
+- [x] Review the current baseline, lessons, and target files.
+- [x] Inspect route implementations and current test patterns.
+- [x] Implement the route tests for the remaining `0%` files.
+- [x] Run final verification and summarize the updated baseline.
+- [x] Commit and publish the PR slice.
+
+### Working Notes
+- Fresh worktree for this slice: `/Users/jspahr/repo/meatup-club-pr8a` on branch `codex/testing-zero-routes`.
+- This pass intentionally targets the remaining low-effort `0%` routes before taking on the larger partially-covered admin and restaurant surfaces.
+
+### Results
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.admin.setup-resend.test.ts` with coverage for the Resend domain lookup failure path, missing-domain handling, already-correct route reuse, and stale-route replacement.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/auth.google.callback.test.ts` with coverage for missing params, CSRF state validation, active-user login redirects, and pending-user redirects.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.test.tsx` with loader, layout-shell, and error-boundary coverage for the authenticated dashboard wrapper.
+- Added `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/logout.test.ts` with loader/action coverage for logout activity logging and the unauthenticated fast path.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:run -- app/routes/api.admin.setup-resend.test.ts app/routes/auth.google.callback.test.ts app/routes/dashboard.test.tsx app/routes/logout.test.ts` passed (`15` tests).
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run typecheck` passed.
+  - `cd /Users/jspahr/repo/meatup-club-pr8a/app && npm run test:coverage` passed (`59` files, `411` tests).
+- Coverage improvements from the prior merged baseline:
+  - Overall statements: `65.06%` -> `68.81%`
+  - Overall branches: `52.44%` -> `54.93%`
+  - Overall functions: `55.43%` -> `57.96%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/api.admin.setup-resend.tsx`: `0%` -> `87.80%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/auth.google.callback.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.tsx`: `0%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/logout.tsx`: `0%` -> `100.00%`
+- Remaining follow-up gaps worth the next slice: `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/login.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/pending.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.events.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.restaurants.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.dates.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.members.tsx`, `/Users/jspahr/repo/meatup-club-pr8a/app/app/routes/dashboard.admin.polls.tsx`, and `/Users/jspahr/repo/meatup-club-pr8a/app/app/lib/rate-limit.server.ts`.
