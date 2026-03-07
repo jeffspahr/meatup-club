@@ -37,6 +37,12 @@ export interface D1LikeDatabase {
     all<T = SqlRow>(): Promise<{ results: T[] }>;
     run(): Promise<{ meta: { changes: number; last_row_id: number } }>;
   };
+  batch(
+    statements: Array<{
+      run(): Promise<{ meta: { changes: number; last_row_id: number } }>;
+    }>
+  ): Promise<Array<{ meta: { changes: number; last_row_id: number } }>>;
+  withSession(_constraint?: string): D1LikeDatabase;
 }
 
 export interface SqliteD1Harness {
@@ -91,6 +97,24 @@ export function createSqliteD1Harness(): SqliteD1Harness {
         all,
         run,
       };
+    },
+    async batch(statements) {
+      sqlite.exec("BEGIN");
+
+      try {
+        const results = [];
+        for (const statement of statements) {
+          results.push(await statement.run());
+        }
+        sqlite.exec("COMMIT");
+        return results;
+      } catch (error) {
+        sqlite.exec("ROLLBACK");
+        throw error;
+      }
+    },
+    withSession() {
+      return db;
     },
   };
 
