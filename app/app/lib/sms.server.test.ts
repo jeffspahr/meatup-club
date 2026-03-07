@@ -66,6 +66,11 @@ function createMockDb({ events = [], recipients = [] }: MockDbOptions = {}) {
 }
 
 describe("normalizePhoneNumber", () => {
+  it("returns null for empty or whitespace-only input", () => {
+    expect(normalizePhoneNumber("")).toBeNull();
+    expect(normalizePhoneNumber("   ")).toBeNull();
+  });
+
   it("normalizes US 10-digit numbers", () => {
     expect(normalizePhoneNumber("555-123-4567")).toBe("+15551234567");
   });
@@ -84,6 +89,11 @@ describe("normalizePhoneNumber", () => {
 });
 
 describe("parseSmsReply", () => {
+  it("returns null for empty or whitespace-only replies", () => {
+    expect(parseSmsReply("")).toBeNull();
+    expect(parseSmsReply("   ")).toBeNull();
+  });
+
   it("parses yes/no replies", () => {
     expect(parseSmsReply("YES")).toBe("yes");
     expect(parseSmsReply("n")).toBe("no");
@@ -93,6 +103,11 @@ describe("parseSmsReply", () => {
 
   it("parses opt-out keywords", () => {
     expect(parseSmsReply("STOP")).toBe("opt_out");
+  });
+
+  it("parses help keywords", () => {
+    expect(parseSmsReply("HELP")).toBe("help");
+    expect(parseSmsReply("info")).toBe("help");
   });
 
   it("returns null for unknown text", () => {
@@ -143,6 +158,26 @@ describe("sms delivery and reminder flows", () => {
     expect(message).toContain("Prime Steakhouse");
     expect(message).toContain("Your RSVP: Maybe.");
     expect(message).toContain("Reply YES or NO to RSVP. Reply STOP to opt out.");
+  });
+
+  it("builds same-day reminders without a custom message prefix and formats no RSVPs", () => {
+    const message = buildSmsReminderMessage({
+      event: {
+        id: 1,
+        restaurant_name: "Prime Steakhouse",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-01",
+        event_time: "17:30",
+      },
+      timeZone: "UTC",
+      rsvpStatus: "no",
+      now: new Date("2026-04-01T12:05:00Z"),
+      customMessage: "   ",
+    });
+
+    expect(message).toContain("Reminder for today at 5:30 PM");
+    expect(message).toContain("Your RSVP: No.");
+    expect(message).not.toContain("Meatup.Club:    ");
   });
 
   it("returns an error without calling Twilio when credentials are missing", async () => {
@@ -249,6 +284,45 @@ describe("sms delivery and reminder flows", () => {
     expect(body).toContain("&quot;STOP&quot;");
   });
 
+  it("builds an empty XML response when no message is provided", async () => {
+    const response = buildSmsResponse();
+
+    await expect(response.text()).resolves.toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    );
+  });
+
+  it("warns and returns early when scheduled reminders are invoked without Twilio credentials", async () => {
+    await sendScheduledSmsReminders({
+      db: createMockDb() as never,
+      env: {},
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      "Twilio credentials are missing; skipping SMS reminders."
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns early when there are no upcoming events to remind", async () => {
+    const db = createMockDb();
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(db.recipientQueryCalls).toEqual([]);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it("sends scheduled reminders inside the delivery window and records them", async () => {
     const db = createMockDb({
       events: [
@@ -297,6 +371,49 @@ describe("sms delivery and reminder flows", () => {
     expect(body.get("Body")).toContain("Your RSVP: Maybe.");
   });
 
+  it("logs scheduled reminder delivery failures without recording a reminder row", async () => {
+    const db = createMockDb({
+      events: [
+        {
+          id: 88,
+          restaurant_name: "Prime Steakhouse",
+          event_date: "2026-04-02",
+          event_time: "12:00",
+          status: "upcoming",
+        },
+      ],
+      recipients: [
+        {
+          id: 9,
+          phone_number: "+15550000009",
+          rsvp_status: "later",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => "Provider error",
+      statusText: "Bad Request",
+    } as unknown as Response);
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "SMS reminder failed for +15550000009: Provider error"
+    );
+    expect(db.insertCalls).toEqual([]);
+  });
+
   it("returns an explicit error for adhoc reminders when credentials are missing", async () => {
     const result = await sendAdhocSmsReminder({
       db: createMockDb() as never,
@@ -339,6 +456,71 @@ describe("sms delivery and reminder flows", () => {
     expect(db.recipientQueryCalls[0]?.sql).toContain("AND 1 = 0");
     expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([89]);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("supports pending and specific adhoc reminder scopes", async () => {
+    const pendingDb = createMockDb({
+      recipients: [
+        {
+          id: 3,
+          phone_number: "+15550000003",
+          rsvp_status: null,
+        },
+      ],
+    });
+
+    const pendingResult = await sendAdhocSmsReminder({
+      db: pendingDb as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      event: {
+        id: 91,
+        restaurant_name: "Prime Steakhouse",
+        event_date: "2026-04-03",
+        event_time: "18:00",
+      },
+      recipientScope: "pending",
+    });
+
+    expect(pendingResult).toEqual({ sent: 1, errors: [] });
+    expect(pendingDb.recipientQueryCalls[0]?.sql).toContain("AND r.status IS NULL");
+    expect(pendingDb.recipientQueryCalls[0]?.bindArgs).toEqual([91]);
+
+    const specificDb = createMockDb({
+      recipients: [
+        {
+          id: 4,
+          phone_number: "+15550000004",
+          rsvp_status: "yes",
+        },
+      ],
+    });
+
+    const specificResult = await sendAdhocSmsReminder({
+      db: specificDb as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      event: {
+        id: 92,
+        restaurant_name: "Prime Steakhouse",
+        event_date: "2026-04-03",
+        event_time: "18:00",
+      },
+      recipientScope: "specific",
+      recipientUserId: 44,
+    });
+
+    expect(specificResult).toEqual({ sent: 1, errors: [] });
+    expect(specificDb.recipientQueryCalls[0]?.sql).toContain("AND u.id = ?");
+    expect(specificDb.recipientQueryCalls[0]?.bindArgs).toEqual([92, 44]);
   });
 
   it("sends adhoc reminders for maybe RSVPs and aggregates Twilio failures", async () => {

@@ -109,6 +109,12 @@ describe("dashboard.admin.email-templates route UI state", () => {
     fireEvent.change(screen.getByLabelText("Template Name *"), {
       target: { value: "Alternate Invite Updated" },
     });
+    fireEvent.change(screen.getByLabelText("HTML Body *"), {
+      target: { value: "<p>Alternate Invite Updated</p>" },
+    });
+    fireEvent.change(screen.getByLabelText("Plain Text Body *"), {
+      target: { value: "Alternate Invite Updated" },
+    });
     fireEvent.click(screen.getByLabelText("Set as default template"));
     expect(screen.getByLabelText("Set as default template")).toBeChecked();
 
@@ -134,10 +140,11 @@ describe("dashboard.admin.email-templates route UI state", () => {
 
     expect(screen.getByText("Failed to save template")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Edit Template" })).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Alternate Invite Updated")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("Alternate Invite Updated")).toHaveLength(2);
+    expect(screen.getByDisplayValue("<p>Alternate Invite Updated</p>")).toBeInTheDocument();
     fireEvent.click(screen.getAllByText("Preview Template")[1]!);
     expect(screen.getAllByText("Plain Text:")).toHaveLength(2);
-    expect(screen.getAllByText("Custom text")).toHaveLength(2);
+    expect(screen.getByText("Alternate Invite Updated")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 

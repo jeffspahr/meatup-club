@@ -155,6 +155,35 @@ describe("dashboard.admin.email-templates route", () => {
     ]);
   });
 
+  it("updates a non-default template without resetting all defaults", async () => {
+    const db = createMockDb();
+    const formData = new FormData();
+    formData.set("_action", "update");
+    formData.set("id", "2");
+    formData.set("name", "Updated Template");
+    formData.set("subject", "Updated Subject");
+    formData.set("html_body", "<p>Updated</p>");
+    formData.set("text_body", "Updated");
+
+    const response = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: formData,
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect((response as Response).status).toBe(302);
+    expect(db.runCalls).toEqual([
+      {
+        sql:
+          "UPDATE email_templates SET name = ?, subject = ?, html_body = ?, text_body = ?, is_default = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        bindArgs: ["Updated Template", "Updated Subject", "<p>Updated</p>", "Updated", 0, "2"],
+      },
+    ]);
+  });
+
   it("prevents deleting the default template", async () => {
     const db = createMockDb({ deleteTemplate: { is_default: 1 } });
     const formData = new FormData();
@@ -171,6 +200,59 @@ describe("dashboard.admin.email-templates route", () => {
     } as never);
 
     expect(result).toEqual({ error: "Cannot delete the default template" });
+  });
+
+  it("requires a template id before deleting or setting a default", async () => {
+    const deleteForm = new FormData();
+    deleteForm.set("_action", "delete");
+
+    const deleteResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: deleteForm,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    const defaultForm = new FormData();
+    defaultForm.set("_action", "set_default");
+
+    const defaultResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: defaultForm,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    expect(deleteResult).toEqual({ error: "Template ID is required" });
+    expect(defaultResult).toEqual({ error: "Template ID is required" });
+  });
+
+  it("deletes a non-default template and redirects", async () => {
+    const db = createMockDb({ deleteTemplate: { is_default: 0 } });
+    const formData = new FormData();
+    formData.set("_action", "delete");
+    formData.set("id", "2");
+
+    const response = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: formData,
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect((response as Response).status).toBe(302);
+    expect(db.runCalls).toEqual([
+      {
+        sql: "DELETE FROM email_templates WHERE id = ?",
+        bindArgs: ["2"],
+      },
+    ]);
   });
 
   it("sets a new default template", async () => {
@@ -199,6 +281,66 @@ describe("dashboard.admin.email-templates route", () => {
         bindArgs: ["2"],
       },
     ]);
+  });
+
+  it("returns action-level errors when persistence fails or the action is unknown", async () => {
+    const failingDb = createMockDb({ shouldFail: true });
+
+    const updateForm = new FormData();
+    updateForm.set("_action", "update");
+    updateForm.set("id", "2");
+    updateForm.set("name", "Updated Template");
+    updateForm.set("subject", "Updated Subject");
+    updateForm.set("html_body", "<p>Updated</p>");
+    updateForm.set("text_body", "Updated");
+    const updateResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: updateForm,
+      }),
+      context: { cloudflare: { env: { DB: failingDb } } } as never,
+      params: {},
+    } as never);
+
+    const deleteForm = new FormData();
+    deleteForm.set("_action", "delete");
+    deleteForm.set("id", "2");
+    const deleteResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: deleteForm,
+      }),
+      context: { cloudflare: { env: { DB: failingDb } } } as never,
+      params: {},
+    } as never);
+
+    const defaultForm = new FormData();
+    defaultForm.set("_action", "set_default");
+    defaultForm.set("id", "2");
+    const defaultResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: defaultForm,
+      }),
+      context: { cloudflare: { env: { DB: failingDb } } } as never,
+      params: {},
+    } as never);
+
+    const invalidForm = new FormData();
+    invalidForm.set("_action", "archive");
+    const invalidResult = await action({
+      request: new Request("http://localhost/dashboard/admin/email-templates", {
+        method: "POST",
+        body: invalidForm,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    expect(updateResult).toEqual({ error: "Failed to save template" });
+    expect(deleteResult).toEqual({ error: "Failed to delete template" });
+    expect(defaultResult).toEqual({ error: "Failed to set default template" });
+    expect(invalidResult).toEqual({ error: "Invalid action" });
   });
 
   it("renders the create and edit template forms", () => {

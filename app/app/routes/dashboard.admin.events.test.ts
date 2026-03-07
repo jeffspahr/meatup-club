@@ -24,6 +24,7 @@ vi.mock("../lib/sms.server", () => ({
 type MockDbOptions = {
   createdEventId?: number | null;
   activeUsers?: Array<{ email: string }>;
+  createEventError?: Error | null;
   eventRow?: {
     id: number;
     restaurant_name: string;
@@ -41,6 +42,7 @@ type MockDbOptions = {
 function createMockDb({
   createdEventId = 101,
   activeUsers = [{ email: "one@example.com" }, { email: "two@example.com" }],
+  createEventError = null,
   eventRow = {
     id: 42,
     restaurant_name: "Prime Steakhouse",
@@ -87,6 +89,9 @@ function createMockDb({
       runCalls.push({ sql: normalizedSql, bindArgs });
 
       if (normalizedSql.includes("INSERT INTO events")) {
+        if (createEventError) {
+          throw createEventError;
+        }
         return { meta: { last_row_id: createdEventId } };
       }
 
@@ -202,6 +207,50 @@ describe("dashboard.admin.events action flows", () => {
     expect(waitUntil.mock.calls[0]?.[0]).toBeInstanceOf(Promise);
   });
 
+  it("returns an error when event creation fails and awaits invite delivery without waitUntil", async () => {
+    const failingDb = createMockDb({ createEventError: new Error("insert failed") });
+    const failingRequest = createRequest({
+      _action: "create",
+      restaurant_name: "Prime Steakhouse",
+      event_date: "2026-04-20",
+    });
+
+    const failingResult = await action({
+      request: failingRequest,
+      context: { cloudflare: { env: { DB: failingDb } } } as never,
+    } as never);
+
+    const db = createMockDb();
+    vi.mocked(sendEventInvites).mockResolvedValue({
+      success: true,
+      sentCount: 2,
+      errors: ["one invite failed"],
+    } as never);
+
+    const successResponse = await action({
+      request: createRequest({
+        _action: "create",
+        restaurant_name: "Prime Steakhouse",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-20",
+        event_time: "18:30",
+        send_invites: "true",
+      }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_API_KEY: "test-api-key",
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(failingResult).toEqual({ error: "Failed to create event" });
+    expect((successResponse as Response).status).toBe(302);
+    expect(sendEventInvites).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects invalid RSVP override statuses", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -236,6 +285,21 @@ describe("dashboard.admin.events action flows", () => {
 
     expect(result).toEqual({ error: "Event or user not found" });
     expect(db.runCalls).toEqual([]);
+  });
+
+  it("validates required RSVP override fields", async () => {
+    const result = await action({
+      request: createRequest({
+        _action: "override_rsvp",
+        event_id: "42",
+        status: "yes",
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+    } as never);
+
+    expect(result).toEqual({
+      error: "Event, user, and status are required for RSVP overrides",
+    });
   });
 
   it("inserts a new RSVP override and notifies the affected user", async () => {
@@ -282,6 +346,39 @@ describe("dashboard.admin.events action flows", () => {
         resendApiKey: "test-api-key",
       })
     );
+  });
+
+  it("skips or tolerates RSVP notification delivery when email sending is unavailable", async () => {
+    const noKeyResult = await action({
+      request: createRequest({
+        _action: "override_rsvp",
+        event_id: "42",
+        user_id: "7",
+        status: "yes",
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+    } as never);
+
+    vi.mocked(sendRsvpOverrideEmail).mockRejectedValueOnce(new Error("mail down") as never);
+    const rejectedEmailResult = await action({
+      request: createRequest({
+        _action: "override_rsvp",
+        event_id: "42",
+        user_id: "7",
+        status: "yes",
+      }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: createMockDb(),
+            RESEND_API_KEY: "test-api-key",
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(noKeyResult).toEqual({ success: "RSVP override saved and user notified." });
+    expect(rejectedEmailResult).toEqual({ success: "RSVP override saved and user notified." });
   });
 
   it("updates an existing RSVP override instead of inserting a duplicate row", async () => {

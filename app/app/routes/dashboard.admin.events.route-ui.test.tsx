@@ -77,6 +77,7 @@ type MockDbOptions = {
   eventForLookup?: Record<string, unknown> | null;
   eventForDelete?: Record<string, unknown> | null;
   eventMeta?: Record<string, unknown> | null;
+  failingSqlIncludes?: string | null;
 };
 
 function createMockDb({
@@ -102,6 +103,7 @@ function createMockDb({
     calendar_sequence: 4,
   },
   eventMeta = { calendar_sequence: 5 },
+  failingSqlIncludes = null,
 }: MockDbOptions = {}) {
   const runCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
 
@@ -161,6 +163,11 @@ function createMockDb({
 
     const runForArgs = async (bindArgs: unknown[]) => {
       runCalls.push({ sql: normalizedSql, bindArgs });
+
+      if (failingSqlIncludes && normalizedSql.includes(failingSqlIncludes)) {
+        throw new Error(`${failingSqlIncludes} failed`);
+      }
+
       return { meta: { changes: 1 } };
     };
 
@@ -392,13 +399,35 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(screen.getByText("Specific Recipient")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Pat Member" })).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("button", { name: "Create from Vote Winners" }));
+    expect(screen.getByRole("heading", { name: "Create New Event" })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
     expect(screen.getByDisplayValue("Prime Steakhouse")).toBeInTheDocument();
     expect(screen.getByDisplayValue("123 Main St")).toBeInTheDocument();
     expect(screen.getByDisplayValue("2026-05-20")).toBeInTheDocument();
+    fireEvent.change(screen.getByDisplayValue("Prime Steakhouse"), {
+      target: { value: "Updated Grill" },
+    });
+    fireEvent.change(screen.getByDisplayValue("123 Main St"), {
+      target: { value: "500 Market St" },
+    });
+    fireEvent.change(screen.getByDisplayValue("2026-05-20"), {
+      target: { value: "2026-06-15" },
+    });
+    fireEvent.change(screen.getAllByDisplayValue("18:00")[1]!, {
+      target: { value: "19:45" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Mark as cancelled" }));
 
-    fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    expect(screen.getByDisplayValue("Updated Grill")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("500 Market St")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-06-15")).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("19:45")).toHaveLength(1);
+    expect(screen.getByRole("checkbox", { name: "Mark as cancelled" })).toBeChecked();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /^Cancel$/i })[1]!);
 
     expect(screen.queryByRole("button", { name: "Save Changes" })).not.toBeInTheDocument();
 
@@ -480,6 +509,36 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(waitUntil.mock.calls[0]?.[0]).toBeInstanceOf(Promise);
   });
 
+  it("validates update input and surfaces update failures", async () => {
+    const missingFieldsResult = await action({
+      request: createRequest({
+        _action: "update",
+        id: "42",
+        event_date: "2026-06-15",
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    const failureResult = await action({
+      request: createRequest({
+        _action: "update",
+        id: "42",
+        restaurant_name: "Updated Grill",
+        event_date: "2026-06-15",
+      }),
+      context: {
+        cloudflare: {
+          env: { DB: createMockDb({ failingSqlIncludes: "UPDATE events" }) },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(missingFieldsResult).toEqual({ error: "ID, restaurant name and date are required" });
+    expect(failureResult).toEqual({ error: "Failed to update event" });
+  });
+
   it("deletes an event after scheduling cancellation notices", async () => {
     const db = createMockDb({
       deleteRecipients: [{ email: "alice@example.com" }, { email: "bob@example.com" }],
@@ -526,6 +585,47 @@ describe("dashboard.admin.events loader and UI", () => {
         bindArgs: [42],
       })
     );
+  });
+
+  it("validates delete input, tolerates missing events, and returns delete failures", async () => {
+    const missingIdResult = await action({
+      request: createRequest({
+        _action: "delete",
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    const noEventResponse = await action({
+      request: createRequest({
+        _action: "delete",
+        id: "42",
+      }),
+      context: {
+        cloudflare: {
+          env: { DB: createMockDb({ eventForDelete: null }) },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    const failingDeleteResult = await action({
+      request: createRequest({
+        _action: "delete",
+        id: "42",
+      }),
+      context: {
+        cloudflare: {
+          env: { DB: createMockDb({ failingSqlIncludes: "DELETE FROM events" }) },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(missingIdResult).toEqual({ error: "Event ID is required" });
+    expect((noEventResponse as Response).status).toBe(302);
+    expect(sendEventCancellation).not.toHaveBeenCalled();
+    expect(failingDeleteResult).toEqual({ error: "Failed to delete event" });
   });
 
   it("validates SMS reminder recipients and returns background success when waitUntil is available", async () => {
@@ -597,5 +697,75 @@ describe("dashboard.admin.events loader and UI", () => {
     } as never);
 
     expect(result).toEqual({ error: "Some SMS messages failed: Twilio outage" });
+  });
+
+  it("validates other SMS reminder guard rails and rejects invalid actions", async () => {
+    const db = createMockDb();
+
+    const missingIdResult = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    const missingCustomMessageResult = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+        message_type: "custom",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    const specificScopeResult = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+        recipient_scope: "specific",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    const missingEventResult = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+      }),
+      context: {
+        cloudflare: {
+          env: { DB: createMockDb({ eventForLookup: null }) },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    const successResult = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+        recipient_scope: "pending",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    const invalidActionResult = await action({
+      request: createRequest({
+        _action: "archive",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect(missingIdResult).toEqual({ error: "Event ID is required for SMS reminders" });
+    expect(missingCustomMessageResult).toEqual({ error: "Custom SMS message cannot be empty" });
+    expect(specificScopeResult).toEqual({ error: "Select a specific recipient" });
+    expect(missingEventResult).toEqual({ error: "Event not found" });
+    expect(successResult).toEqual({ success: "Sent 2 SMS reminders." });
+    expect(invalidActionResult).toEqual({ error: "Invalid action" });
   });
 });

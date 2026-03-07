@@ -46,6 +46,9 @@ vi.mock("../lib/email.server", () => ({
 
 type MockDbOptions = {
   activePoll?: Record<string, unknown> | null;
+  existingDate?: Record<string, unknown> | null;
+  dateSuggestion?: Record<string, unknown> | null;
+  existingDateVote?: Record<string, unknown> | null;
   existingRestaurantVote?: { restaurant_id: number } | null;
   restaurantOwner?: { created_by: number } | null;
   parentComment?: Record<string, unknown> | null;
@@ -57,6 +60,9 @@ type MockDbOptions = {
 
 function createMockDb({
   activePoll = { id: 1, title: "Weekly Poll", description: "Pick a meetup", created_at: "2026-03-01" },
+  existingDate = null,
+  dateSuggestion = { id: 21, poll_id: 1, suggested_date: "2026-06-11" },
+  existingDateVote = null,
   existingRestaurantVote = null,
   restaurantOwner = { created_by: 123 },
   parentComment = null,
@@ -77,6 +83,22 @@ function createMockDb({
 
       if (normalizedSql.includes("SELECT id FROM polls WHERE status = 'active'")) {
         return activePoll ? { id: activePoll.id } : null;
+      }
+
+      if (normalizedSql.includes("SELECT id FROM date_suggestions WHERE suggested_date = ? AND poll_id = ?")) {
+        return existingDate;
+      }
+
+      if (normalizedSql.includes("SELECT id, poll_id, suggested_date FROM date_suggestions WHERE id = ?")) {
+        return dateSuggestion;
+      }
+
+      if (normalizedSql.includes("SELECT user_id, poll_id FROM date_suggestions WHERE id = ?")) {
+        return dateSuggestion;
+      }
+
+      if (normalizedSql.includes("SELECT id FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?")) {
+        return existingDateVote;
       }
 
       if (normalizedSql.includes("SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?")) {
@@ -338,6 +360,168 @@ describe("dashboard.polls route", () => {
   });
 
   describe("restaurant actions", () => {
+    it("rejects all actions when there is no active poll", async () => {
+      const db = createMockDb({ activePoll: null });
+
+      const result = await action({
+        request: createRequest({
+          _action: "suggest_restaurant",
+          name: "Prime Steakhouse",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(result).toEqual({ error: "No active poll. Actions require an active poll." });
+    });
+
+    it("validates date suggestion and voting guard rails", async () => {
+      const duplicateDb = createMockDb({ existingDate: { id: 5 } });
+      const duplicateResult = await action({
+        request: createRequest({
+          _action: "suggest_date",
+          suggested_date: "2026-06-11",
+        }),
+        context: { cloudflare: { env: { DB: duplicateDb } } } as never,
+      } as never);
+
+      const pastResult = await action({
+        request: createRequest({
+          _action: "suggest_date",
+          suggested_date: "2026-01-01",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const missingVoteIdResult = await action({
+        request: createRequest({
+          _action: "vote_date",
+          remove: "false",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const pastVoteResult = await action({
+        request: createRequest({
+          _action: "vote_date",
+          suggestion_id: "21",
+          remove: "false",
+        }),
+        context: {
+          cloudflare: {
+            env: {
+              DB: createMockDb({
+                dateSuggestion: {
+                  id: 21,
+                  poll_id: 1,
+                  suggested_date: "2026-01-01",
+                },
+              }),
+            },
+          },
+        } as never,
+      } as never);
+
+      expect(duplicateResult).toEqual({
+        error: "This date has already been added for the current poll",
+      });
+      expect(pastResult).toEqual({ error: "Cannot add dates in the past" });
+      expect(missingVoteIdResult).toEqual({ error: "Suggestion ID is required" });
+      expect(pastVoteResult).toEqual({ error: "Cannot vote on dates in the past" });
+    });
+
+    it("skips inserting a duplicate date vote when the member already voted", async () => {
+      const db = createMockDb({ existingDateVote: { id: 88 } });
+
+      const response = await action({
+        request: createRequest({
+          _action: "vote_date",
+          suggestion_id: "21",
+          remove: "false",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect((response as Response).status).toBe(302);
+      expect(
+        db.runCalls.some((call) => call.sql.includes("INSERT INTO date_votes"))
+      ).toBe(false);
+      expect(logActivity).not.toHaveBeenCalledWith(
+        expect.objectContaining({ actionType: "vote_date" })
+      );
+    });
+
+    it("allows admins to delete dates they did not create", async () => {
+      vi.mocked(requireActiveUser).mockResolvedValue({
+        id: 900,
+        is_admin: 1,
+        status: "active",
+        email: "admin@example.com",
+        name: "Admin",
+      } as never);
+
+      const db = createMockDb({
+        activePoll: { id: 1 },
+        restaurantOwner: { created_by: 123 },
+      });
+
+      const response = await action({
+        request: createRequest({
+          _action: "delete_date",
+          suggestion_id: "21",
+        }),
+        context: {
+          cloudflare: {
+            env: {
+              DB: createMockDb({
+                dateSuggestion: { id: 21, poll_id: 1, user_id: 123 },
+              }),
+            },
+          },
+        } as never,
+      } as never);
+
+      expect((response as Response).status).toBe(302);
+      expect(logActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ actionType: "delete_date" })
+      );
+      void db;
+    });
+
+    it("validates missing ids for delete and restaurant vote actions", async () => {
+      const deleteDateResult = await action({
+        request: createRequest({
+          _action: "delete_date",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const suggestRestaurantResult = await action({
+        request: createRequest({
+          _action: "suggest_restaurant",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const voteRestaurantResult = await action({
+        request: createRequest({
+          _action: "vote_restaurant",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const deleteRestaurantResult = await action({
+        request: createRequest({
+          _action: "delete_restaurant",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      expect(deleteDateResult).toEqual({ error: "Suggestion ID is required" });
+      expect(suggestRestaurantResult).toEqual({ error: "Restaurant name is required" });
+      expect(voteRestaurantResult).toEqual({ error: "Restaurant ID is required" });
+      expect(deleteRestaurantResult).toEqual({ error: "Restaurant ID is required" });
+    });
+
     it("rejects duplicate restaurant suggestions by place id", async () => {
       vi.mocked(findRestaurantByPlaceId).mockResolvedValue({ id: 99 } as never);
       const db = createMockDb();
@@ -587,6 +771,25 @@ describe("dashboard.polls route", () => {
           actionType: "delete_comment",
         })
       );
+    });
+
+    it("validates required identifiers and unknown actions", async () => {
+      const deleteCommentResult = await action({
+        request: createRequest({
+          _action: "delete_comment",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      const invalidActionResult = await action({
+        request: createRequest({
+          _action: "archive",
+        }),
+        context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      } as never);
+
+      expect(deleteCommentResult).toEqual({ error: "Comment ID is required" });
+      expect(invalidActionResult).toEqual({ error: "Invalid action" });
     });
 
     it("deletes a comment and redirects when authorized", async () => {

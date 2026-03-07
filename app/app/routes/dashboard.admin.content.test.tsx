@@ -156,6 +156,22 @@ describe("dashboard.admin.content route", () => {
     expect(result).toEqual({ error: "Failed to update content" });
   });
 
+  it("returns an error for unknown actions", async () => {
+    const formData = new FormData();
+    formData.set("_action", "archive");
+
+    const result = await action({
+      request: new Request("http://localhost/dashboard/admin/content", {
+        method: "POST",
+        body: formData,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ error: "Invalid action" });
+  });
+
   it("renders editing, preview, and cancel states", () => {
     const props = {
       loaderData: {
@@ -164,7 +180,7 @@ describe("dashboard.admin.content route", () => {
             id: 1,
             key: "about",
             title: "About",
-            content: "Initial **markdown**",
+            content: "# Initial Heading\n\nInitial **markdown** with *emphasis*\n\n1. First item",
             updated_at: "2026-05-01T12:00:00.000Z",
           },
         ],
@@ -182,10 +198,15 @@ describe("dashboard.admin.content route", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(screen.getByDisplayValue("Initial **markdown**")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue(
+      "# Initial Heading\n\nInitial **markdown** with *emphasis*\n\n1. First item"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByText("Initial Heading")).toBeInTheDocument();
     expect(screen.getByText("markdown")).toBeInTheDocument();
+    expect(screen.getByText("emphasis")).toBeInTheDocument();
+    expect(screen.getByText("First item")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("Save Changes")).not.toBeInTheDocument();

@@ -168,6 +168,68 @@ describe("dashboard._index UI", () => {
     expect(await screen.findByText("Welcome Copy")).toBeInTheDocument();
   });
 
+  it("renders markdown-rich details plus tie summaries for members who already voted", async () => {
+    renderDashboard({
+      user: {
+        id: 88,
+        name: "Taylor Member",
+        email: "taylor@example.com",
+        phone_number: "+15551234567",
+      },
+      memberCount: 20,
+      isAdmin: false,
+      activePoll: {
+        id: 18,
+        title: "Summer Poll",
+        created_at: "2026-06-01T12:00:00.000Z",
+      },
+      topRestaurants: [
+        { name: "Prime Steakhouse", vote_count: 3 },
+        { name: "Oak Room", vote_count: 3 },
+      ],
+      topDates: [
+        { suggested_date: "2026-06-20", vote_count: 4 },
+        { suggested_date: "2026-06-21", vote_count: 4 },
+      ],
+      nextEvent: {
+        id: 19,
+        restaurant_name: "Future House",
+        event_date: "2026-06-20",
+        event_time: "18:30",
+      },
+      userRsvp: { status: "no" },
+      content: [
+        {
+          id: 3,
+          key: "guidelines",
+          title: "Guidelines",
+          content: "### House Rules\n\n- First rule\n\nKeep it *civil* and **friendly**.",
+        },
+      ],
+      userRestaurantVote: { name: "Prime Steakhouse" },
+      userDateVoteCount: 2,
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide Details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show Details" }));
+
+    expect(await screen.findByText("House Rules")).toBeInTheDocument();
+    expect(screen.getByText("First rule")).toBeInTheDocument();
+    expect(screen.getByText("civil")).toBeInTheDocument();
+    expect(screen.getByText("friendly")).toBeInTheDocument();
+    expect(screen.getByText("You voted: Prime Steakhouse")).toBeInTheDocument();
+    expect(
+      screen.getByText("Tied (3 votes each): Prime Steakhouse, Oak Room")
+    ).toBeInTheDocument();
+    expect(screen.getByText("You voted on 2 dates")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Tied (4 votes each): formatted:2026-06-20, formatted:2026-06-21"
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Not Going")).toBeInTheDocument();
+  });
+
   it("renders the route hydrate fallback shell", () => {
     const { container } = render(<HydrateFallback />);
 

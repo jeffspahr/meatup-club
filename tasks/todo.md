@@ -924,3 +924,45 @@ Move the post-merge testing commits off the already-merged `codex/testing-zero-r
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:run -- app/routes/dashboard.admin.polls.action-coverage.test.ts`
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run typecheck`
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:coverage`
+
+## Post-PR 91 Coverage Tranche (2026-03-07)
+
+### Goal
+Push the remaining meaningful partial-coverage product files higher on the clean replacement branch, keep the testing guide current, and clean up the stale merged branch now that the replacement branch is published.
+
+### Acceptance Criteria
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.events.tsx`.
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.email-templates.tsx`.
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.content.tsx`.
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.polls.tsx`.
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard._index.tsx`.
+- [x] Expand coverage for `/Users/jspahr/repo/meatup-club-pr89a/app/app/lib/sms.server.ts`.
+- [x] Refresh `/Users/jspahr/repo/meatup-club-pr89a/app/TESTING.md` to the new verified baseline.
+- [x] Clean up the stale `codex/testing-zero-routes` branch locally and on `origin`.
+- [x] Verification passes: targeted tests, `npm run typecheck`, and `npm run test:coverage`.
+
+### Active Tasks
+- [x] Review the remaining gap files and the existing test coverage around them.
+- [x] Extend the highest-value existing route and helper suites.
+- [x] Refresh `TESTING.md` and the task log with the new baseline and any follow-up cleanup.
+- [x] Run verification and summarize results.
+
+### Working Notes
+- The remaining gap files already have suites in place, so this pass should mostly extend existing `*.test.tsx` and `*.route-ui.test.tsx` files rather than add a parallel set of redundant tests.
+- The replacement branch is already published on `codex/testing-post-pr88`, so deleting the stale `codex/testing-zero-routes` ref is now safe and reduces branch confusion.
+
+### Results
+- Extended the existing suites in `/Users/jspahr/repo/meatup-club-pr89a/app/app/lib/sms.server.test.ts`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.events.test.ts`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.events.route-ui.test.tsx`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.email-templates.test.tsx`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.email-templates.route-ui.test.tsx`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.content.test.tsx`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.polls.route.test.ts`, `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.polls.route-ui.test.tsx`, and `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard._index.route-ui.test.tsx`.
+- Verified coverage now sits at `570` tests in `79` files with `95.27%` statements, `82.80%` branches, `94.06%` functions, and `95.24%` lines.
+- Notable file improvements from this tranche:
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/lib/sms.server.ts`: `88.27%` -> `99.31%`
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.events.tsx`: `80.86%` -> `92.17%`
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.email-templates.tsx`: `85.54%` -> `100.00%`
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.admin.content.tsx`: `85.71%` -> `93.65%`
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard.polls.tsx`: `88.26%` -> `94.97%`
+  - `/Users/jspahr/repo/meatup-club-pr89a/app/app/routes/dashboard._index.tsx`: `88.40%` -> `97.10%`
+- Removed the stale `/Users/jspahr/repo/meatup-club-pr8a` worktree and deleted `codex/testing-zero-routes` locally and on `origin`.
+- Verification performed:
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:run -- app/lib/sms.server.test.ts app/routes/dashboard.admin.email-templates.test.tsx app/routes/dashboard.admin.email-templates.route-ui.test.tsx app/routes/dashboard.admin.content.test.tsx app/routes/dashboard._index.route-ui.test.tsx app/routes/dashboard.polls.route.test.ts app/routes/dashboard.polls.route-ui.test.tsx app/routes/dashboard.admin.events.test.ts app/routes/dashboard.admin.events.route-ui.test.tsx`
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run typecheck`
+  - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:coverage`

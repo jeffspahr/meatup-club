@@ -52,21 +52,21 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, replacement branch verification)
+## Current Baseline (2026-03-07, post-PR-91 gap-closing tranche)
 
 Live numbers from `npm run test:coverage`:
 
 - `79` passing test files
-- `542` passing tests
-- `92.23%` statements
-- `79.78%` branches
-- `89.61%` functions
-- `92.17%` lines
+- `570` passing tests
+- `95.27%` statements
+- `82.80%` branches
+- `94.06%` functions
+- `95.24%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `93.63%` statements
-- `app/app/routes`: `90.57%` statements
+- `app/app/lib`: `96.24%` statements
+- `app/app/routes`: `94.28%` statements
 - `app/app/components`: `98.84%` statements
 
 Best-covered production files:
@@ -97,7 +97,9 @@ Best-covered production files:
 - `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
 - `app/routes/dashboard.admin.polls.tsx`: `95.68%` statements
 - `app/routes/dashboard.admin.members.tsx`: `88.88%` statements
-- `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
+- `app/routes/dashboard.admin.events.tsx`: `92.17%` statements
+- `app/routes/dashboard.admin.email-templates.tsx`: `100%` statements
+- `app/routes/dashboard.admin.content.tsx`: `93.65%` statements
 - `app/routes/dashboard.dates.tsx`: `93.45%` statements
 - `app/routes/dashboard.events.tsx`: `100%` statements
 - `app/routes/accept-invite.tsx`: `93.33%` statements
@@ -106,11 +108,11 @@ Best-covered production files:
 - `app/routes/api.webhooks.sms.tsx`: `100%` statements
 - `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%` statements
 - `app/routes/api.polls.tsx`: `89.23%` statements
-- `app/routes/dashboard._index.tsx`: `88.40%` statements
-- `app/routes/dashboard.polls.tsx`: `88.26%` statements
+- `app/routes/dashboard._index.tsx`: `97.10%` statements
+- `app/routes/dashboard.polls.tsx`: `94.97%` statements
 - `app/routes/dashboard.restaurants.tsx`: `95.18%` statements
 - `app/lib/email.server.ts`: `89.14%` statements
-- `app/lib/sms.server.ts`: `88.27%` statements
+- `app/lib/sms.server.ts`: `99.31%` statements
 - `app/lib/comments.server.ts`: `100%` statements
 - `app/lib/restaurants.server.ts`: `100%` statements
 - `app/lib/polls.server.ts`: `100%` statements
@@ -125,14 +127,14 @@ Best-covered production files:
 
 Largest remaining gaps in active product code:
 
-- `app/routes/dashboard.admin.events.tsx`: `80.86%`
-- `app/routes/dashboard.admin.email-templates.tsx`: `85.54%`
-- `app/routes/dashboard.admin.content.tsx`: `85.71%`
 - `app/routes/api.admin.setup-resend.tsx`: `87.80%`
 - `app/components/DashboardNav.tsx`: `88.23%`
-- `app/routes/dashboard.polls.tsx`: `88.26%`
-- `app/lib/sms.server.ts`: `88.27%`
-- `app/routes/dashboard._index.tsx`: `88.40%`
+- `app/routes/dashboard.admin.members.tsx`: `88.88%`
+- `app/lib/email.server.ts`: `89.14%`
+- `app/routes/api.polls.tsx`: `89.23%`
+- `app/routes/dashboard.profile.tsx`: `90.00%`
+- `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%`
+- `app/routes/dashboard.admin.events.tsx`: `92.17%`
 
 Important interpretation notes:
 
@@ -778,4 +780,4 @@ npm run build
 ## Last Updated
 
 - Date: 2026-03-07
-- Baseline suite: `542` tests in `79` files
+- Baseline suite: `570` tests in `79` files

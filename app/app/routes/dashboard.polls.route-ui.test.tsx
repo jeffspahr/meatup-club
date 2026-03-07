@@ -218,6 +218,7 @@ describe("dashboard.polls UI", () => {
     fireEvent.click(screen.getByRole("button", { name: /\+ Add Restaurant/i }));
     fireEvent.click(screen.getByRole("button", { name: "Modal submit" }));
     fireEvent.click(screen.getByText("Prime Steakhouse"));
+    fireEvent.error(screen.getByAltText("Prime Steakhouse"));
 
     expect(submitSpy).toHaveBeenCalledTimes(8);
     expect((submitSpy.mock.calls[0][0] as FormData).get("_action")).toBe("suggest_date");
@@ -240,5 +241,29 @@ describe("dashboard.polls UI", () => {
     expect((submitSpy.mock.calls[6][0] as FormData).get("place_id")).toBe("place-123");
     expect((submitSpy.mock.calls[7][0] as FormData).get("_action")).toBe("vote_restaurant");
     expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("55");
+    expect(screen.getByAltText("Prime Steakhouse")).not.toBeVisible();
+  });
+
+  it("lets the user close the add-restaurant modal without submitting", () => {
+    renderPolls({
+      dateSuggestions: [],
+      restaurantSuggestions: [],
+      activePoll: {
+        id: 12,
+        title: "June Poll",
+        description: "Pick the next meetup",
+      },
+      previousPolls: [],
+      dateVotes: [],
+      comments: [],
+      currentUser: { id: 123, isAdmin: false },
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Add Restaurant/i }));
+    expect(screen.getByRole("button", { name: "Modal close" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Modal close" }));
+
+    expect(screen.queryByRole("button", { name: "Modal submit" })).not.toBeInTheDocument();
   });
 });
