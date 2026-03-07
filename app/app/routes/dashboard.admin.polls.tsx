@@ -3,7 +3,7 @@ import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { redirect } from "react-router";
 import VoteLeadersCard from "../components/VoteLeadersCard";
-import { getActivePollLeaders } from "../lib/polls.server";
+import { closePoll, getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
@@ -252,48 +252,31 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     let createdEventId: number | null = null;
     try {
-      await db.prepare('BEGIN TRANSACTION').run();
+      const closeResult = await closePoll({
+        db,
+        pollId: parsedPollId,
+        closedByUserId: user.id,
+        winningRestaurantId: parsedWinningRestaurantId,
+        winningDateId: parsedWinningDateId,
+        event:
+          createEvent && selectedRestaurant && selectedDate
+            ? {
+                restaurantName: selectedRestaurant.name as string,
+                restaurantAddress: (selectedRestaurant.address as string | null) ?? null,
+                eventDate: selectedDate.suggested_date as string,
+                eventTime,
+              }
+            : null,
+      });
 
-      if (createEvent && selectedRestaurant && selectedDate) {
-        const eventResult = await db
-          .prepare(`
-            INSERT INTO events (restaurant_name, restaurant_address, event_date, event_time, status)
-            VALUES (?, ?, ?, ?, 'upcoming')
-          `)
-          .bind(selectedRestaurant.name, selectedRestaurant.address, selectedDate.suggested_date, eventTime)
-          .run();
-
-        createdEventId = eventResult.meta.last_row_id;
+      if (!closeResult.ok) {
+        return { error: 'Failed to close poll. Please try again.' };
       }
 
-      const closeResult = await db
-        .prepare(`
-          UPDATE polls
-          SET status = 'closed',
-              closed_by = ?,
-              closed_at = CURRENT_TIMESTAMP,
-              winning_restaurant_id = ?,
-              winning_date_id = ?,
-              created_event_id = ?
-          WHERE id = ? AND status = 'active'
-        `)
-        .bind(
-          user.id,
-          parsedWinningRestaurantId,
-          parsedWinningDateId,
-          createdEventId,
-          parsedPollId
-        )
-        .run();
-
-      if ((closeResult.meta?.changes ?? 0) === 0) {
-        throw new Error('Poll close failed due to concurrent status change');
-      }
-
-      await db.prepare('COMMIT').run();
+      createdEventId = closeResult.eventId;
     } catch (error) {
-      await db.prepare('ROLLBACK').run().catch(() => null);
-      console.error('Failed to close poll transaction:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Failed to close poll', { message });
       return { error: 'Failed to close poll. Please try again.' };
     }
 

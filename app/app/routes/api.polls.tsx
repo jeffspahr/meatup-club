@@ -1,5 +1,6 @@
 import type { Route } from "./+types/api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { closePoll } from "../lib/polls.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireActiveUser(request, context);
@@ -65,6 +66,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const winningRestaurantId = formData.get('winning_restaurant_id');
     const winningDateId = formData.get('winning_date_id');
     const createEvent = formData.get('create_event') === 'true';
+    const eventTime = (formData.get('event_time') as string) || '18:00';
 
     if (!pollId) {
       return Response.json({ error: 'Poll ID is required' }, { status: 400 });
@@ -131,7 +133,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     let createdEventId = null;
 
-    // If creating an event, get the winner details and create event
+    let eventPayload = null;
     if (createEvent && parsedWinningRestaurantId && parsedWinningDateId) {
       const restaurant = await db
         .prepare(`SELECT * FROM restaurants WHERE id = ?`)
@@ -150,72 +152,31 @@ export async function action({ request, context }: Route.ActionArgs) {
         );
       }
 
-      try {
-        await db.prepare('BEGIN TRANSACTION').run();
+      eventPayload = {
+        restaurantName: restaurant.name as string,
+        restaurantAddress: (restaurant.address as string | null) ?? null,
+        eventDate: date.suggested_date as string,
+        eventTime,
+      };
+    }
 
-        const eventResult = await db
-          .prepare(`
-            INSERT INTO events (restaurant_name, restaurant_address, event_date, status)
-            VALUES (?, ?, ?, 'upcoming')
-          `)
-          .bind(restaurant.name, restaurant.address, date.suggested_date)
-          .run();
+    try {
+      const closeResult = await closePoll({
+        db,
+        pollId: parsedPollId,
+        closedByUserId: user.id,
+        winningRestaurantId: parsedWinningRestaurantId,
+        winningDateId: parsedWinningDateId,
+        event: eventPayload,
+      });
 
-        createdEventId = eventResult.meta.last_row_id;
-
-        const closeResult = await db
-          .prepare(`
-            UPDATE polls
-            SET status = 'closed',
-                closed_by = ?,
-                closed_at = CURRENT_TIMESTAMP,
-                winning_restaurant_id = ?,
-                winning_date_id = ?,
-                created_event_id = ?
-            WHERE id = ? AND status = 'active'
-          `)
-          .bind(
-            user.id,
-            parsedWinningRestaurantId,
-            parsedWinningDateId,
-            createdEventId,
-            parsedPollId
-          )
-          .run();
-
-        if ((closeResult.meta?.changes ?? 0) === 0) {
-          throw new Error('Poll close failed due to concurrent status change');
-        }
-
-        await db.prepare('COMMIT').run();
-      } catch (error) {
-        await db.prepare('ROLLBACK').run().catch(() => null);
-        return Response.json({ error: 'Failed to close poll' }, { status: 500 });
-      }
-    } else {
-      const closeResult = await db
-        .prepare(`
-          UPDATE polls
-          SET status = 'closed',
-              closed_by = ?,
-              closed_at = CURRENT_TIMESTAMP,
-              winning_restaurant_id = ?,
-              winning_date_id = ?,
-              created_event_id = ?
-          WHERE id = ? AND status = 'active'
-        `)
-        .bind(
-          user.id,
-          parsedWinningRestaurantId,
-          parsedWinningDateId,
-          createdEventId,
-          parsedPollId
-        )
-        .run();
-
-      if ((closeResult.meta?.changes ?? 0) === 0) {
+      if (!closeResult.ok) {
         return Response.json({ error: 'Failed to close poll' }, { status: 409 });
       }
+
+      createdEventId = closeResult.eventId;
+    } catch {
+      return Response.json({ error: 'Failed to close poll' }, { status: 500 });
     }
 
     const closedPoll = await db

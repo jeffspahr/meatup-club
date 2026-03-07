@@ -1,10 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action, loader } from "./api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { closePoll } from "../lib/polls.server";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
 }));
+
+vi.mock("../lib/polls.server", async () => {
+  const actual = await vi.importActual<typeof import("../lib/polls.server")>("../lib/polls.server");
+  return {
+    ...actual,
+    closePoll: vi.fn(),
+  };
+});
 
 type MockDbOptions = {
   loaderActivePoll?: Record<string, unknown> | null;
@@ -135,6 +144,10 @@ function createRequest(formEntries?: Record<string, string>) {
 describe("api.polls route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(closePoll).mockResolvedValue({
+      ok: true,
+      eventId: null,
+    });
   });
 
   it("returns the active poll from the loader", async () => {
@@ -280,13 +293,17 @@ describe("api.polls route", () => {
     });
   });
 
-  it("creates an event inside a transaction when closing a poll", async () => {
+  it("uses the shared close helper when closing a poll with event creation", async () => {
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 99,
       is_admin: 1,
       status: "active",
       email: "admin@example.com",
     } as never);
+    vi.mocked(closePoll).mockResolvedValue({
+      ok: true,
+      eventId: 333,
+    });
     const db = createMockDb({
       pollByIdResponses: [
         {
@@ -322,31 +339,30 @@ describe("api.polls route", () => {
       },
       eventId: 333,
     });
-    expect(db.runCalls).toEqual([
-      expect.objectContaining({ sql: "BEGIN TRANSACTION", bindArgs: [] }),
-      expect.objectContaining({
-        sql: "INSERT INTO events (restaurant_name, restaurant_address, event_date, status) VALUES (?, ?, ?, 'upcoming')",
-        bindArgs: ["Steak House", "123 Main", "2026-05-01"],
-      }),
-      expect.objectContaining({
-        sql: "UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP, winning_restaurant_id = ?, winning_date_id = ?, created_event_id = ? WHERE id = ? AND status = 'active'",
-        bindArgs: [99, 9, 17, 333, 1],
-      }),
-      expect.objectContaining({ sql: "COMMIT", bindArgs: [] }),
-    ]);
+    expect(closePoll).toHaveBeenCalledWith({
+      db,
+      pollId: 1,
+      closedByUserId: 99,
+      winningRestaurantId: 9,
+      winningDateId: 17,
+      event: {
+        restaurantName: "Steak House",
+        restaurantAddress: "123 Main",
+        eventDate: "2026-05-01",
+        eventTime: "18:00",
+      },
+    });
   });
 
-  it("rolls back and returns a server error when transactional close fails", async () => {
+  it("returns a server error when the shared close helper fails", async () => {
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 99,
       is_admin: 1,
       status: "active",
       email: "admin@example.com",
     } as never);
-    const db = createMockDb({
-      failOn: "close_update",
-      pollByIdResponses: [],
-    });
+    vi.mocked(closePoll).mockRejectedValue(new Error("d1 failure"));
+    const db = createMockDb({ pollByIdResponses: [] });
 
     const response = await action({
       request: createRequest({
@@ -362,22 +378,20 @@ describe("api.polls route", () => {
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: "Failed to close poll" });
-    expect(db.runCalls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ sql: "BEGIN TRANSACTION", bindArgs: [] }),
-        expect.objectContaining({ sql: "ROLLBACK", bindArgs: [] }),
-      ])
-    );
   });
 
-  it("returns a conflict when a non-transactional close updates no rows", async () => {
+  it("returns a conflict when the shared close helper reports the poll is no longer active", async () => {
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 99,
       is_admin: 1,
       status: "active",
       email: "admin@example.com",
     } as never);
-    const db = createMockDb({ closeChanges: 0 });
+    vi.mocked(closePoll).mockResolvedValue({
+      ok: false,
+      reason: "conflict",
+    });
+    const db = createMockDb();
 
     const response = await action({
       request: createRequest({
