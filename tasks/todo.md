@@ -869,7 +869,7 @@ Raise the remaining member-facing date surfaces and small shared helper/componen
 - [x] Review the remaining uncovered branches in the target route/helper/component files.
 - [x] Implement the new about/date/calendar/helper coverage additions.
 - [x] Run final verification and summarize the updated baseline.
-- [ ] Commit and publish the updated branch.
+- [x] Commit and publish the updated branch.
 
 ### Working Notes
 - `dashboard.admin.events.tsx` is still a meaningful gap, but it is a larger follow-up route matrix; this slice stays on the cheaper wins around member-facing date UX and small shared utilities.
