@@ -1,0 +1,7 @@
+Cloudflare D1 Time Travel backup bookmark captured before schema cleanup.
+Database: meatup-club-db
+Captured (UTC): 2026-02-23T04:50:08Z
+Bookmark: 00000149-00000006-0000501b-61fd771bdb16b5216078990be62e2882
+
+Restore command:
+CLOUDFLARE_API_TOKEN=<token> npx wrangler d1 time-travel restore meatup-club-db --bookmark=00000149-00000006-0000501b-61fd771bdb16b5216078990be62e2882

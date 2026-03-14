@@ -72,8 +72,11 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
    wrangler d1 execute meatup-club-db --file=../schema.sql
    ```
 
-   Optional: if you are upgrading an older database instead of creating a fresh one,
-   apply historical migrations in `../migrations/` and `./migrations/` as needed.
+   For existing environments, apply only post-baseline migrations from
+   `./migrations`:
+   ```bash
+   wrangler d1 migrations apply meatup-club-db --remote
+   ```
 
 5. **Run development server**
    ```bash
@@ -101,8 +104,15 @@ The canonical schema includes:
 - **email_templates** - Admin-managed invite templates
 - **event_aliases** - Calendar RSVP alias mapping
 - **api_rate_limits** - API request throttling buckets
+- **webhook_deliveries** - Webhook idempotency ledger
+- **event_email_deliveries** - Durable event invite/update/cancel outbox
+- **provider_webhooks** - Provider-managed webhook configuration state
 
-See `../schema.sql` for fresh installs and `../migrations/` + `./migrations/` for historical upgrades.
+Runtime views include:
+- **current_poll_restaurant_votes** - Active poll restaurant vote join view
+- **current_poll_date_votes** - Active poll date vote join view
+
+See `../schema.sql` for the production-aligned baseline and `./migrations/README.md` + `../DATABASE.md` for migration policy.
 
 ## Deployment
 

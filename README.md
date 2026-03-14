@@ -13,10 +13,9 @@ Private web app for organizing quarterly steakhouse meetups.
 
 ## Repository Layout
 
-- `app/` - Runtime application, tests, migrations, Worker entrypoint
+- `app/` - Runtime application, tests, post-baseline migrations, Worker entrypoint
 - `terraform/` - Cloudflare infrastructure as code
 - `schema.sql` - Canonical fresh-install D1 schema
-- `migrations/` - Historical root-level schema migrations
 
 ## Start Here
 
@@ -28,8 +27,9 @@ Private web app for organizing quarterly steakhouse meetups.
 
 ## Database Guidance
 
-- Fresh install: apply `/Users/jspahr/repo/meatup-club/schema.sql`.
-- Existing older environments: apply historical migrations deliberately (`/Users/jspahr/repo/meatup-club/migrations` and `/Users/jspahr/repo/meatup-club/app/migrations`) based on current state.
+- Fresh install: apply `/Users/jspahr/repo/meatup-club/schema.sql` (production-aligned baseline).
+- Existing environments: apply only targeted post-baseline migrations from `/Users/jspahr/repo/meatup-club/app/migrations`.
+- Migration policy details: `/Users/jspahr/repo/meatup-club/DATABASE.md`.
 
 ## Notes
 
