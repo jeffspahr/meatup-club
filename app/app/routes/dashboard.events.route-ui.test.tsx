@@ -210,6 +210,7 @@ describe("dashboard.events UI", () => {
     expect(
       within(secondTile).getByRole("button", { name: "Hide details for River Grill" })
     ).toHaveAttribute("aria-expanded", "true");
+    expect(secondTile).toHaveClass("xl:col-span-2");
     expect(within(secondTile).getByText("Your RSVP")).toBeInTheDocument();
     expect(within(secondTile).getByLabelText("Comments (Optional)")).toBeInTheDocument();
   });

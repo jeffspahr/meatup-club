@@ -764,7 +764,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     hover
                     role="article"
                     aria-labelledby={titleId}
-                    className="overflow-hidden p-0"
+                    className={`overflow-hidden p-0 ${isExpanded ? "xl:col-span-2" : ""}`}
                   >
                     <div className="bg-gradient-to-br from-accent/10 via-card to-card p-5 sm:p-6">
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
