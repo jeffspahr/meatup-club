@@ -714,7 +714,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
           />
         ) : (
           <div className="space-y-6">
-            <Card className="border-accent/15 bg-muted/20 p-5 sm:p-6">
+            <Card className="border-accent/25 bg-accent/[0.06] p-5 shadow-sm sm:p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -728,7 +728,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                   </p>
                 </div>
                 {nextUpcomingEvent ? (
-                  <div className="rounded-2xl border border-border/70 bg-card/90 px-4 py-3 text-sm text-foreground shadow-sm">
+                  <div className="rounded-2xl border border-accent/15 bg-background/95 px-4 py-3 text-sm text-foreground shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Next up
                     </p>
@@ -766,7 +766,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     aria-labelledby={titleId}
                     className={`overflow-hidden p-0 ${isExpanded ? "xl:col-span-2" : ""}`}
                   >
-                    <div className="bg-muted/20 p-5 sm:p-6">
+                    <div className="bg-accent/[0.04] p-5 sm:p-6">
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                           <div className="min-w-24 rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-center shadow-sm">
