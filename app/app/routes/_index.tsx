@@ -96,6 +96,10 @@ export default function Home() {
             SMS Consent
           </Link>
           <span className="text-sm text-muted-foreground">&middot;</span>
+          <Link to="/verification" className="text-sm text-muted-foreground hover:text-foreground">
+            Verification
+          </Link>
+          <span className="text-sm text-muted-foreground">&middot;</span>
           <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground">
             Privacy
           </Link>

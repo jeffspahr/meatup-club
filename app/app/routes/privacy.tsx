@@ -11,14 +11,25 @@ export default function PrivacyPage() {
           Privacy Policy & SMS Consent
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">Last updated: February 25, 2026</p>
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          For public carrier and messaging reviews, use{" "}
+          <Link
+            to="/verification"
+            className="font-medium text-accent underline underline-offset-2"
+          >
+            /verification
+          </Link>
+          {" "}for a consolidated business identity and SMS compliance summary.
+        </p>
 
         <div className="mt-10 space-y-8 text-muted-foreground">
           <section>
             <h2 className="text-xl font-semibold text-foreground">Overview</h2>
             <p className="mt-3">
               Meatup.Club is a private dining club application used to coordinate member voting,
-              RSVPs, and event reminders. It is operated by Jeff Spahr as a sole proprietor. This
-              page explains how we collect and use personal data, including SMS consent.
+              RSVPs, and event reminders. It is operated by Jeffrey A Spahr, doing business as
+              Meatup.Club, as a sole proprietor. This page explains how we collect and use
+              personal data, including SMS consent.
             </p>
           </section>
 
@@ -130,9 +141,12 @@ export default function PrivacyPage() {
           </section>
         </div>
 
-        <div className="mt-12 border-t border-border pt-6">
+        <div className="mt-12 flex flex-wrap items-center gap-4 border-t border-border pt-6 text-sm">
           <Link to="/" className="text-sm font-medium text-accent hover:text-accent-strong">
             Back to Meatup.Club
+          </Link>
+          <Link to="/verification" className="text-sm font-medium text-accent hover:text-accent-strong">
+            Verification
           </Link>
         </div>
       </div>
