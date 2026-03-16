@@ -5,12 +5,14 @@ import { requireActiveUser } from "../lib/auth.server";
 import { buildCreateEventStatementForActivePoll } from "../lib/events.server";
 import { redirect } from "react-router";
 import {
-  buildSelectStagedDeliveryIdsStatement,
-  buildStageEventInviteDeliveriesForLastInsertedEventStatement,
   enqueueStagedEventEmailBatch,
-  toStagedEventEmailBatchFromQueryResult,
+  stageEventInviteDeliveriesForActiveMembers,
   type StagedEventEmailBatch,
 } from "../lib/event-email-delivery.server";
+import {
+  buildSeedPollDefaultRsvpEventsStatement,
+  buildSeedPollDefaultRsvpsStatement,
+} from "../lib/rsvps.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
@@ -264,7 +266,6 @@ export async function action({ request, context }: Route.ActionArgs) {
       let stagedInviteBatch: StagedEventEmailBatch | null = null;
 
       if (createEvent && selectedRestaurant && selectedDate) {
-        const inviteBatchId = sendInvites ? crypto.randomUUID() : null;
         const closeStatements = [
           buildCreateEventStatementForActivePoll(db, {
             input: {
@@ -294,6 +295,15 @@ export async function action({ request, context }: Route.ActionArgs) {
               parsedWinningDateId,
               parsedPollId
             ),
+          buildSeedPollDefaultRsvpsStatement(db, {
+            pollId: parsedPollId,
+            dateSuggestionId: parsedWinningDateId as number,
+          }),
+          buildSeedPollDefaultRsvpEventsStatement(db, {
+            pollId: parsedPollId,
+            dateSuggestionId: parsedWinningDateId as number,
+            actorUserId: user.id,
+          }),
           db
             .prepare(`
               SELECT created_event_id
@@ -302,21 +312,6 @@ export async function action({ request, context }: Route.ActionArgs) {
             `)
             .bind(parsedPollId),
         ];
-
-        if (inviteBatchId) {
-          closeStatements.push(
-            buildStageEventInviteDeliveriesForLastInsertedEventStatement(db, {
-              batchId: inviteBatchId,
-              details: {
-                restaurantName: selectedRestaurant.name as string,
-                restaurantAddress: (selectedRestaurant.address as string | null) || null,
-                eventDate: selectedDate.suggested_date as string,
-                eventTime,
-              },
-            }),
-            buildSelectStagedDeliveryIdsStatement(db, inviteBatchId)
-          );
-        }
 
         const closeResults = await db.batch(closeStatements);
         const createEventResult = closeResults[0] as D1Result;
@@ -330,7 +325,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         }
 
         const createdEventRow = (
-          (closeResults[2] as D1Result<{ created_event_id: number | null }>).results || []
+          (closeResults[4] as D1Result<{ created_event_id: number | null }>).results || []
         )[0];
         createdEventId = Number(createdEventRow?.created_event_id ?? 0) || null;
 
@@ -338,12 +333,14 @@ export async function action({ request, context }: Route.ActionArgs) {
           throw new Error('Poll close failed to persist the created event id');
         }
 
-        if (inviteBatchId) {
-          stagedInviteBatch = toStagedEventEmailBatchFromQueryResult(
-            inviteBatchId,
-            'invite',
-            closeResults[closeResults.length - 1] as D1Result<{ id: number }>
-          );
+        if (sendInvites) {
+          stagedInviteBatch = await stageEventInviteDeliveriesForActiveMembers(db, {
+            eventId: createdEventId,
+            restaurantName: selectedRestaurant.name as string,
+            restaurantAddress: (selectedRestaurant.address as string | null) || null,
+            eventDate: selectedDate.suggested_date as string,
+            eventTime,
+          });
         }
       } else {
         const closeResult = await db

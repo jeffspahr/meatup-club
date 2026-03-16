@@ -172,11 +172,13 @@ export async function action({ request, context }: { request: Request; context: 
       eventId,
       userId: user.id,
       status: rsvpStatus,
-      updatedViaCalendar: true,
+      source: 'calendar_email',
+      actorUserId: user.id,
     });
-    console.log(`${result === 'created' ? 'Created' : 'Updated'} RSVP from email webhook`, {
+    console.log(`${result.mutation === 'created' ? 'Created' : result.mutation === 'updated' ? 'Updated' : 'Ignored'} RSVP from email webhook`, {
       eventId,
       status: rsvpStatus,
+      mutation: result.mutation,
     });
 
     return Response.json({

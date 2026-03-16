@@ -122,6 +122,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     eventId,
     userId: user.id,
     status: replyType,
+    source: "sms",
+    actorUserId: user.id,
   });
 
   const confirmation = replyType === "yes" ? "Yes" : "No";

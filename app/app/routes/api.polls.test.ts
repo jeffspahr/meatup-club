@@ -371,6 +371,14 @@ describe("api.polls route", () => {
         sql: "UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP, winning_restaurant_id = ?, winning_date_id = ?, created_event_id = last_insert_rowid() WHERE id = ? AND status = 'active'",
         bindArgs: [99, 9, 17, 1],
       }),
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO rsvps"),
+        bindArgs: [17, 1],
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO rsvp_events"),
+        bindArgs: [99, 17, 1],
+      }),
     ]);
     expect(db.runCalls).not.toContainEqual(
       expect.objectContaining({ sql: "BEGIN TRANSACTION" })

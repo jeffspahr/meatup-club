@@ -18,6 +18,7 @@ import {
   buildStageEventInviteDeliveriesForLastInsertedEventStatement,
   buildStageEventUpdateDeliveriesForActiveMembersStatement,
   enqueueStagedEventEmailBatch,
+  stageEventUpdateDeliveriesForUserIds,
   toStagedEventEmailBatchFromQueryResult,
   type StagedEventEmailBatch,
 } from "../lib/event-email-delivery.server";
@@ -502,16 +503,66 @@ export async function action({ request, context }: Route.ActionArgs) {
     userId: user.id,
     status: String(status),
     comments: (comments as string) || null,
+    source: "website",
+    actorUserId: user.id,
   });
 
-  await logActivity({
-    db,
-    userId: user.id,
-    actionType: result === "created" ? "rsvp" : "update_rsvp",
-    actionDetails: { event_id: eventId, status, comments },
-    route: "/dashboard/events",
-    request,
-  });
+  if (result.mutation !== "noop") {
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: result.mutation === "created" ? "rsvp" : "update_rsvp",
+      actionDetails: { event_id: eventId, status, comments },
+      route: "/dashboard/events",
+      request,
+    });
+  }
+
+  if (result.statusChanged) {
+    const eventForUpdate = await db
+      .prepare(
+        `
+          SELECT id, restaurant_name, restaurant_address, event_date, event_time
+          FROM events
+          WHERE id = ?
+        `
+      )
+      .bind(Number(eventId))
+      .first() as
+      | {
+          id: number;
+          restaurant_name: string;
+          restaurant_address: string | null;
+          event_date: string;
+          event_time: string | null;
+        }
+      | null;
+
+    if (eventForUpdate) {
+      try {
+        const stagedUpdateBatch = await stageEventUpdateDeliveriesForUserIds(
+          db,
+          {
+            eventId: eventForUpdate.id,
+            restaurantName: eventForUpdate.restaurant_name,
+            restaurantAddress: eventForUpdate.restaurant_address,
+            eventDate: eventForUpdate.event_date,
+            eventTime: eventForUpdate.event_time || "18:00",
+          },
+          [user.id]
+        );
+
+        await enqueueStagedEventEmailBatch(queueContext, stagedUpdateBatch);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Failed to stage website RSVP calendar update", {
+          eventId,
+          userId: user.id,
+          message,
+        });
+      }
+    }
+  }
 
   return { ok: true as const, performedAction: "rsvp" as EventMutationAction };
 }

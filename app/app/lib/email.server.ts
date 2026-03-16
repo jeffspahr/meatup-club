@@ -468,11 +468,24 @@ interface EventInviteEmailParams {
   eventDate: string;
   eventTime?: string;
   userEmail: string;
+  rsvpStatus?: 'yes' | 'no' | 'maybe';
   resendApiKey: string;
   idempotencyKey?: string;
 }
 
 const EVENT_INVITE_SEND_CONCURRENCY = 6;
+
+function getCalendarPartstatForRsvpStatus(
+  rsvpStatus?: 'yes' | 'no' | 'maybe' | null
+): string {
+  const partstatMap: Record<string, string> = {
+    yes: 'ACCEPTED',
+    no: 'DECLINED',
+    maybe: 'TENTATIVE',
+  };
+
+  return rsvpStatus ? partstatMap[rsvpStatus] || 'NEEDS-ACTION' : 'NEEDS-ACTION';
+}
 
 /**
  * Generate an iCalendar (.ics) file content for an event
@@ -485,6 +498,7 @@ export function generateCalendarInvite({
   eventDate,
   eventTime = '18:00',
   attendeeEmail,
+  rsvpStatus,
   sequence = 0,
 }: {
   eventId: number;
@@ -493,6 +507,7 @@ export function generateCalendarInvite({
   eventDate: string;
   eventTime?: string;
   attendeeEmail: string;
+  rsvpStatus?: 'yes' | 'no' | 'maybe';
   sequence?: number;
 }): string {
   // Parse the date and time
@@ -526,6 +541,7 @@ export function generateCalendarInvite({
 
   // Build description
   const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
+  const partstat = getCalendarPartstatForRsvpStatus(rsvpStatus);
 
   // Generate iCalendar content (RFC 5545 format)
   const icsContent = [
@@ -545,7 +561,7 @@ export function generateCalendarInvite({
     'STATUS:CONFIRMED',
     `SEQUENCE:${sequence}`,
     'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
-    `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=${attendeeEmail}:mailto:${attendeeEmail}`,
+    `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=${partstat};RSVP=TRUE;CN=${attendeeEmail}:mailto:${attendeeEmail}`,
     'CLASS:PUBLIC',
     'TRANSP:OPAQUE',
     'BEGIN:VALARM',
@@ -570,6 +586,7 @@ export async function sendEventInviteEmail({
   eventDate,
   eventTime = "18:00",
   userEmail,
+  rsvpStatus,
   resendApiKey,
   idempotencyKey,
 }: EventInviteEmailParams): Promise<ResendDeliveryResult> {
@@ -580,10 +597,22 @@ export async function sendEventInviteEmail({
     eventDate,
     eventTime,
     attendeeEmail: userEmail,
+    rsvpStatus,
     sequence: 0,
   });
 
   const personalizedIcsBase64 = Buffer.from(personalizedIcsContent).toString("base64");
+  const isPollDefaultAccepted = rsvpStatus === "yes";
+  const rsvpCopy = isPollDefaultAccepted
+    ? `
+                      <p style="margin: 0 0 24px; font-size: 14px; color: #6b7280; line-height: 1.6;">
+                        You're currently marked in because you voted that this date works for you in the poll. You can change your RSVP on Meatup.Club or in your calendar any time.
+                      </p>
+                    `
+    : "";
+  const rsvpText = isPollDefaultAccepted
+    ? "\nYou're currently marked in because you voted that this date works for you in the poll. You can change your RSVP any time.\n"
+    : "";
 
   return sendResendEmailRequest({
     operation: "Calendar invite email",
@@ -631,6 +660,7 @@ export async function sendEventInviteEmail({
                           </td>
                         </tr>
                       </table>
+                      ${rsvpCopy}
                       <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
                         A calendar invite is attached to this email. Add it to your calendar so you don't miss it!
                       </p>
@@ -659,6 +689,7 @@ You're invited to our next quarterly meatup!
 ${restaurantAddress ? restaurantAddress + "\n" : ""}📅 ${new Date(eventDate + "T" + eventTime).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} at ${new Date("2000-01-01T" + eventTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
 
 RSVP at: https://meatup.club/dashboard/events
+${rsvpText}
 
 A calendar invite is attached to this email.
       `,
@@ -800,13 +831,7 @@ export async function sendCalendarUpdate({
     const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
 
     // Map website RSVP status to calendar PARTSTAT
-    const partstatMap: Record<string, string> = {
-      'yes': 'ACCEPTED',
-      'no': 'DECLINED',
-      'maybe': 'TENTATIVE',
-    };
-
-    const partstat = partstatMap[rsvpStatus] || 'NEEDS-ACTION';
+    const partstat = getCalendarPartstatForRsvpStatus(rsvpStatus);
 
     // Generate updated calendar content
     // SEQUENCE:1 indicates this is an update to the original event
@@ -1007,13 +1032,7 @@ export async function sendEventUpdateEmail({
 
     const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
 
-    const partstatMap: Record<string, string> = {
-      'yes': 'ACCEPTED',
-      'no': 'DECLINED',
-      'maybe': 'TENTATIVE',
-    };
-
-    const partstat = rsvpStatus ? partstatMap[rsvpStatus] || 'NEEDS-ACTION' : 'NEEDS-ACTION';
+    const partstat = getCalendarPartstatForRsvpStatus(rsvpStatus);
 
     const icsContent = [
       'BEGIN:VCALENDAR',

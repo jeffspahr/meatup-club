@@ -238,6 +238,19 @@ describe('Calendar Invite Generation', () => {
       expect(ics).toContain('PARTSTAT=NEEDS-ACTION');
     });
 
+    it('should map an existing yes RSVP to PARTSTAT=ACCEPTED', () => {
+      const ics = generateCalendarInvite({
+        eventId: 1,
+        restaurantName: 'Test Steakhouse',
+        restaurantAddress: '123 Main St',
+        eventDate: '2025-01-15',
+        attendeeEmail: 'user@example.com',
+        rsvpStatus: 'yes',
+      });
+
+      expect(ics).toContain('PARTSTAT=ACCEPTED');
+    });
+
     it('should set RSVP=TRUE to request response', () => {
       const ics = generateCalendarInvite({
         eventId: 1,

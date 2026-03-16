@@ -26,6 +26,7 @@ import {
   type EventEmailDeliveryStatus,
   type StagedEventEmailBatch,
 } from "../lib/event-email-delivery.server";
+import { upsertRsvp } from "../lib/rsvps.server";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { EventRestaurantFields } from "../components/EventRestaurantFields";
 import { getActivePollLeaders } from "../lib/polls.server";
@@ -351,44 +352,29 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Event or user not found' };
     }
 
-    const existing = await db
-      .prepare('SELECT id FROM rsvps WHERE event_id = ? AND user_id = ?')
-      .bind(eventId, userId)
-      .first();
-
-    if (existing) {
-      await db
-        .prepare(`
-          UPDATE rsvps
-          SET status = ?,
-              admin_override = 1,
-              admin_override_by = ?,
-              admin_override_at = CURRENT_TIMESTAMP
-          WHERE event_id = ? AND user_id = ?
-        `)
-        .bind(status, admin.id, eventId, userId)
-        .run();
-    } else {
-      await db
-        .prepare(`
-          INSERT INTO rsvps (event_id, user_id, status, admin_override, admin_override_by, admin_override_at)
-          VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)
-        `)
-        .bind(eventId, userId, status, admin.id)
-        .run();
-    }
-
-    await logActivity({
+    const mutation = await upsertRsvp({
       db,
-      userId: admin.id,
-      actionType: 'admin_override_rsvp',
-      actionDetails: { event_id: eventId, user_id: userId, status },
-      route: '/dashboard/admin/events',
-      request,
+      eventId,
+      userId,
+      status,
+      source: "admin_override",
+      actorUserId: admin.id,
+      adminOverride: true,
     });
 
+    if (mutation.mutation !== "noop") {
+      await logActivity({
+        db,
+        userId: admin.id,
+        actionType: 'admin_override_rsvp',
+        actionDetails: { event_id: eventId, user_id: userId, status },
+        route: '/dashboard/admin/events',
+        request,
+      });
+    }
+
     const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
-    if (resendApiKey) {
+    if (resendApiKey && mutation.mutation !== "noop") {
       const { sendRsvpOverrideEmail } = await import('../lib/email.server');
       const emailPromise = sendRsvpOverrideEmail({
         to: targetUser.email,

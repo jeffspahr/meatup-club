@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import {
-  buildSelectStagedDeliveryIdsStatement,
-  buildStageEventInviteDeliveriesForLastInsertedEventStatement,
   enqueueStagedEventEmailBatch,
-  toStagedEventEmailBatchFromQueryResult,
+  stageEventInviteDeliveriesForActiveMembers,
 } from "../lib/event-email-delivery.server";
 
 vi.mock("../lib/auth.server", () => ({
@@ -13,10 +11,8 @@ vi.mock("../lib/auth.server", () => ({
 }));
 
 vi.mock("../lib/event-email-delivery.server", () => ({
-  buildSelectStagedDeliveryIdsStatement: vi.fn(),
-  buildStageEventInviteDeliveriesForLastInsertedEventStatement: vi.fn(),
   enqueueStagedEventEmailBatch: vi.fn(),
-  toStagedEventEmailBatchFromQueryResult: vi.fn(),
+  stageEventInviteDeliveriesForActiveMembers: vi.fn(),
 }));
 
 function createMockDb({
@@ -65,10 +61,6 @@ function createMockDb({
     const allForArgs = async () => {
       if (normalizedSql === "SELECT created_event_id FROM polls WHERE id = ?") {
         return { results: [{ created_event_id: 555 }] };
-      }
-
-      if (normalizedSql === "SELECT id FROM event_email_deliveries WHERE batch_id = ? ORDER BY id ASC") {
-        return { results: [{ id: 41 }, { id: 42 }] };
       }
 
       return { results: [] };
@@ -138,20 +130,12 @@ describe("dashboard.admin.polls close action", () => {
       email: "admin@example.com",
       name: "Admin",
     } as any);
-    vi.mocked(buildStageEventInviteDeliveriesForLastInsertedEventStatement).mockImplementation((db: any) =>
-      db.prepare("INSERT INTO event_email_deliveries /* staged poll invite */").bind("batch-poll-invite")
-    );
-    vi.mocked(buildSelectStagedDeliveryIdsStatement).mockImplementation((db: any) =>
-      db
-        .prepare("SELECT id FROM event_email_deliveries WHERE batch_id = ? ORDER BY id ASC")
-        .bind("batch-poll-invite")
-    );
-    vi.mocked(toStagedEventEmailBatchFromQueryResult).mockImplementation((batchId, deliveryType) => ({
-      batchId,
+    vi.mocked(stageEventInviteDeliveriesForActiveMembers).mockResolvedValue({
+      batchId: "batch-poll-invite",
       deliveryIds: [41, 42],
       recipientCount: 2,
-      deliveryType,
-    }));
+      deliveryType: "invite",
+    });
     vi.mocked(enqueueStagedEventEmailBatch).mockResolvedValue(undefined);
   });
 
@@ -229,16 +213,14 @@ describe("dashboard.admin.polls close action", () => {
 
     expect(response).toBeInstanceOf(Response);
     expect((response as Response).status).toBe(302);
-    expect(buildStageEventInviteDeliveriesForLastInsertedEventStatement).toHaveBeenCalledWith(
+    expect(stageEventInviteDeliveriesForActiveMembers).toHaveBeenCalledWith(
       db,
       {
-        batchId: expect.any(String),
-        details: {
-          restaurantName: "Prime",
-          restaurantAddress: "123 Main",
-          eventDate: "2026-06-10",
-          eventTime: "18:30",
-        },
+        eventId: 555,
+        restaurantName: "Prime",
+        restaurantAddress: "123 Main",
+        eventDate: "2026-06-10",
+        eventTime: "18:30",
       }
     );
     expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(

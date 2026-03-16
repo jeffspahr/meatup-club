@@ -7,6 +7,7 @@ import {
   buildStageEventInviteDeliveriesForLastInsertedEventStatement,
   buildStageEventUpdateDeliveriesForActiveMembersStatement,
   enqueueStagedEventEmailBatch,
+  stageEventUpdateDeliveriesForUserIds,
   toStagedEventEmailBatchFromQueryResult,
 } from "../lib/event-email-delivery.server";
 import { upsertRsvp } from "../lib/rsvps.server";
@@ -24,6 +25,7 @@ vi.mock("../lib/event-email-delivery.server", () => ({
   buildStageEventInviteDeliveriesForLastInsertedEventStatement: vi.fn(),
   buildStageEventUpdateDeliveriesForActiveMembersStatement: vi.fn(),
   enqueueStagedEventEmailBatch: vi.fn(),
+  stageEventUpdateDeliveriesForUserIds: vi.fn(),
   toStagedEventEmailBatchFromQueryResult: vi.fn(),
 }));
 
@@ -222,7 +224,24 @@ describe("dashboard.events route", () => {
       deliveryType,
     }));
     vi.mocked(enqueueStagedEventEmailBatch).mockResolvedValue(undefined);
-    vi.mocked(upsertRsvp).mockResolvedValue("created");
+    vi.mocked(stageEventUpdateDeliveriesForUserIds).mockResolvedValue({
+      batchId: "batch-rsvp",
+      deliveryIds: [9],
+      recipientCount: 1,
+      deliveryType: "update",
+    });
+    vi.mocked(upsertRsvp).mockResolvedValue({
+      mutation: "created",
+      previousStatus: null,
+      status: "yes",
+      previousComments: null,
+      comments: null,
+      previousAdminOverride: 0,
+      adminOverride: 0,
+      statusChanged: true,
+      commentsChanged: false,
+      adminOverrideChanged: false,
+    });
   });
 
   it("returns creator-based edit permissions and separates upcoming from past events", async () => {
@@ -541,12 +560,63 @@ describe("dashboard.events route", () => {
       userId: 123,
       status: "yes",
       comments: "See you there",
+      source: "website",
+      actorUserId: 123,
     });
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 123,
         actionType: "rsvp",
       })
+    );
+  });
+
+  it("queues a personalized calendar update when a website RSVP changes status", async () => {
+    const db = createMockDb({
+      editableEvent: {
+        id: 9,
+        restaurant_name: "Prime Steakhouse",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-20",
+        event_time: "18:00",
+        status: "upcoming",
+        calendar_sequence: 2,
+        created_by: 123,
+      },
+    });
+    const request = createRequest({
+      _action: "rsvp",
+      event_id: "9",
+      status: "yes",
+    });
+
+    await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(stageEventUpdateDeliveriesForUserIds).toHaveBeenCalledWith(
+      db,
+      {
+        eventId: 9,
+        restaurantName: "Prime Steakhouse",
+        restaurantAddress: "123 Main St",
+        eventDate: "2026-04-20",
+        eventTime: "18:00",
+      },
+      [123]
+    );
+    expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(
+      {
+        db,
+        queue: undefined,
+      },
+      {
+        batchId: "batch-rsvp",
+        deliveryIds: [9],
+        recipientCount: 1,
+        deliveryType: "update",
+      }
     );
   });
 });

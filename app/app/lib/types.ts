@@ -36,9 +36,6 @@ export interface Rsvp {
   comments: string | null;
   dietary_restrictions: string | null;
   admin_override: number;
-  admin_override_by: number | null;
-  admin_override_at: string | null;
-  updated_via_calendar?: number;
   created_at: string;
   updated_at: string | null;
 }
@@ -48,6 +45,28 @@ export interface RsvpWithUser extends Rsvp {
   name: string | null;
   email: string;
   picture: string | null;
+}
+
+export type RsvpEventSource =
+  | "website"
+  | "calendar_email"
+  | "sms"
+  | "admin_override"
+  | "poll_default";
+
+export interface RsvpEvent {
+  id: number;
+  event_id: number;
+  user_id: number;
+  actor_user_id: number | null;
+  source: RsvpEventSource;
+  previous_status: "yes" | "no" | "maybe" | null;
+  new_status: "yes" | "no" | "maybe";
+  previous_comments: string | null;
+  new_comments: string | null;
+  previous_admin_override: number;
+  new_admin_override: number;
+  created_at: string;
 }
 
 // ─── Poll ───────────────────────────────────────────────────────────────────

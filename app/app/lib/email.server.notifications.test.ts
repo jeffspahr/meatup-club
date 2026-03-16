@@ -159,6 +159,28 @@ describe("email.server advanced notification flows", () => {
     expect(secondIcs).toContain("mailto:ben@example.com");
   });
 
+  it("sends accepted initial invites for recipients with seeded yes RSVPs", async () => {
+    const result = await sendEventInviteEmail({
+      eventId: 7,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "123 Main St",
+      eventDate: "2026-04-10",
+      eventTime: "18:00",
+      userEmail: "amy@example.com",
+      rsvpStatus: "yes",
+      resendApiKey: "test-api-key",
+    });
+
+    expect(result).toEqual({ success: true, providerMessageId: "email-123" });
+
+    const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
+    const body = JSON.parse(String(requestInit?.body)) as Record<string, unknown>;
+    const ics = decodeAttachmentContent(body);
+
+    expect(ics).toContain("PARTSTAT=ACCEPTED");
+    expect(String(body.html)).toContain("currently marked in because you voted");
+  });
+
   it("dispatches invite sends with bounded parallelism instead of waiting on each recipient sequentially", async () => {
     const pendingResponses: Array<() => void> = [];
     global.fetch = vi.fn().mockImplementation(

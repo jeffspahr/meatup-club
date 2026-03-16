@@ -363,7 +363,7 @@ export async function stageEventInviteDeliveriesForActiveMembers(
         u.id,
         'invite',
         u.email,
-        NULL,
+        r.status,
         ?,
         ?,
         ?,
@@ -371,6 +371,7 @@ export async function stageEventInviteDeliveriesForActiveMembers(
         0,
         'invite:' || ? || ':0:' || u.id
       FROM users u
+      LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = ?
       WHERE u.status = 'active'
     `,
     [
@@ -379,6 +380,7 @@ export async function stageEventInviteDeliveriesForActiveMembers(
       details.restaurantAddress,
       details.eventDate,
       details.eventTime,
+      details.eventId,
       details.eventId,
     ],
     "invite"
@@ -415,7 +417,7 @@ export function buildStageEventInviteDeliveriesForLastInsertedEventStatement(
           u.id,
           'invite',
           u.email,
-          NULL,
+          r.status,
           ?,
           ?,
           ?,
@@ -423,6 +425,7 @@ export function buildStageEventInviteDeliveriesForLastInsertedEventStatement(
           0,
           'invite:' || last_insert_rowid() || ':0:' || u.id
         FROM users u
+        LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = last_insert_rowid()
         WHERE u.status = 'active'
       `
     )
@@ -971,6 +974,7 @@ export async function deliverEventEmailById(params: {
       eventDate: delivery.event_date,
       eventTime: delivery.event_time,
       userEmail: delivery.recipient_email,
+      rsvpStatus: delivery.rsvp_status ?? undefined,
       resendApiKey: params.resendApiKey,
       idempotencyKey: delivery.dedupe_key,
     });

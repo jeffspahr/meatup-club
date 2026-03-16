@@ -62,9 +62,11 @@ function createMockDeliveryDb({
     { id: 3, email: "charlie@example.com", status: "active" },
   ],
   seededDeliveries = [],
+  rsvpStatuses = {},
 }: {
   users?: MockUser[];
   seededDeliveries?: MockDeliveryRow[];
+  rsvpStatuses?: Record<string, "yes" | "no" | "maybe" | null>;
 } = {}) {
   const now = "2026-03-12 12:00:00";
   const deliveries = seededDeliveries.map((delivery) => ({ ...delivery }));
@@ -217,7 +219,7 @@ function createMockDeliveryDb({
         normalizedSql.includes("INSERT INTO event_email_deliveries") &&
         normalizedSql.includes("'invite'")
       ) {
-        const [batchId, eventId, restaurantName, restaurantAddress, eventDate, eventTime] =
+        const [batchId, eventId, restaurantName, restaurantAddress, eventDate, eventTime, rsvpEventId] =
           bindArgs;
         const activeUsers = users.filter((user) => user.status === "active");
 
@@ -229,7 +231,7 @@ function createMockDeliveryDb({
             user_id: user.id,
             delivery_type: "invite",
             recipient_email: user.email,
-            rsvp_status: null,
+            rsvp_status: rsvpStatuses[`${rsvpEventId}:${user.id}`] ?? null,
             restaurant_name: String(restaurantName),
             restaurant_address:
               restaurantAddress === null ? null : String(restaurantAddress),
@@ -286,7 +288,7 @@ function createMockDeliveryDb({
             user_id: user.id,
             delivery_type: "update",
             recipient_email: user.email,
-            rsvp_status: null,
+            rsvp_status: rsvpStatuses[`${eventId}:${user.id}`] ?? null,
             restaurant_name: String(restaurantName),
             restaurant_address:
               restaurantAddress === null ? null : String(restaurantAddress),
@@ -469,6 +471,30 @@ describe("event-email-delivery.server", () => {
     expect(deliveries.map((delivery) => delivery.dedupe_key)).toEqual([
       "invite:7:0:1",
       "invite:7:0:3",
+    ]);
+  });
+
+  it("includes existing RSVP status when staging personalized invites", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      rsvpStatuses: {
+        "7:1": "yes",
+      },
+    });
+
+    await stageEventInviteDeliveriesForActiveMembers(db as never, {
+      eventId: 7,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "123 Main St",
+      eventDate: "2026-04-20",
+      eventTime: "18:30",
+    });
+
+    expect(deliveries.map((delivery) => ({
+      userId: delivery.user_id,
+      rsvpStatus: delivery.rsvp_status,
+    }))).toEqual([
+      { userId: 1, rsvpStatus: "yes" },
+      { userId: 3, rsvpStatus: null },
     ]);
   });
 

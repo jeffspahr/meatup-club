@@ -14,6 +14,7 @@ import {
   toStagedEventEmailBatchFromQueryResult,
 } from "../lib/event-email-delivery.server";
 import { sendRsvpOverrideEmail } from "../lib/email.server";
+import { upsertRsvp } from "../lib/rsvps.server";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -37,6 +38,10 @@ vi.mock("../lib/event-email-delivery.server", () => ({
 
 vi.mock("../lib/email.server", () => ({
   sendRsvpOverrideEmail: vi.fn(),
+}));
+
+vi.mock("../lib/rsvps.server", () => ({
+  upsertRsvp: vi.fn(),
 }));
 
 vi.mock("../lib/sms.server", () => ({
@@ -301,6 +306,18 @@ describe("dashboard.admin.events action flows", () => {
     );
     vi.mocked(enqueueStagedEventEmailBatch).mockResolvedValue(undefined);
     vi.mocked(sendRsvpOverrideEmail).mockResolvedValue({ success: true });
+    vi.mocked(upsertRsvp).mockResolvedValue({
+      mutation: "updated",
+      previousStatus: "maybe",
+      status: "yes",
+      previousComments: null,
+      comments: null,
+      previousAdminOverride: 0,
+      adminOverride: 1,
+      statusChanged: true,
+      commentsChanged: false,
+      adminOverrideChanged: true,
+    });
   });
 
   it("validates required event fields before creation", async () => {
@@ -679,12 +696,15 @@ describe("dashboard.admin.events action flows", () => {
     } as never);
 
     expect(result).toEqual({ success: "RSVP override saved and user notified." });
-    expect(db.runCalls).toContainEqual(
-      expect.objectContaining({
-        sql: expect.stringContaining("INSERT INTO rsvps"),
-        bindArgs: [42, 7, "yes", 1],
-      })
-    );
+    expect(upsertRsvp).toHaveBeenCalledWith({
+      db,
+      eventId: 42,
+      userId: 7,
+      status: "yes",
+      source: "admin_override",
+      actorUserId: 1,
+      adminOverride: true,
+    });
     expect(logActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 1,
@@ -725,17 +745,15 @@ describe("dashboard.admin.events action flows", () => {
     } as never);
 
     expect(result).toEqual({ success: "RSVP override saved and user notified." });
-    expect(db.runCalls).toContainEqual(
-      expect.objectContaining({
-        sql: expect.stringContaining("UPDATE rsvps"),
-        bindArgs: ["no", 1, 42, 7],
-      })
-    );
-    expect(db.runCalls).not.toContainEqual(
-      expect.objectContaining({
-        sql: expect.stringContaining("INSERT INTO rsvps"),
-      })
-    );
+    expect(upsertRsvp).toHaveBeenCalledWith({
+      db,
+      eventId: 42,
+      userId: 7,
+      status: "no",
+      source: "admin_override",
+      actorUserId: 1,
+      adminOverride: true,
+    });
   });
 
   it("deletes an event through D1 batch statements when raw SQL transactions would fail", async () => {

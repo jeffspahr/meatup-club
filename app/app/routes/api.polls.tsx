@@ -2,6 +2,10 @@ import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/api.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { buildCreateEventStatementForActivePoll } from "../lib/events.server";
+import {
+  buildSeedPollDefaultRsvpEventsStatement,
+  buildSeedPollDefaultRsvpsStatement,
+} from "../lib/rsvps.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireActiveUser(request, context);
@@ -182,6 +186,15 @@ export async function action({ request, context }: Route.ActionArgs) {
               parsedWinningDateId,
               parsedPollId
             ),
+          buildSeedPollDefaultRsvpsStatement(db, {
+            pollId: parsedPollId,
+            dateSuggestionId: parsedWinningDateId,
+          }),
+          buildSeedPollDefaultRsvpEventsStatement(db, {
+            pollId: parsedPollId,
+            dateSuggestionId: parsedWinningDateId,
+            actorUserId: user.id,
+          }),
           db
             .prepare(`
               SELECT created_event_id
@@ -202,7 +215,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         }
 
         const createdEventRow = (
-          (closeResults[2] as D1Result<{ created_event_id: number | null }>).results || []
+          (closeResults[4] as D1Result<{ created_event_id: number | null }>).results || []
         )[0];
         createdEventId = Number(createdEventRow?.created_event_id ?? 0) || null;
 
