@@ -746,7 +746,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
               </div>
             </Card>
 
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="grid gap-5 xl:auto-rows-fr xl:grid-cols-2">
             {upcomingEvents.map((event) => {
                 const counts = getEventResponseCounts(event);
                 const userRsvpBadge = getUserRsvpBadge(event.userRsvp?.status);
@@ -764,9 +764,9 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                     hover
                     role="article"
                     aria-labelledby={titleId}
-                    className={`overflow-hidden p-0 ${isExpanded ? "xl:col-span-2" : ""}`}
+                    className={`overflow-hidden p-0 ${isExpanded ? "xl:col-span-2" : "h-full"}`}
                   >
-                    <div className="bg-accent/[0.04] p-5 sm:p-6">
+                    <div className={`flex flex-col bg-accent/[0.04] p-5 sm:p-6 ${isExpanded ? "" : "h-full"}`}>
                       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                           <div className="min-w-24 rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-center shadow-sm">
@@ -853,7 +853,7 @@ export default function EventsPage({ loaderData, actionData }: Route.ComponentPr
                         </div>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                      <div className="mt-auto grid grid-cols-2 gap-3 pt-5 xl:grid-cols-4">
                         <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
                           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                             Going

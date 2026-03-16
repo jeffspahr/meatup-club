@@ -76,6 +76,7 @@ describe("dashboard.events UI", () => {
 
     const firstTile = screen.getByRole("article", { name: "Prime Steakhouse" });
     const secondTile = screen.getByRole("article", { name: "River Grill" });
+    const tilesGrid = firstTile.parentElement;
 
     expect(
       within(firstTile).getByRole("button", { name: "Open details for Prime Steakhouse" })
@@ -83,6 +84,11 @@ describe("dashboard.events UI", () => {
     expect(
       within(secondTile).getByRole("button", { name: "Open details for River Grill" })
     ).toHaveAttribute("aria-expanded", "false");
+    expect(tilesGrid).toHaveClass("xl:auto-rows-fr");
+    expect(firstTile).toHaveClass("h-full");
+    expect(secondTile).toHaveClass("h-full");
+    expect(firstTile.firstElementChild).toHaveClass("h-full", "flex", "flex-col");
+    expect(secondTile.firstElementChild).toHaveClass("h-full", "flex", "flex-col");
     expect(screen.queryByText("Your RSVP")).not.toBeInTheDocument();
   });
 
