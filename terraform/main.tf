@@ -63,6 +63,13 @@ resource "cloudflare_dns_record" "root" {
   comment = "Placeholder for Cloudflare Workers routing"
 }
 
+# Force HTTPS at Cloudflare's edge (replaces Worker-level redirect)
+resource "cloudflare_zone_setting" "always_use_https" {
+  zone_id    = data.cloudflare_zone.domain.id
+  setting_id = "always_use_https"
+  value      = "on"
+}
+
 # DNS record for www subdomain
 # Uses placeholder IPv6 address for Workers routing
 resource "cloudflare_dns_record" "www" {
