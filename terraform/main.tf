@@ -63,11 +63,36 @@ resource "cloudflare_dns_record" "root" {
   comment = "Placeholder for Cloudflare Workers routing"
 }
 
-# Force HTTPS at Cloudflare's edge (replaces Worker-level redirect)
+# Force HTTPS at Cloudflare's edge.
 resource "cloudflare_zone_setting" "always_use_https" {
   zone_id    = data.cloudflare_zone.domain.id
   setting_id = "always_use_https"
   value      = "on"
+}
+
+# Canonicalize www to the apex host before the Worker runs.
+resource "cloudflare_ruleset" "canonical_host_redirect" {
+  zone_id     = data.cloudflare_zone.domain.id
+  name        = "Canonical host redirect"
+  description = "Redirect www traffic to the apex domain"
+  kind        = "zone"
+  phase       = "http_request_dynamic_redirect"
+
+  rules = [{
+    ref         = "redirect_www_to_apex"
+    description = "Redirect www host to apex"
+    expression  = "(http.host eq \"www.${var.domain}\")"
+    action      = "redirect"
+    action_parameters = {
+      from_value = {
+        status_code = 301
+        target_url = {
+          expression = "concat(\"https://${var.domain}\", http.request.uri.path)"
+        }
+        preserve_query_string = true
+      }
+    }
+  }]
 }
 
 # DNS record for www subdomain
