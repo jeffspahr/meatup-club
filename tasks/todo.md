@@ -1,5 +1,51 @@
 # Active Backlog (2026-02-23)
 
+## Coverage Bolster (2026-03-23)
+
+### Goal
+Raise confidence in the remaining high-risk low-coverage areas on `main`, especially event delivery, announcements, event routes, and provider setup helpers.
+
+### Acceptance Criteria
+- [x] Add direct tests for `/private/tmp/meatup-test-bolster-20260323/app/app/lib/provider-webhooks.server.ts`.
+- [x] Add or expand tests for `/private/tmp/meatup-test-bolster-20260323/app/app/lib/resend-setup.server.ts`.
+- [x] Add or expand tests for `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.server.ts`.
+- [x] Add or expand tests for `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.tsx`.
+- [x] Add or expand tests for `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.tsx`.
+- [x] Add or expand tests for `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.announcements.tsx`.
+- [x] Add direct tests for `/private/tmp/meatup-test-bolster-20260323/app/app/components/EventRestaurantFields.tsx`.
+- [x] Add direct tests for `/private/tmp/meatup-test-bolster-20260323/app/app/lib/announcement-markdown.server.tsx`.
+- [x] Verification passes: targeted tests, `npm run typecheck`, and `npm run test:coverage`.
+
+### Active Tasks
+- [x] Review current low-coverage areas and existing test patterns.
+- [x] Add helper tests for provider webhook and Resend setup flows.
+- [x] Expand event email delivery coverage.
+- [x] Expand member/admin event route coverage.
+- [x] Expand admin announcement coverage.
+- [x] Add shared component and markdown renderer coverage.
+- [x] Run verification and record results.
+
+### Working Notes
+- Use a clean `origin/main` worktree at `/private/tmp/meatup-test-bolster-20260323` to avoid mixing with the dirty root branch.
+- Prioritize behavior branches and operational failure paths over static/page-export coverage.
+
+### Results
+- Added new suites:
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/provider-webhooks.server.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/announcement-markdown.server.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/components/EventRestaurantFields.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.announcements.route-ui.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.additional.test.ts`
+- Expanded existing suites:
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/resend-setup.server.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.route-ui.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.route-ui.test.tsx`
+- Verification performed:
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:run -- app/lib/provider-webhooks.server.test.ts app/lib/announcement-markdown.server.test.tsx app/components/EventRestaurantFields.test.tsx app/routes/dashboard.admin.announcements.route-ui.test.tsx app/lib/event-email-delivery.additional.test.ts app/lib/resend-setup.server.test.ts app/routes/dashboard.events.route-ui.test.tsx app/routes/dashboard.admin.events.route-ui.test.tsx` passed (`36` tests).
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run typecheck` passed.
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:coverage` passed (`90` files, `614` tests).
+- Coverage moved from the pre-change `main` baseline of `83.95%` statements / `73.20%` branches / `74.68%` functions to `87.91%` / `76.01%` / `84.01%`.
+
 ## Goal
 Keep only unresolved, high-impact work and remove stale planning artifacts.
 

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import EventsPage from "./dashboard.events";
+import EventsPage, { ErrorBoundary, HydrateFallback } from "./dashboard.events";
 import type { Route } from "./+types/dashboard.events";
 
 let navigationState: { state: string; formData: FormData | null } = {
@@ -221,6 +222,50 @@ describe("dashboard.events UI", () => {
     expect(within(secondTile).getByLabelText("Comments (Optional)")).toBeInTheDocument();
   });
 
+  it("shows the next upcoming summary and lets the user edit a past event inline", () => {
+    renderEvents({
+      upcomingEvents: [
+        {
+          id: 1,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-06-20",
+          event_time: "19:00",
+          canEdit: true,
+          creatorLabel: "Created by you",
+          userRsvp: { status: "yes", comments: null },
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [
+        {
+          id: 2,
+          restaurant_name: "Past Grill",
+          restaurant_address: "9 Water St",
+          event_date: "2026-05-01",
+          event_time: "18:00",
+          displayStatus: "completed",
+          canEdit: true,
+          creatorLabel: "Created by you",
+        },
+      ],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(screen.getByText("Next up")).toBeInTheDocument();
+    expect(screen.getAllByText("Created by you")).toHaveLength(2);
+
+    const pastTile = screen.getByRole("article", { name: "Past Grill" });
+    fireEvent.click(within(pastTile).getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByRole("heading", { name: "Edit Event" })).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("Past Grill")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel$/i }));
+
+    expect(screen.queryByRole("heading", { name: "Edit Event" })).not.toBeInTheDocument();
+  });
+
   it("renders empty states when there are no upcoming or past events", () => {
     renderEvents({
       upcomingEvents: [],
@@ -229,5 +274,43 @@ describe("dashboard.events UI", () => {
 
     expect(screen.getByText("No upcoming events")).toBeInTheDocument();
     expect(screen.getByText("No past events yet")).toBeInTheDocument();
+  });
+
+  it("renders the loading fallback and route error boundary states", () => {
+    const { rerender } = render(<HydrateFallback />);
+
+    expect(screen.getByText("Upcoming and past Meatup.Club events")).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <ErrorBoundary
+          {...(({ error: new Error("calendar exploded") } as unknown) as Route.ErrorBoundaryProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Something went wrong loading events.")).toBeInTheDocument();
+    expect(screen.getByText("calendar exploded")).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <ErrorBoundary
+          {...(({
+            error: {
+              status: 503,
+              statusText: "Service Unavailable",
+              data: null,
+              internal: false,
+            },
+          } as unknown) as Route.ErrorBoundaryProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Unable to load events (503)")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Dashboard" })).toHaveAttribute(
+      "href",
+      "/dashboard"
+    );
   });
 });

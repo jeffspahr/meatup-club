@@ -428,6 +428,68 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(options).toEqual({ method: "post" });
   });
 
+  it("renders calendar resend delivery history badges for missing, retrying, and delivered members", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData: {
+              events: [
+                {
+                  id: 42,
+                  restaurant_name: "Prime Steakhouse",
+                  restaurant_address: "123 Main St",
+                  event_date: "2026-05-20",
+                  event_time: "18:00",
+                  status: "upcoming",
+                  displayStatus: "upcoming",
+                  created_at: "2026-03-01",
+                },
+              ],
+              topRestaurant: null,
+              topDate: null,
+              smsMembers: [],
+              eventMembersById: {
+                42: [
+                  {
+                    id: 7,
+                    name: "Retry Member",
+                    email: "retry@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: false,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "retry",
+                    lastCalendarDeliveryType: "update",
+                  },
+                  {
+                    id: 8,
+                    name: "Delivered Member",
+                    email: "delivered@example.com",
+                    rsvp_status: "yes",
+                    admin_override: 1,
+                    hasAcceptedCalendarDelivery: true,
+                    hasDeliveredCalendarDelivery: true,
+                    lastCalendarDeliveryStatus: "delivered",
+                    lastCalendarDeliveryType: "invite",
+                  },
+                ],
+              },
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Calendar Resend")).toBeInTheDocument();
+    expect(screen.getByText("Currently missing: 1 of 2 active members.")).toBeInTheDocument();
+    expect(screen.getByText("Retrying")).toBeInTheDocument();
+    expect(screen.getByText("Delivered")).toBeInTheDocument();
+    expect(screen.getByText("Latest calendar email: update / retry")).toBeInTheDocument();
+    expect(screen.getByText("Latest calendar email: invite / delivered")).toBeInTheDocument();
+  });
+
   it("updates an event and schedules calendar updates for active members", async () => {
     const db = createMockDb();
     const queue = { sendBatch: vi.fn().mockResolvedValue(undefined) };

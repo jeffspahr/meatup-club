@@ -139,6 +139,156 @@ describe("resend-setup.server", () => {
     });
   });
 
+  it("reuses an existing matching webhook and falls back to the persisted signing secret", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue({
+      provider: "resend",
+      purpose: "delivery_status",
+      webhookId: "wh_existing",
+      endpoint: "https://meatup.club/api/webhooks/email-delivery",
+      signingSecret: "whsec_existing",
+      events: [...DELIVERY_WEBHOOK_EVENTS],
+    });
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "mail.meatup.club" }],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "GET") {
+        return jsonResponse({
+          data: [
+            {
+              id: "wh_existing",
+              endpoint: "https://meatup.club/api/webhooks/email-delivery",
+              events: [...DELIVERY_WEBHOOK_EVENTS],
+            },
+          ],
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    const result = await ensureResendEmailSetup({
+      db,
+      resendApiKey: "re_test",
+    });
+
+    expect(result).toEqual({
+      deliveryWebhookUrl: "https://meatup.club/api/webhooks/email-delivery",
+      deliveryWebhookEvents: [...DELIVERY_WEBHOOK_EVENTS],
+      domain: "mail.meatup.club",
+    });
+    expect(upsertProviderWebhookConfig).toHaveBeenCalledWith(db, {
+      provider: "resend",
+      purpose: "delivery_status",
+      webhookId: "wh_existing",
+      endpoint: "https://meatup.club/api/webhooks/email-delivery",
+      signingSecret: "whsec_existing",
+      events: [...DELIVERY_WEBHOOK_EVENTS],
+    });
+  });
+
+  it("deletes duplicate matching delivery webhooks before creating a replacement", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
+    const requests: Array<{ url: string; method: string }> = [];
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+      requests.push({ url, method });
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "mail.meatup.club" }],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "GET") {
+        return jsonResponse({
+          data: [
+            {
+              id: "wh_old_1",
+              endpoint: "https://meatup.club/api/webhooks/email-delivery",
+              events: ["email.sent"],
+            },
+            {
+              id: "wh_old_2",
+              url: "https://meatup.club/api/webhooks/email-delivery",
+              events: ["email.failed"],
+            },
+          ],
+        });
+      }
+
+      if (
+        (url === "https://api.resend.com/webhooks/wh_old_1" ||
+          url === "https://api.resend.com/webhooks/wh_old_2") &&
+        method === "DELETE"
+      ) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "POST") {
+        return jsonResponse({
+          id: "wh_new",
+          endpoint: "https://meatup.club/api/webhooks/email-delivery",
+          events: [...DELIVERY_WEBHOOK_EVENTS],
+          signing_secret: "whsec_new",
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    await ensureResendEmailSetup({
+      db,
+      resendApiKey: "re_test",
+    });
+
+    expect(
+      requests.filter((request) => request.method === "DELETE").map((request) => request.url)
+    ).toEqual([
+      "https://api.resend.com/webhooks/wh_old_1",
+      "https://api.resend.com/webhooks/wh_old_2",
+    ]);
+    expect(
+      requests.some(
+        (request) =>
+          request.url === "https://api.resend.com/webhooks" && request.method === "POST"
+      )
+    ).toBe(true);
+  });
+
+  it("throws a helpful error when the expected resend domain is missing", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "example.com" }],
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    await expect(
+      ensureResendEmailSetup({
+        db,
+        resendApiKey: "re_test",
+      })
+    ).rejects.toThrow("Domain mail.meatup.club not found in Resend");
+  });
+
   it("retries rate-limited Resend calls before failing", async () => {
     vi.useFakeTimers();
     vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
