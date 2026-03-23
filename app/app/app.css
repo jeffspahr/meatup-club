@@ -286,29 +286,26 @@ body {
   transform: scale(1.08);
 }
 
-.steak-button:hover .steak-svg .steak-body {
-  filter: url(#steak-glow);
-}
-
 .steak-button:active {
   transform: scale(0.95);
   transition: transform 0.1s ease;
 }
 
-.steak-svg {
-  width: clamp(200px, 40vw, 320px);
-  height: auto;
+.steak-emoji {
+  font-size: clamp(6rem, 20vw, 10rem);
+  line-height: 1;
+  display: block;
   filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.3));
   transition: filter 0.3s ease;
 }
 
-.steak-button:hover .steak-svg {
+.steak-button:hover .steak-emoji {
   filter: drop-shadow(0 12px 32px rgba(185, 28, 28, 0.35))
           drop-shadow(0 0 60px rgba(239, 68, 68, 0.15));
   animation: steak-sizzle 0.15s ease-in-out infinite alternate;
 }
 
-.steak-button:active .steak-svg {
+.steak-button:active .steak-emoji {
   filter: drop-shadow(0 4px 12px rgba(185, 28, 28, 0.4));
   animation: none;
 }
