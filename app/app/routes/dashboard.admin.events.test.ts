@@ -555,6 +555,30 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("requires at least one selected recipient for a selective resend", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "resend_calendar_request",
+      id: "42",
+      recipient_mode: "selected",
+    });
+
+    const result = await action({
+      request,
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Select at least one active member for a selective resend" });
+    expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
   it("returns a success message without bumping sequence when no members are missing", async () => {
     vi.mocked(getActiveMemberIdsWithoutAcceptedEventEmailDelivery).mockResolvedValueOnce([]);
     const db = createMockDb();
@@ -585,6 +609,58 @@ describe("dashboard.admin.events action flows", () => {
     );
     expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
     expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when an all-member resend has no active recipients", async () => {
+    const db = createMockDb({ activeUserIds: [] });
+    const request = createRequest({
+      _action: "resend_calendar_request",
+      id: "42",
+      recipient_mode: "all",
+    });
+
+    const result = await action({
+      request,
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "No active members are available for calendar resend" });
+    expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the staged resend batch has no eligible recipients", async () => {
+    vi.mocked(toStagedEventEmailBatchFromQueryResult).mockReturnValueOnce(null);
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "resend_calendar_request",
+      id: "42",
+    });
+
+    const result = await action({
+      request,
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "No eligible members were available for calendar resend" });
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+    expect(logActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "resend_event_calendar",
+      })
+    );
   });
 
   it("rejects calendar resend for cancelled events", async () => {
@@ -791,5 +867,21 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "cancel",
       }
     );
+  });
+
+  it("rejects unknown action values", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "mystery",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Invalid action" });
+    expect(db.runCalls).toEqual([]);
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
   });
 });

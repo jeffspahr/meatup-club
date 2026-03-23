@@ -397,6 +397,46 @@ describe("dashboard.events route", () => {
     );
   });
 
+  it("validates required create fields before attempting an insert", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "create",
+      event_date: "2099-04-20",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Select a restaurant from Google Places." });
+    expect(db.runCalls).toEqual([]);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic create error when the inserted event id cannot be determined", async () => {
+    const db = createMockDb({ createdEventId: 0 });
+    const request = createRequest({
+      _action: "create",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "123 Main St",
+      event_date: "2099-04-20",
+      event_time: "18:30",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to create event" });
+    expect(logActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "create_event",
+      })
+    );
+  });
+
   it("rejects edits from a non-owner who is not an admin", async () => {
     const db = createMockDb({
       editableEvent: {
@@ -427,6 +467,59 @@ describe("dashboard.events route", () => {
     expect(result).toEqual({ error: "You do not have permission to edit this event" });
     expect(db.runCalls).toEqual([]);
     expect(buildStageEventUpdateDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when updating an event that no longer exists", async () => {
+    const db = createMockDb({ editableEvent: null });
+    const request = createRequest({
+      _action: "update",
+      id: "7",
+      restaurant_name: "Missing Event",
+      restaurant_address: "789 Pine",
+      event_date: "2099-05-10",
+      event_time: "18:00",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event not found" });
+    expect(db.runCalls).toEqual([]);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("validates updated event input before running mutation statements", async () => {
+    const db = createMockDb({
+      editableEvent: {
+        id: 7,
+        restaurant_name: "Prime Steakhouse",
+        restaurant_address: "789 Pine",
+        event_date: "2099-05-10",
+        event_time: "18:00",
+        status: "upcoming",
+        calendar_sequence: 2,
+        created_by: 123,
+      },
+    });
+    const request = createRequest({
+      _action: "update",
+      id: "7",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "789 Pine",
+      event_date: "05/10/2099",
+      event_time: "18:00",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "A valid event date is required." });
+    expect(db.runCalls).toEqual([]);
+    expect(db.batch).not.toHaveBeenCalled();
   });
 
   it("updates an event through D1 batch statements when raw SQL transactions would fail", async () => {
@@ -516,6 +609,27 @@ describe("dashboard.events route", () => {
       expect.objectContaining({
         userId: 1,
         actionType: "update_event",
+      })
+    );
+  });
+
+  it("rejects RSVP submissions that omit required fields", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "rsvp",
+      event_id: "9",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Missing required fields" });
+    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(logActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "rsvp",
       })
     );
   });

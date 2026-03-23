@@ -1,5 +1,39 @@
 # Active Backlog (2026-02-23)
 
+## Coverage Bolster Follow-up (2026-03-23)
+
+### Goal
+Push the remaining high-risk event and delivery modules higher with direct helper coverage and edge-case route coverage.
+
+### Acceptance Criteria
+- [x] Add direct tests for `/private/tmp/meatup-test-bolster-20260323/app/app/lib/events.server.ts`.
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/routes/api.webhooks.email-delivery.test.ts` with signature and failure-path coverage.
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.test.ts` with remaining error/validation branches.
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.test.ts` with remaining resend/error branches.
+- [x] Verification passes: targeted tests, `npm run typecheck`, and `npm run test:coverage`.
+
+### Active Tasks
+- [x] Review target modules and current tests.
+- [x] Add direct `events.server` tests.
+- [x] Expand email-delivery webhook route coverage.
+- [x] Expand member/admin event route edge coverage.
+- [x] Run verification and capture the new baseline.
+
+### Working Notes
+- Keep the focus on event mutation helpers, webhook verification/idempotency branches, and resend failure modes.
+- Prefer direct helper tests where the remaining uncovered logic is deterministic and branch-heavy.
+
+### Results
+- Added a new direct helper suite: `/private/tmp/meatup-test-bolster-20260323/app/app/lib/events.server.test.ts`.
+- Expanded `/private/tmp/meatup-test-bolster-20260323/app/app/routes/api.webhooks.email-delivery.test.ts` with missing-header, invalid-signature, stored-secret, recorded-without-update, and downstream-failure branches.
+- Expanded `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.test.ts` with create/update validation failures, missing inserted-id handling, and RSVP required-field coverage.
+- Expanded `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.test.ts` with selective/all resend failure branches, empty staged-batch handling, and invalid-action coverage.
+- Verification performed:
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:run -- app/lib/events.server.test.ts app/routes/api.webhooks.email-delivery.test.ts app/routes/dashboard.events.test.ts app/routes/dashboard.admin.events.test.ts` passed (`42` tests).
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run typecheck` passed.
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:coverage` passed (`91` files, `635` tests).
+- Coverage moved from the prior bolster baseline of `87.91%` statements / `76.01%` branches / `84.01%` functions to `88.76%` / `76.84%` / `84.44%`.
+
 ## Coverage Bolster (2026-03-23)
 
 ### Goal

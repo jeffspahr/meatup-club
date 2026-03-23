@@ -28,7 +28,10 @@ vi.mock("../lib/webhook-idempotency.server", () => ({
   reserveWebhookDelivery: vi.fn(),
 }));
 
-function createRequest(payload: Record<string, unknown>) {
+function createRequest(
+  payload: Record<string, unknown>,
+  headerOverrides: Record<string, string | undefined> = {}
+) {
   return new Request("http://localhost/api/webhooks/email-delivery", {
     method: "POST",
     headers: {
@@ -36,6 +39,7 @@ function createRequest(payload: Record<string, unknown>) {
       "svix-id": "msg_123",
       "svix-timestamp": "1234567890",
       "svix-signature": "v1,signature",
+      ...headerOverrides,
     },
     body: JSON.stringify(payload),
   });
@@ -105,6 +109,51 @@ describe("api.webhooks.email-delivery", () => {
     expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
   });
 
+  it("returns 401 when required svix headers are missing", async () => {
+    const response = await action({
+      request: createRequest(
+        { type: "email.delivered", data: { email_id: "email-123" } },
+        { "svix-signature": undefined as never }
+      ),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
+          },
+        },
+      } as never,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: "Missing signature headers",
+    });
+  });
+
+  it("returns 401 when signature verification fails", async () => {
+    mockVerify = vi.fn(() => {
+      throw new Error("bad signature");
+    });
+
+    const response = await action({
+      request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
+          },
+        },
+      } as never,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: "Invalid signature",
+    });
+  });
+
   it("returns an ignored message for unsupported events", async () => {
     vi.mocked(getProviderWebhookConfig).mockResolvedValue({
       provider: "resend",
@@ -136,6 +185,31 @@ describe("api.webhooks.email-delivery", () => {
     });
   });
 
+  it("records supported events that do not update a delivery row", async () => {
+    vi.mocked(applyResendDeliveryWebhookEvent).mockResolvedValue({
+      handled: true,
+      updated: false,
+    });
+
+    const response = await action({
+      request: createRequest({ type: "email.delivery_delayed", data: { email_id: "email-123" } }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
+          },
+        },
+      } as never,
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      message: "Delivery event recorded",
+    });
+  });
+
   it("verifies with the env fallback secret and records supported events", async () => {
     const response = await action({
       request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
@@ -158,6 +232,62 @@ describe("api.webhooks.email-delivery", () => {
     expect(applyResendDeliveryWebhookEvent).toHaveBeenCalledWith(db, {
       type: "email.delivered",
       data: { email_id: "email-123" },
+    });
+  });
+
+  it("prefers the stored webhook secret over the env fallback", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue({
+      provider: "resend",
+      purpose: "delivery_status",
+      webhookId: "wh_123",
+      endpoint: "https://meatup.club/api/webhooks/email-delivery",
+      signingSecret: "stored-secret",
+      events: ["email.delivered"],
+    });
+
+    await action({
+      request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
+          },
+        },
+      } as never,
+    });
+
+    expect(mockVerify).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        "svix-id": "msg_123",
+        "svix-timestamp": "1234567890",
+        "svix-signature": "v1,signature",
+      }),
+      "stored-secret"
+    );
+  });
+
+  it("returns 500 when downstream processing throws", async () => {
+    vi.mocked(applyResendDeliveryWebhookEvent).mockRejectedValue(new Error("db exploded"));
+
+    const response = await action({
+      request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
+          },
+        },
+      } as never,
+    });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: "Failed to process delivery webhook",
+      message: "db exploded",
     });
   });
 });
