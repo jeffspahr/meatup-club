@@ -276,6 +276,67 @@ describe("dashboard.events UI", () => {
     expect(screen.getByText("No past events yet")).toBeInTheDocument();
   });
 
+  it("toggles the create form, updates draft values, and resets them when cancelled", () => {
+    renderEvents({
+      upcomingEvents: [],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Create Ad Hoc Event" }));
+
+    const dateInput = screen.getByLabelText("Event Date *") as HTMLInputElement;
+    const timeInput = screen.getByLabelText("Event Time") as HTMLInputElement;
+
+    fireEvent.change(dateInput, { target: { value: "2026-08-12" } });
+    fireEvent.change(timeInput, { target: { value: "19:45" } });
+
+    expect(dateInput.value).toBe("2026-08-12");
+    expect(timeInput.value).toBe("19:45");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("heading", { name: "Create Ad Hoc Event" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Create Ad Hoc Event" }));
+
+    expect((screen.getByLabelText("Event Date *") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Event Time") as HTMLInputElement).value).toBe("18:00");
+  });
+
+  it("renders maybe and out RSVP badges with fallback creator labels", () => {
+    renderEvents({
+      upcomingEvents: [
+        {
+          id: 1,
+          restaurant_name: "River Grill",
+          restaurant_address: null,
+          event_date: "2026-06-20",
+          event_time: "19:00",
+          canEdit: false,
+          creatorLabel: "Created by admin@example.com",
+          userRsvp: { status: "maybe", comments: null },
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [
+        {
+          id: 2,
+          restaurant_name: "Closed House",
+          restaurant_address: null,
+          event_date: "2026-05-01",
+          event_time: "18:00",
+          displayStatus: "cancelled",
+          canEdit: false,
+          creatorLabel: "Created by an admin",
+        },
+      ],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(screen.getAllByText("You're maybe").length).toBeGreaterThan(0);
+    expect(screen.getByText("Created by admin@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Created by an admin")).toBeInTheDocument();
+  });
+
   it("renders the loading fallback and route error boundary states", () => {
     const { rerender } = render(<HydrateFallback />);
 

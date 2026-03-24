@@ -11,7 +11,7 @@ This document describes the current test setup, the live coverage baseline, the 
 - DOM environment: `happy-dom`
 - Coverage provider: V8
 - Coverage command: `npm run test:coverage`
-- HTML coverage report: `/Users/jspahr/repo/meatup-club/app/coverage/index.html`
+- HTML coverage report: `coverage/index.html`
 
 ## Test Layout
 
@@ -35,7 +35,7 @@ Use colocated tests for feature-specific behavior in `app/app/**`, and reserve `
 
 ## Running Tests
 
-Run all commands from `/Users/jspahr/repo/meatup-club/app`.
+Run all commands from `app/`.
 
 ```bash
 npm run test           # watch mode
@@ -52,97 +52,57 @@ Filter to a specific file or pattern when iterating:
 npm run test -- email.server.test.ts
 ```
 
-## Current Baseline (2026-03-07, replacement branch verification)
+## Current Baseline (2026-03-23, clean worktree verification)
 
 Live numbers from `npm run test:coverage`:
 
-- `79` passing test files
-- `542` passing tests
-- `92.23%` statements
-- `79.78%` branches
-- `89.61%` functions
-- `92.17%` lines
+- `91` passing test files
+- `658` passing tests
+- `90.66%` statements
+- `78.16%` branches
+- `87.41%` functions
+- `91.00%` lines
 
 Coverage by area:
 
-- `app/app/lib`: `93.63%` statements
-- `app/app/routes`: `90.57%` statements
-- `app/app/components`: `98.84%` statements
+- `app/app/components`: `98.55%` statements
+- `app/app/lib`: `92.12%` statements
+- `app/app/routes`: `88.77%` statements
 
-Best-covered production files:
+Representative well-covered production files:
 
-- `app/lib/activity.server.ts`: `100%` statements
-- `app/lib/email-templates.ts`: `100%` statements
-- `app/lib/auth.server.ts`: `95.00%` statements
-- `app/lib/cache.server.ts`: `100%` statements
-- `app/lib/confirm.client.ts`: `100%` statements
+- `app/lib/events.server.ts`: `100%` statements
+- `app/lib/provider-webhooks.server.ts`: `100%` statements
 - `app/lib/dateUtils.ts`: `100%` statements
-- `app/lib/db.server.ts`: `100%` statements
 - `app/lib/session.server.ts`: `100%` statements
 - `app/lib/webhook-idempotency.server.ts`: `100%` statements
-- `app/lib/restaurant-photo-url.ts`: `100%` statements
-- `app/routes/auth.google.callback.tsx`: `100%` statements
-- `app/routes/dashboard.tsx`: `100%` statements
-- `app/routes/dashboard.about.tsx`: `100%` statements
-- `app/routes/dashboard.admin._index.tsx`: `100%` statements
-- `app/routes/dashboard.admin.setup.tsx`: `100%` statements
-- `app/routes/login.tsx`: `100%` statements
-- `app/routes/dashboard.members.tsx`: `100%` statements
-- `app/routes/dashboard.rsvp.tsx`: `100%` statements
-- `app/routes/logout.tsx`: `100%` statements
-- `app/routes/pending.tsx`: `100%` statements
+- `app/routes/api.webhooks.email-delivery.tsx`: `100%` statements
 - `app/routes/api.places.search.tsx`: `100%` statements
 - `app/routes/api.places.details.tsx`: `100%` statements
 - `app/routes/api.places.photo.tsx`: `100%` statements
-- `app/routes/dashboard.admin.analytics.tsx`: `93.75%` statements
-- `app/routes/dashboard.admin.polls.tsx`: `95.68%` statements
-- `app/routes/dashboard.admin.members.tsx`: `88.88%` statements
-- `app/routes/dashboard.admin.events.tsx`: `80.86%` statements
-- `app/routes/dashboard.dates.tsx`: `93.45%` statements
-- `app/routes/dashboard.events.tsx`: `100%` statements
-- `app/routes/accept-invite.tsx`: `93.33%` statements
-- `app/routes/api.admin.setup-resend.tsx`: `87.80%` statements
-- `app/routes/api.webhooks.email-rsvp.tsx`: `92.50%` statements
-- `app/routes/api.webhooks.sms.tsx`: `100%` statements
-- `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%` statements
-- `app/routes/api.polls.tsx`: `89.23%` statements
-- `app/routes/dashboard._index.tsx`: `88.40%` statements
-- `app/routes/dashboard.polls.tsx`: `88.26%` statements
-- `app/routes/dashboard.restaurants.tsx`: `95.18%` statements
-- `app/lib/email.server.ts`: `89.14%` statements
-- `app/lib/sms.server.ts`: `88.27%` statements
-- `app/lib/comments.server.ts`: `100%` statements
-- `app/lib/restaurants.server.ts`: `100%` statements
-- `app/lib/polls.server.ts`: `100%` statements
-- `app/components/AddRestaurantModal.tsx`: `100%` statements
-- `app/components/CommentSection.tsx`: `100%` statements
-- `app/components/ui/UserAvatar.tsx`: `100%` statements
-- `app/components/DoodleView.tsx`: `100%` statements
-- `app/components/RestaurantAutocomplete.tsx`: `100%` statements
-- `app/components/VoteLeadersCard.tsx`: `100%` statements
-- `app/components/DateCalendar.tsx`: `100%` statements
-- `app/lib/rsvps.server.ts`: `100%` statements
+- `app/routes/dashboard.admin.polls.tsx`: `93.91%` statements
+- `app/routes/dashboard.polls.tsx`: `91.57%` statements
+- `app/routes/dashboard.restaurants.tsx`: `94.04%` statements
 
-Largest remaining gaps in active product code:
+Highest-value remaining gaps in active product code:
 
-- `app/routes/dashboard.admin.events.tsx`: `80.86%`
-- `app/routes/dashboard.admin.email-templates.tsx`: `85.54%`
-- `app/routes/dashboard.admin.content.tsx`: `85.71%`
-- `app/routes/api.admin.setup-resend.tsx`: `87.80%`
-- `app/components/DashboardNav.tsx`: `88.23%`
-- `app/routes/dashboard.polls.tsx`: `88.26%`
-- `app/lib/sms.server.ts`: `88.27%`
-- `app/routes/dashboard._index.tsx`: `88.40%`
+- `app/lib/event-email-delivery.server.ts`: `84.41%` statements / `65.26%` branches
+- `app/routes/dashboard.events.tsx`: `79.91%` statements / `72.80%` branches
+- `app/routes/dashboard.admin.events.tsx`: `80.52%` statements / `69.04%` branches
+- `app/routes/dashboard.admin.announcements.tsx`: `91.11%` statements / `76.92%` branches
+- `app/lib/resend-setup.server.ts`: `90.00%` statements / `80.82%` branches
+- `app/lib/sms.server.ts`: `88.27%` statements / `74.03%` branches
+- `app/routes/dashboard._index.tsx`: `88.40%` statements / `60.60%` branches
 
-Important interpretation notes:
+Current interpretation notes:
 
-- `test/route-exports.smoke.test.ts` is a structural smoke suite. It protects route registration and export shape, but it is not deep behavioral coverage.
-- `test/admin-polls.form-contract.test.tsx` validates close-poll loader/form contracts with inline test components. It is useful as a guardrail, but it is not true route-level end-to-end coverage.
-- The current suite is strongest around auth/session behavior, Google OAuth callback handling, login/logout/pending/dashboard shell routes, webhook security, RSVP parsing, notifications, email template shaping, activity logging, poll/date/admin helpers, member dashboard actions, shared poll/comment/restaurant UI, the Places API, the remaining admin setup/analytics/content routes, and the highest-value workflow seams.
-- This slice also surfaced a real security issue: `dashboard.admin.setup.tsx` was proxying a POST to `/api/admin/setup-resend` without re-checking admin access in its `action`, so the route now enforces `requireAdmin` before forwarding the request.
-- The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps multi-route tests honest without requiring an external test database.
-- CI now enforces modest global coverage thresholds through `vitest.config.ts` and the root `.github/workflows/test.yml` workflow.
-- The suite now exceeds the long-term numeric target of `70%+` statements and `60%+` branches, so the remaining work is mostly about closing important route gaps rather than chasing aggregate percentages.
+- `test/route-exports.smoke.test.ts` is still a structural smoke suite. It protects route registration and export shape, but it is not deep behavioral coverage.
+- `test/admin-polls.form-contract.test.tsx` is still a contract-style guardrail, not a full route-level workflow.
+- The suite is now strong enough that broad coverage work should stop being the default. Additional test work should be targeted at event delivery, member/admin event flows, and other operational or mutation-heavy paths.
+- Static informational routes such as `privacy.tsx`, `terms.tsx`, `sms-consent.tsx`, and `verification.tsx` remain low-value coverage targets and should stay deprioritized.
+- The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps the highest-value multi-route tests honest without requiring an external test database.
+- CI enforces coverage thresholds through `vitest.config.ts` and the root `.github/workflows/test.yml` workflow.
+- The suite is now comfortably beyond the long-term numeric target of `70%+` statements and `60%+` branches, so the remaining work is about protecting real risk, not chasing aggregate percentages.
 
 ## Ideal State
 

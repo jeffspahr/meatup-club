@@ -334,6 +334,77 @@ describe("dashboard.polls route", () => {
   });
 
   describe("restaurant actions", () => {
+    it("requires an active poll before processing mutations", async () => {
+      const db = createMockDb({ activePoll: null });
+
+      const result = await action({
+        request: createRequest({
+          _action: "suggest_restaurant",
+          name: "Prime Steakhouse",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(result).toEqual({ error: "No active poll. Actions require an active poll." });
+    });
+
+    it("validates date suggestions before inserting them", async () => {
+      const db = createMockDb();
+
+      const missingDateResult = await action({
+        request: createRequest({
+          _action: "suggest_date",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      const pastDateResult = await action({
+        request: createRequest({
+          _action: "suggest_date",
+          suggested_date: "2000-01-01",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(missingDateResult).toEqual({ error: "Date is required" });
+      expect(pastDateResult).toEqual({ error: "Cannot add dates in the past" });
+    });
+
+    it("validates missing date suggestion ids for vote and delete actions", async () => {
+      const db = createMockDb();
+
+      const voteResult = await action({
+        request: createRequest({
+          _action: "vote_date",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      const deleteResult = await action({
+        request: createRequest({
+          _action: "delete_date",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(voteResult).toEqual({ error: "Suggestion ID is required" });
+      expect(deleteResult).toEqual({ error: "Suggestion ID is required" });
+    });
+
+    it("requires a restaurant name before creating a suggestion", async () => {
+      const db = createMockDb();
+
+      const result = await action({
+        request: createRequest({
+          _action: "suggest_restaurant",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(result).toEqual({ error: "Restaurant name is required" });
+      expect(createRestaurant).not.toHaveBeenCalled();
+    });
+
     it("rejects duplicate restaurant suggestions by place id", async () => {
       vi.mocked(findRestaurantByPlaceId).mockResolvedValue({ id: 99 } as never);
       const db = createMockDb();
@@ -603,6 +674,27 @@ describe("dashboard.polls route", () => {
           actionType: "delete_comment",
         })
       );
+    });
+
+    it("requires a comment id before deletion and rejects unsupported actions", async () => {
+      const db = createMockDb();
+
+      const missingCommentIdResult = await action({
+        request: createRequest({
+          _action: "delete_comment",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      const invalidActionResult = await action({
+        request: createRequest({
+          _action: "mystery_action",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect(missingCommentIdResult).toEqual({ error: "Comment ID is required" });
+      expect(invalidActionResult).toEqual({ error: "Invalid action" });
     });
   });
 });

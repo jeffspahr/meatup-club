@@ -718,6 +718,55 @@ describe("event-email-delivery.server", () => {
     );
   });
 
+  it("marks a delivery failed when the Resend API key is missing", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 15,
+          batch_id: "batch-missing-key",
+          event_id: 16,
+          user_id: 1,
+          delivery_type: "invite",
+          recipient_email: "alpha@example.com",
+          rsvp_status: null,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 0,
+          dedupe_key: "invite:16:0:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 0,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+
+    const result = await deliverEventEmailById({
+      db: db as never,
+      resendApiKey: undefined,
+      deliveryId: 15,
+    });
+
+    expect(result).toEqual({ outcome: "failed" });
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        last_error: "RESEND_API_KEY is not configured",
+      })
+    );
+    expect(global.fetch).toBe(originalFetch);
+  });
+
   it("moves transient provider failures into retry state", async () => {
     const { db, deliveries } = createMockDeliveryDb({
       seededDeliveries: [
@@ -839,6 +888,62 @@ describe("event-email-delivery.server", () => {
     );
   });
 
+  it("marks a delivery failed when the provider error is not retryable", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 43,
+          batch_id: "batch-failed",
+          event_id: 44,
+          user_id: 1,
+          delivery_type: "invite",
+          recipient_email: "alpha@example.com",
+          rsvp_status: null,
+          restaurant_name: "No Retry Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 0,
+          dedupe_key: "invite:44:0:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 0,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      text: async () => "bad payload",
+    } as never);
+
+    const result = await deliverEventEmailById({
+      db: db as never,
+      resendApiKey: "test-api-key",
+      deliveryId: 43,
+    });
+
+    expect(result).toEqual({ outcome: "failed" });
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        attempt_count: 1,
+        last_error: "Failed to send email: Bad Request",
+      })
+    );
+  });
+
   it("retries queue messages when a delivery attempt remains retryable", async () => {
     const { db } = createMockDeliveryDb({
       seededDeliveries: [
@@ -899,6 +1004,68 @@ describe("event-email-delivery.server", () => {
 
     expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
     expect(ack).not.toHaveBeenCalled();
+  });
+
+  it("marks a delivery failed and acks when the queue worker exhausts retries after an exception", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 61,
+          batch_id: "batch-hard-fail",
+          event_id: 62,
+          user_id: 1,
+          delivery_type: "invite",
+          recipient_email: "alpha@example.com",
+          rsvp_status: null,
+          restaurant_name: "Hard Fail Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 0,
+          dedupe_key: "invite:62:0:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 4,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockRejectedValue(new Error("socket closed"));
+    const retry = vi.fn();
+    const ack = vi.fn();
+
+    await processEventEmailQueueBatch({
+      batch: {
+        messages: [
+          {
+            body: { deliveryId: 61 },
+            attempts: 5,
+            retry,
+            ack,
+          },
+        ],
+      } as never,
+      db: db as never,
+      resendApiKey: "test-api-key",
+    });
+
+    expect(retry).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledTimes(1);
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        last_error: "socket closed",
+      })
+    );
   });
 
   it("processes queue deliveries sequentially with a throttle between sends", async () => {

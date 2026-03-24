@@ -182,4 +182,55 @@ describe("dashboard.admin.announcements loader and UI", () => {
     expect(confirmAction).toHaveBeenCalledWith("Send this announcement to just you at admin@example.com?");
     expect(submitEvent.defaultPrevented).toBe(true);
   });
+
+  it("renders empty and rich markdown previews for announcements", () => {
+    renderPage({
+      admin: {
+        id: 99,
+        email: "admin@example.com",
+        name: "Admin User",
+      },
+      drafts: [],
+      members: [{ id: 1, name: "Alpha", email: "alpha@example.com" }],
+    } as never);
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByText("Nothing to preview yet.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: {
+        value:
+          "# Launch\n\nParagraph with **bold** and *italics*.\n\n> Reminder\n\n- First\n- Second\n\n`inline`\n\n```\nconst ok = true;\n```\n\n[Docs](https://example.com)",
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(screen.getByRole("heading", { name: "Launch" })).toBeInTheDocument();
+    expect(screen.getByText("bold")).toBeInTheDocument();
+    expect(screen.getByText("italics")).toBeInTheDocument();
+    expect(screen.getByText("Reminder")).toBeInTheDocument();
+    expect(screen.getByText("First")).toBeInTheDocument();
+    expect(screen.getByText("Second")).toBeInTheDocument();
+    expect(screen.getByText("inline")).toBeInTheDocument();
+    expect(screen.getByText("const ok = true;")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("href", "https://example.com");
+  });
+
+  it("shows the submitting state on the send button", () => {
+    navigationState = { state: "submitting" };
+
+    renderPage({
+      admin: {
+        id: 99,
+        email: "admin@example.com",
+        name: "Admin User",
+      },
+      drafts: [],
+      members: [{ id: 1, name: "Alpha", email: "alpha@example.com" }],
+    } as never);
+
+    expect(screen.getByRole("button", { name: "Sending..." })).toBeDisabled();
+  });
 });

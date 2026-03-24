@@ -34,6 +34,17 @@ describe("provider-webhooks.server", () => {
     });
   });
 
+  it("returns null when the provider webhook row does not exist", async () => {
+    const first = vi.fn().mockResolvedValue(null);
+    const prepare = vi.fn(() => ({
+      bind: vi.fn(() => ({ first })),
+    }));
+
+    await expect(
+      getProviderWebhookConfig({ prepare } as never, "resend", "delivery_status")
+    ).resolves.toBeNull();
+  });
+
   it("returns null when the provider_webhooks table does not exist yet", async () => {
     const first = vi
       .fn()
@@ -45,6 +56,17 @@ describe("provider-webhooks.server", () => {
     await expect(
       getProviderWebhookConfig({ prepare } as never, "resend", "delivery_status")
     ).resolves.toBeNull();
+  });
+
+  it("rethrows unexpected database errors", async () => {
+    const first = vi.fn().mockRejectedValue(new Error("database unavailable"));
+    const prepare = vi.fn(() => ({
+      bind: vi.fn(() => ({ first })),
+    }));
+
+    await expect(
+      getProviderWebhookConfig({ prepare } as never, "resend", "delivery_status")
+    ).rejects.toThrow("database unavailable");
   });
 
   it("writes the webhook config with serialized events", async () => {

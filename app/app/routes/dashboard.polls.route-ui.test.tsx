@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import PollsPage from "./dashboard.polls";
+import PollsPage, { ErrorBoundary, HydrateFallback } from "./dashboard.polls";
 import type { Route } from "./+types/dashboard.polls";
 
 const submitSpy = vi.fn();
@@ -240,5 +241,55 @@ describe("dashboard.polls UI", () => {
     expect((submitSpy.mock.calls[6][0] as FormData).get("place_id")).toBe("place-123");
     expect((submitSpy.mock.calls[7][0] as FormData).get("_action")).toBe("vote_restaurant");
     expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("55");
+  });
+
+  it("hides broken restaurant images and renders the route fallback states", () => {
+    const { rerender } = renderPolls({
+      dateSuggestions: [],
+      restaurantSuggestions: [
+        {
+          id: 55,
+          name: "Prime Steakhouse",
+          address: "123 Main St",
+          cuisine: "Steakhouse",
+          vote_count: 1,
+          user_has_voted: 0,
+          suggested_by_name: "Alex",
+          suggested_by_email: "alex@example.com",
+          photo_url: "https://images.example.com/prime.jpg",
+        },
+      ],
+      activePoll: {
+        id: 12,
+        title: "June Poll",
+        description: "Pick the next meetup",
+      },
+      previousPolls: [],
+      dateVotes: [],
+      comments: [],
+      currentUser: { id: 123, isAdmin: false },
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    const image = screen.getByRole("img", { name: "Prime Steakhouse" });
+    fireEvent.error(image);
+    expect(image).toHaveStyle({ display: "none" });
+
+    rerender(<HydrateFallback />);
+    expect(screen.getByText("Vote on dates and restaurants for upcoming meetups")).toBeInTheDocument();
+
+    rerender(
+      <MemoryRouter>
+        <ErrorBoundary
+          {...(({ error: new Error("polls exploded") } as unknown) as Route.ErrorBoundaryProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Something went wrong loading polls.")).toBeInTheDocument();
+    expect(screen.getByText("polls exploded")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to Dashboard" })).toHaveAttribute(
+      "href",
+      "/dashboard"
+    );
   });
 });

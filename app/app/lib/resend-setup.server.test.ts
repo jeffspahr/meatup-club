@@ -265,6 +265,80 @@ describe("resend-setup.server", () => {
     ).toBe(true);
   });
 
+  it("throws a helpful error when the webhook list cannot be loaded", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "mail.meatup.club" }],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "GET") {
+        return new Response("gateway timeout", {
+          status: 504,
+          statusText: "Gateway Timeout",
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    await expect(
+      ensureResendEmailSetup({
+        db,
+        resendApiKey: "re_test",
+      })
+    ).rejects.toThrow("Failed to load webhooks: gateway timeout");
+  });
+
+  it("throws when deleting a duplicate webhook fails", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "mail.meatup.club" }],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "GET") {
+        return jsonResponse({
+          data: [
+            {
+              id: "wh_old_1",
+              endpoint: "https://meatup.club/api/webhooks/email-delivery",
+              events: ["email.sent"],
+            },
+          ],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks/wh_old_1" && method === "DELETE") {
+        return new Response("", {
+          status: 500,
+          statusText: "Internal Server Error",
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    await expect(
+      ensureResendEmailSetup({
+        db,
+        resendApiKey: "re_test",
+      })
+    ).rejects.toThrow("Failed to delete webhook wh_old_1: Internal Server Error");
+  });
+
   it("throws a helpful error when the expected resend domain is missing", async () => {
     vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
 
@@ -287,6 +361,42 @@ describe("resend-setup.server", () => {
         resendApiKey: "re_test",
       })
     ).rejects.toThrow("Domain mail.meatup.club not found in Resend");
+  });
+
+  it("throws when Resend creates a webhook without a signing secret", async () => {
+    vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method || "GET";
+
+      if (url === "https://api.resend.com/domains" && method === "GET") {
+        return jsonResponse({
+          data: [{ id: "dom_123", name: "mail.meatup.club" }],
+        });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "GET") {
+        return jsonResponse({ data: [] });
+      }
+
+      if (url === "https://api.resend.com/webhooks" && method === "POST") {
+        return jsonResponse({
+          id: "wh_missing_secret",
+          endpoint: "https://meatup.club/api/webhooks/email-delivery",
+          events: [...DELIVERY_WEBHOOK_EVENTS],
+        });
+      }
+
+      throw new Error(`Unexpected fetch call: ${method} ${url}`);
+    }) as typeof fetch;
+
+    await expect(
+      ensureResendEmailSetup({
+        db,
+        resendApiKey: "re_test",
+      })
+    ).rejects.toThrow("Resend created a webhook without returning an id and signing secret");
   });
 
   it("retries rate-limited Resend calls before failing", async () => {

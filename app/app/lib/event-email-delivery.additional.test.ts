@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   applyResendDeliveryWebhookEvent,
+  enqueueStagedEventEmailBatch,
   recoverEventEmailDeliveryBacklog,
   stageEventCancellationDeliveriesForActiveMembers,
   stageEventUpdateDeliveriesForActiveMembers,
@@ -245,6 +246,51 @@ describe("event-email-delivery additional coverage", () => {
     ]);
   });
 
+  it("returns zero backlog work when the queue binding is unavailable", async () => {
+    const { db } = createDeliveryDb();
+
+    const count = await recoverEventEmailDeliveryBacklog({
+      db: db as never,
+      queue: undefined,
+    });
+
+    expect(count).toBe(0);
+  });
+
+  it("logs and leaves deliveries pending when a staged batch cannot be enqueued", async () => {
+    const { db, deliveries } = createDeliveryDb();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const batch = await stageEventCancellationDeliveriesForActiveMembers(db as never, {
+      eventId: 22,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "123 Main St",
+      eventDate: "2026-06-20",
+      eventTime: "18:30",
+      sequence: 5,
+    });
+
+    await enqueueStagedEventEmailBatch(
+      {
+        db: db as never,
+        queue: undefined,
+      },
+      batch
+    );
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "EMAIL_DELIVERY_QUEUE is not configured; leaving deliveries pending",
+      expect.objectContaining({
+        batchId: expect.any(String),
+        recipientCount: 2,
+        deliveryType: "cancel",
+      })
+    );
+    expect(deliveries.every((delivery) => delivery.last_queued_at === null)).toBe(true);
+
+    errorSpy.mockRestore();
+  });
+
   it("ignores unsupported webhook events and missing provider ids", async () => {
     const { db } = createDeliveryDb();
 
@@ -258,5 +304,42 @@ describe("event-email-delivery additional coverage", () => {
         data: {},
       })
     ).resolves.toEqual({ handled: true, updated: false });
+  });
+
+  it("stores the provider response when a delivery webhook omits an explicit failure reason", async () => {
+    const { db, deliveries } = createDeliveryDb();
+    deliveries.push({
+      id: 9,
+      batch_id: "batch-existing",
+      event_id: 22,
+      user_id: 1,
+      delivery_type: "update",
+      recipient_email: "1@example.com",
+      status: "provider_accepted",
+      provider_message_id: "email-failed-1",
+      last_queued_at: null,
+      last_provider_event: "email.sent",
+      last_error: null,
+      delivered_at: null,
+    });
+
+    await expect(
+      applyResendDeliveryWebhookEvent(db as never, {
+        type: "email.failed",
+        data: {
+          email_id: "email-failed-1",
+          reason: "   ",
+          response: "Mailbox unavailable",
+        },
+      })
+    ).resolves.toEqual({ handled: true, updated: true });
+
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        last_provider_event: "email.failed",
+        last_error: "Mailbox unavailable",
+      })
+    );
   });
 });

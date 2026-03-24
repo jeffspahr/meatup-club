@@ -490,6 +490,166 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(screen.getByText("Latest calendar email: invite / delivered")).toBeInTheDocument();
   });
 
+  it("renders the remaining delivery badge states for accepted, delayed, failed, sending, and pending recipients", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData: {
+              events: [
+                {
+                  id: 99,
+                  restaurant_name: "Badge House",
+                  restaurant_address: "5 Main St",
+                  event_date: "2026-07-01",
+                  event_time: "18:00",
+                  status: "upcoming",
+                  displayStatus: "upcoming",
+                  created_at: "2026-03-01",
+                },
+              ],
+              topRestaurant: null,
+              topDate: null,
+              smsMembers: [],
+              eventMembersById: {
+                99: [
+                  {
+                    id: 1,
+                    name: "Accepted Member",
+                    email: "accepted@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: true,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "provider_accepted",
+                    lastCalendarDeliveryType: "invite",
+                  },
+                  {
+                    id: 2,
+                    name: "Delayed Member",
+                    email: "delayed@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: false,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "delivery_delayed",
+                    lastCalendarDeliveryType: "update",
+                  },
+                  {
+                    id: 3,
+                    name: "Failed Member",
+                    email: "failed@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: false,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "complained",
+                    lastCalendarDeliveryType: "update",
+                  },
+                  {
+                    id: 4,
+                    name: "Sending Member",
+                    email: "sending@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: false,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "sending",
+                    lastCalendarDeliveryType: "invite",
+                  },
+                  {
+                    id: 5,
+                    name: "Pending Member",
+                    email: "pending@example.com",
+                    rsvp_status: null,
+                    admin_override: 0,
+                    hasAcceptedCalendarDelivery: false,
+                    hasDeliveredCalendarDelivery: false,
+                    lastCalendarDeliveryStatus: "pending",
+                    lastCalendarDeliveryType: "invite",
+                  },
+                ],
+              },
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
+    expect(screen.getByText("Delayed")).toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+    expect(screen.getByText("Sending")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Latest calendar email: invite / provider_accepted")).toBeInTheDocument();
+    expect(screen.getByText("Latest calendar email: update / delivery_delayed")).toBeInTheDocument();
+  });
+
+  it("prefills the create form from vote leaders, resets it on cancel, and stops deletes when confirmation is declined", () => {
+    const confirmSpy = vi.fn(() => false);
+    vi.stubGlobal("confirm", confirmSpy);
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData: {
+              events: [
+                {
+                  id: 42,
+                  restaurant_name: "Prime Steakhouse",
+                  restaurant_address: "123 Main St",
+                  event_date: "2026-05-20",
+                  event_time: "18:00",
+                  status: "upcoming",
+                  displayStatus: "upcoming",
+                  created_at: "2026-03-01",
+                },
+              ],
+              topRestaurant: {
+                id: 5,
+                name: "Prime Steakhouse",
+                address: "123 Main St",
+                vote_count: 4,
+              },
+              topDate: {
+                id: 8,
+                suggested_date: "2026-05-20",
+                vote_count: 5,
+              },
+              smsMembers: [],
+              eventMembersById: { 42: [] },
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Prefill from Vote Leaders" }));
+
+    expect(screen.getByRole("heading", { name: "Create New Event" })).toBeInTheDocument();
+    expect((document.querySelector('input[name="restaurant_name"]') as HTMLInputElement).value).toBe(
+      "Prime Steakhouse"
+    );
+    expect((screen.getByLabelText("Event Date *") as HTMLInputElement).value).toBe("2026-05-20");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("heading", { name: "Create New Event" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Create Event/i }));
+    expect((document.querySelector('input[name="restaurant_name"]') as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Event Date *") as HTMLInputElement).value).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Are you sure you want to delete the event "Prime Steakhouse" on formatted:2026-05-20? This action cannot be undone.'
+    );
+    expect(submitSpy).not.toHaveBeenCalled();
+  });
+
   it("updates an event and schedules calendar updates for active members", async () => {
     const db = createMockDb();
     const queue = { sendBatch: vi.fn().mockResolvedValue(undefined) };
