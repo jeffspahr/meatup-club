@@ -22,8 +22,10 @@ type DeliveryStatus =
 
 function createDeliveryDb({
   staleDeliveryIds = [41, 42],
+  activeUserIds = [1, 3],
 }: {
   staleDeliveryIds?: number[];
+  activeUserIds?: number[];
 } = {}) {
   const deliveries: Array<{
     id: number;
@@ -46,7 +48,7 @@ function createDeliveryDb({
 
     const allForArgs = async (bindArgs: unknown[]) => {
       if (normalizedSql === "SELECT id FROM users WHERE status = 'active' ORDER BY id ASC") {
-        return { results: [{ id: 1 }, { id: 3 }] };
+        return { results: activeUserIds.map((id) => ({ id })) };
       }
 
       if (normalizedSql === "SELECT id FROM event_email_deliveries WHERE batch_id = ? ORDER BY id ASC") {
@@ -94,7 +96,7 @@ function createDeliveryDb({
           dedupeSequence,
           _rsvpEventId,
         ] = bindArgs;
-        for (const userId of [1, 3]) {
+        for (const userId of activeUserIds) {
           deliveries.push({
             id: nextId++,
             batch_id: String(batchId),
@@ -121,7 +123,7 @@ function createDeliveryDb({
         normalizedSql.includes("'cancel'")
       ) {
         const [batchId, eventId] = bindArgs;
-        for (const userId of [1, 3]) {
+        for (const userId of activeUserIds) {
           deliveries.push({
             id: nextId++,
             batch_id: String(batchId),
@@ -233,6 +235,21 @@ describe("event-email-delivery additional coverage", () => {
       deliveryType: "cancel",
     });
     expect(deliveries.every((delivery) => delivery.delivery_type === "cancel")).toBe(true);
+  });
+
+  it("returns null when there are no active members to stage for an update", async () => {
+    const { db, deliveries } = createDeliveryDb({ activeUserIds: [] });
+
+    const batch = await stageEventUpdateDeliveriesForActiveMembers(db as never, {
+      eventId: 22,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "123 Main St",
+      eventDate: "2026-06-20",
+      eventTime: "18:30",
+    });
+
+    expect(batch).toBeNull();
+    expect(deliveries).toEqual([]);
   });
 
   it("requeues stale backlog deliveries through the queue", async () => {

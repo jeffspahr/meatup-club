@@ -291,6 +291,27 @@ describe("email.server advanced notification flows", () => {
     expect(result).toEqual({ success: false, error: "Connection refused" });
   });
 
+  it("returns the resend status text for calendar update provider failures", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      statusText: "Forbidden",
+      text: async () => "blocked",
+    } as unknown as Response);
+
+    const result = await sendCalendarUpdate({
+      eventId: 9,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "456 Oak Ave",
+      eventDate: "2026-04-12",
+      eventTime: "19:30",
+      userEmail: "member@example.com",
+      rsvpStatus: "yes",
+      resendApiKey: "test-api-key",
+    });
+
+    expect(result).toEqual({ success: false, error: "Failed to send update: Forbidden" });
+  });
+
   it("sends event updates with the provided sequence and default NEEDS-ACTION RSVP", async () => {
     const result = await sendEventUpdate({
       eventId: 10,

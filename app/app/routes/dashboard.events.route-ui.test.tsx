@@ -337,6 +337,50 @@ describe("dashboard.events UI", () => {
     expect(screen.queryByRole("heading", { name: "Create Ad Hoc Event" })).not.toBeInTheDocument();
   });
 
+  it("keeps the create form open after a failed create submission cycle", () => {
+    const loaderData = {
+      upcomingEvents: [],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    const { rerender } = renderEvents(loaderData);
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Create Ad Hoc Event" }));
+    const dateInput = screen.getByLabelText("Event Date *") as HTMLInputElement;
+    const timeInput = screen.getByLabelText("Event Time") as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2026-08-14" } });
+    fireEvent.change(timeInput, { target: { value: "20:15" } });
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "create");
+        return formData;
+      })(),
+    };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <EventsPage
+        {...(({
+          loaderData,
+          actionData: { error: "Create failed" },
+        } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "Create Ad Hoc Event" })).toBeInTheDocument();
+    expect(screen.getByText("Create failed")).toBeInTheDocument();
+    expect((screen.getByLabelText("Event Date *") as HTMLInputElement).value).toBe("2026-08-14");
+    expect((screen.getByLabelText("Event Time") as HTMLInputElement).value).toBe("20:15");
+  });
+
   it("closes inline editing after a successful update submission cycle", () => {
     const loaderData = {
       upcomingEvents: [
@@ -383,6 +427,67 @@ describe("dashboard.events UI", () => {
     );
 
     expect(screen.queryByRole("heading", { name: "Edit Event" })).not.toBeInTheDocument();
+  });
+
+  it("keeps inline editing open after a failed update submission cycle and preserves draft fields", () => {
+    const loaderData = {
+      upcomingEvents: [
+        {
+          id: 1,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-06-20",
+          event_time: "19:00",
+          canEdit: true,
+          creatorLabel: "Created by you",
+          userRsvp: null,
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    const { rerender } = renderEvents(loaderData);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Prime Steakhouse" }));
+    const addressInput = screen.getByLabelText("Address") as HTMLInputElement;
+    const dateInput = screen.getByLabelText("Event Date *") as HTMLInputElement;
+    const timeInput = screen.getByLabelText("Event Time") as HTMLInputElement;
+
+    fireEvent.change(addressInput, { target: { value: "700 Oak Ave" } });
+    fireEvent.change(dateInput, { target: { value: "2026-06-30" } });
+    fireEvent.change(timeInput, { target: { value: "20:00" } });
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "update");
+        return formData;
+      })(),
+    };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <EventsPage
+        {...(({
+          loaderData,
+          actionData: { error: "Update failed" },
+        } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "Edit Event" })).toBeInTheDocument();
+    expect(screen.getByText("Update failed")).toBeInTheDocument();
+    expect((screen.getByLabelText("Address") as HTMLInputElement).value).toBe("700 Oak Ave");
+    expect((screen.getByLabelText("Event Date *") as HTMLInputElement).value).toBe("2026-06-30");
+    expect((screen.getByLabelText("Event Time") as HTMLInputElement).value).toBe("20:00");
   });
 
   it("renders maybe and out RSVP badges with fallback creator labels", () => {

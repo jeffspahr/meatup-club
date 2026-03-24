@@ -493,6 +493,47 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("validates updated event input before running mutation statements", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "update",
+      id: "42",
+      restaurant_name: "",
+      restaurant_address: "123 Main St",
+      event_date: "",
+      event_time: "18:00",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Select a restaurant from Google Places." });
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when updating an event that no longer exists", async () => {
+    const db = createMockDb({ editableEvent: null });
+    const request = createRequest({
+      _action: "update",
+      id: "42",
+      restaurant_name: "Updated Grill",
+      restaurant_address: "123 Main St",
+      event_date: "2026-04-25",
+      event_time: "18:15",
+      send_updates: "true",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event not found" });
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
   it("requires an event id before updating", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -617,6 +658,23 @@ describe("dashboard.admin.events action flows", () => {
         }),
       })
     );
+  });
+
+  it("rejects invalid calendar resend recipient modes", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "resend_calendar_request",
+      id: "42",
+      recipient_mode: "mystery",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Invalid calendar resend recipient selection" });
+    expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
   });
 
   it("requires at least one selected recipient for a selective resend", async () => {
@@ -779,6 +837,24 @@ describe("dashboard.admin.events action flows", () => {
     expect(db.runCalls).toEqual([]);
   });
 
+  it("requires event, user, and status for RSVP overrides", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "override_rsvp",
+      event_id: "42",
+      user_id: "0",
+      status: "",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event, user, and status are required for RSVP overrides" });
+    expect(db.runCalls).toEqual([]);
+  });
+
   it("returns an error when the event or target user cannot be found", async () => {
     const db = createMockDb({ eventRow: null });
     const request = createRequest({
@@ -876,6 +952,36 @@ describe("dashboard.admin.events action flows", () => {
         sql: expect.stringContaining("INSERT INTO rsvps"),
       })
     );
+  });
+
+  it("queues RSVP override emails with waitUntil when available", async () => {
+    const db = createMockDb({ existingRsvp: null });
+    const waitUntil = vi.fn();
+    vi.mocked(sendRsvpOverrideEmail).mockResolvedValueOnce({ success: true });
+
+    const result = await action({
+      request: createRequest({
+        _action: "override_rsvp",
+        event_id: "42",
+        user_id: "7",
+        status: "yes",
+      }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_API_KEY: "test-api-key",
+          },
+          ctx: {
+            waitUntil,
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(result).toEqual({ success: "RSVP override saved and user notified." });
+    expect(waitUntil).toHaveBeenCalledTimes(1);
+    expect(sendRsvpOverrideEmail).toHaveBeenCalledTimes(1);
   });
 
   it("deletes an event through D1 batch statements when raw SQL transactions would fail", async () => {

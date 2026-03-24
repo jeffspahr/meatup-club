@@ -216,6 +216,50 @@ describe("dashboard._index UI", () => {
     expect(screen.queryByRole("link", { name: "Set RSVP →" })).not.toBeInTheDocument();
   });
 
+  it("renders tied vote summaries for members who already voted on restaurants and dates", async () => {
+    renderDashboard({
+      user: {
+        id: 15,
+        name: "Jordan Member",
+        email: "jordan@example.com",
+        phone_number: "+15551234567",
+      },
+      memberCount: 24,
+      isAdmin: false,
+      activePoll: {
+        id: 12,
+        title: "July Poll",
+        created_at: "2026-07-01T12:00:00.000Z",
+      },
+      topRestaurants: [
+        { name: "Prime Steakhouse", vote_count: 2 },
+        { name: "Oak Room", vote_count: 2 },
+      ],
+      topDates: [
+        { suggested_date: "2026-07-20", vote_count: 3 },
+        { suggested_date: "2026-07-27", vote_count: 3 },
+      ],
+      nextEvent: {
+        id: 18,
+        restaurant_name: "Future House",
+        event_date: "2026-08-02",
+        event_time: "18:30",
+      },
+      userRsvp: { status: "maybe" },
+      content: [],
+      userRestaurantVote: { name: "Prime Steakhouse" },
+      userDateVoteCount: 2,
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(
+      screen.getByText("Tied (2 votes each): Prime Steakhouse, Oak Room")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Tied (3 votes each): formatted:2026-07-20, formatted:2026-07-27")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Maybe")).toBeInTheDocument();
+  });
+
   it("renders the route hydrate fallback shell", () => {
     const { container } = render(<HydrateFallback />);
 

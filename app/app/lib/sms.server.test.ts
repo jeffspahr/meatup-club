@@ -157,6 +157,24 @@ describe("sms delivery and reminder flows", () => {
     expect(message).toContain("Reply YES or NO to RSVP. Reply STOP to opt out.");
   });
 
+  it("builds same-day reminder messages with a pending RSVP fallback", () => {
+    const message = buildSmsReminderMessage({
+      event: {
+        id: 2,
+        restaurant_name: "Same Day Grill",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-01",
+        event_time: "20:00",
+      },
+      timeZone: "UTC",
+      rsvpStatus: "later",
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(message).toContain("Reminder for today at 8:00 PM");
+    expect(message).toContain("Your RSVP: Pending.");
+  });
+
   it("returns an error without calling Twilio when credentials are missing", async () => {
     const result = await sendSms({
       to: "+15551234567",
@@ -413,6 +431,40 @@ describe("sms delivery and reminder flows", () => {
     expect(db.recipientQueryCalls[0]?.sql).toContain("AND 1 = 0");
     expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([89]);
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("supports specific-scope adhoc reminders for one selected member", async () => {
+    const db = createMockDb({
+      recipients: [
+        {
+          id: 5,
+          phone_number: "+15550000005",
+          rsvp_status: "yes",
+        },
+      ],
+    });
+
+    const result = await sendAdhocSmsReminder({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      event: {
+        id: 90,
+        restaurant_name: "Prime Steakhouse",
+        event_date: "2026-04-03",
+        event_time: "18:00",
+      },
+      recipientScope: "specific",
+      recipientUserId: 5,
+    });
+
+    expect(result).toEqual({ sent: 1, errors: [] });
+    expect(db.recipientQueryCalls[0]?.sql).toContain("AND u.id = ?");
+    expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([90, 5]);
   });
 
   it("sends adhoc reminders for maybe RSVPs and aggregates Twilio failures", async () => {

@@ -432,6 +432,61 @@ function createMockDeliveryDb({
   };
 }
 
+function createExplodingQueueDb(errorMessage = "delivery row lookup failed") {
+  const retryMarks: Array<{ errorMessage: string; deliveryId: number }> = [];
+  const failedMarks: Array<{ errorMessage: string; deliveryId: number }> = [];
+
+  const prepare = vi.fn((sql: string) => {
+    const normalizedSql = sql.replace(/\s+/g, " ").trim();
+
+    return {
+      bind: (...bindArgs: unknown[]) => ({
+        first: async () => {
+          if (
+            normalizedSql.includes("FROM event_email_deliveries") &&
+            normalizedSql.includes("WHERE id = ?")
+          ) {
+            throw new Error(errorMessage);
+          }
+
+          throw new Error(`Unexpected first() query: ${normalizedSql}`);
+        },
+        run: async () => {
+          if (
+            normalizedSql.includes("UPDATE event_email_deliveries") &&
+            normalizedSql.includes("SET status = 'retry'")
+          ) {
+            retryMarks.push({
+              errorMessage: String(bindArgs[0]),
+              deliveryId: Number(bindArgs[2]),
+            });
+            return { meta: { changes: 1 } };
+          }
+
+          if (
+            normalizedSql.includes("UPDATE event_email_deliveries") &&
+            normalizedSql.includes("SET status = 'failed'")
+          ) {
+            failedMarks.push({
+              errorMessage: String(bindArgs[0]),
+              deliveryId: Number(bindArgs[1]),
+            });
+            return { meta: { changes: 1 } };
+          }
+
+          throw new Error(`Unexpected run() query: ${normalizedSql}`);
+        },
+      }),
+    };
+  });
+
+  return {
+    db: { prepare },
+    retryMarks,
+    failedMarks,
+  };
+}
+
 describe("event-email-delivery.server", () => {
   let originalFetch: typeof global.fetch;
 
@@ -861,6 +916,123 @@ describe("event-email-delivery.server", () => {
     expect(global.fetch).toBe(originalFetch);
   });
 
+  it("sends update deliveries through the durable update helper", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 18,
+          batch_id: "batch-update-success",
+          event_id: 19,
+          user_id: 1,
+          delivery_type: "update",
+          recipient_email: "alpha@example.com",
+          rsvp_status: "maybe",
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 4,
+          dedupe_key: "update:19:4:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 0,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "email-update-19" }),
+      text: async () => "OK",
+      statusText: "OK",
+    } as never);
+
+    const result = await deliverEventEmailById({
+      db: db as never,
+      resendApiKey: "test-api-key",
+      deliveryId: 18,
+    });
+
+    expect(result).toEqual({ outcome: "sent" });
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "provider_accepted",
+        provider_message_id: "email-update-19",
+      })
+    );
+
+    const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
+    expect(requestInit?.headers).toEqual(
+      expect.objectContaining({
+        "Idempotency-Key": "update:19:4:1",
+      })
+    );
+  });
+
+  it("retries when the durable helper reports a missing provider email id", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 19,
+          batch_id: "batch-missing-provider-id",
+          event_id: 20,
+          user_id: 1,
+          delivery_type: "invite",
+          recipient_email: "alpha@example.com",
+          rsvp_status: null,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 0,
+          dedupe_key: "invite:20:0:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 0,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+      text: async () => "OK",
+      statusText: "OK",
+    } as never);
+
+    const result = await deliverEventEmailById({
+      db: db as never,
+      resendApiKey: "test-api-key",
+      deliveryId: 19,
+    });
+
+    expect(result).toEqual({ outcome: "retry", retryDelaySeconds: 60 });
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "retry",
+        last_error: "Resend accepted the request without returning an email id",
+      })
+    );
+  });
+
   it("moves transient provider failures into retry state", async () => {
     const { db, deliveries } = createMockDeliveryDb({
       seededDeliveries: [
@@ -1284,6 +1456,60 @@ describe("event-email-delivery.server", () => {
         last_error: "socket closed",
       })
     );
+  });
+
+  it("retries queue messages when delivery lookup throws before a provider call", async () => {
+    const { db, retryMarks, failedMarks } = createExplodingQueueDb("lookup exploded");
+    const retry = vi.fn();
+    const ack = vi.fn();
+
+    await processEventEmailQueueBatch({
+      batch: {
+        messages: [
+          {
+            body: { deliveryId: 81 },
+            attempts: 2,
+            retry,
+            ack,
+          },
+        ],
+      } as never,
+      db: db as never,
+      resendApiKey: "test-api-key",
+    });
+
+    expect(retry).toHaveBeenCalledWith({ delaySeconds: 120 });
+    expect(ack).not.toHaveBeenCalled();
+    expect(retryMarks).toEqual([{ errorMessage: "lookup exploded", deliveryId: 81 }]);
+    expect(failedMarks).toEqual([]);
+    expect(global.fetch).toBe(originalFetch);
+  });
+
+  it("marks queue messages failed and acks when delivery lookup keeps throwing after max attempts", async () => {
+    const { db, retryMarks, failedMarks } = createExplodingQueueDb("lookup exploded");
+    const retry = vi.fn();
+    const ack = vi.fn();
+
+    await processEventEmailQueueBatch({
+      batch: {
+        messages: [
+          {
+            body: { deliveryId: 82 },
+            attempts: 5,
+            retry,
+            ack,
+          },
+        ],
+      } as never,
+      db: db as never,
+      resendApiKey: "test-api-key",
+    });
+
+    expect(retry).not.toHaveBeenCalled();
+    expect(ack).toHaveBeenCalledTimes(1);
+    expect(retryMarks).toEqual([]);
+    expect(failedMarks).toEqual([{ errorMessage: "lookup exploded", deliveryId: 82 }]);
+    expect(global.fetch).toBe(originalFetch);
   });
 
   it("processes queue deliveries sequentially with a throttle between sends", async () => {
