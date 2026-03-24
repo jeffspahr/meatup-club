@@ -1,5 +1,48 @@
 # Active Backlog (2026-02-23)
 
+## Coverage Bolster Phase 3 (2026-03-23)
+
+### Goal
+Tighten the last meaningful event-lifecycle and provider integration gaps: durable email delivery, Twilio branches, member/admin event surfaces, and the dashboard home page states.
+
+### Acceptance Criteria
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.server.test.ts` and `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.additional.test.ts` with the remaining skip, cancel, retry, and helper-edge branches.
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/lib/email.server.notifications.test.ts`, `/private/tmp/meatup-test-bolster-20260323/app/app/lib/email.server.send.test.ts`, and `/private/tmp/meatup-test-bolster-20260323/app/app/lib/sms.server.test.ts` with the missing provider and parsing edge cases.
+- [x] Expand `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.test.ts`, `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.route-ui.test.tsx`, `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.test.ts`, `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.route-ui.test.tsx`, `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard._index.test.ts`, and `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard._index.route-ui.test.tsx` with the remaining real workflow branches.
+- [x] Refresh `/private/tmp/meatup-test-bolster-20260323/app/TESTING.md` so the baseline and remaining-gap summary match the latest verified run.
+- [x] Verification passes: targeted tests, `npm run typecheck`, and `npm run test:coverage`.
+
+### Active Tasks
+- [x] Review the exact uncovered branches and the current test seams.
+- [x] Add helper and provider-edge coverage in the email and SMS libraries.
+- [x] Add route/action/UI coverage for the remaining event and dashboard branches.
+- [x] Run verification and capture the new baseline.
+- [x] Refresh `TESTING.md`.
+
+### Working Notes
+- Keep this slice focused on active product code with external side effects or mutation-heavy flows.
+- Prefer filling gaps in the existing suites unless a new colocated test file materially improves clarity.
+
+### Results
+- Expanded helper coverage in:
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.server.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/event-email-delivery.additional.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/email.server.send.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/email.server.notifications.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/lib/sms.server.test.ts`
+- Expanded route and UI coverage in:
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.events.route-ui.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.test.ts`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard.admin.events.route-ui.test.tsx`
+  - `/private/tmp/meatup-test-bolster-20260323/app/app/routes/dashboard._index.route-ui.test.tsx`
+- Refreshed `/private/tmp/meatup-test-bolster-20260323/app/TESTING.md` to the current `689`-test baseline and updated the remaining-gap summary.
+- Verification performed:
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:run -- app/lib/event-email-delivery.server.test.ts app/lib/event-email-delivery.additional.test.ts app/lib/email.server.send.test.ts app/lib/email.server.notifications.test.ts app/lib/sms.server.test.ts app/routes/dashboard.events.test.ts app/routes/dashboard.events.route-ui.test.tsx app/routes/dashboard.admin.events.test.ts app/routes/dashboard.admin.events.route-ui.test.tsx app/routes/dashboard._index.route-ui.test.tsx` passed (`151` tests).
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run typecheck` passed.
+  - `cd /private/tmp/meatup-test-bolster-20260323/app && npm run test:coverage` passed (`91` files, `689` tests).
+- Coverage moved from the prior bolster baseline of `90.66%` statements / `78.16%` branches / `87.41%` functions to `92.99%` / `80.76%` / `90.38%`.
+
 ## Coverage Bolster Phase 2 (2026-03-23)
 
 ### Goal

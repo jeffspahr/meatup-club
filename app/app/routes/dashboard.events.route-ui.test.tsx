@@ -302,6 +302,89 @@ describe("dashboard.events UI", () => {
     expect((screen.getByLabelText("Event Time") as HTMLInputElement).value).toBe("18:00");
   });
 
+  it("closes the create form after a successful create submission cycle", () => {
+    const loaderData = {
+      upcomingEvents: [],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    const { rerender } = renderEvents(loaderData);
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Create Ad Hoc Event" }));
+    expect(screen.getByRole("heading", { name: "Create Ad Hoc Event" })).toBeInTheDocument();
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "create");
+        return formData;
+      })(),
+    };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    expect(screen.queryByRole("heading", { name: "Create Ad Hoc Event" })).not.toBeInTheDocument();
+  });
+
+  it("closes inline editing after a successful update submission cycle", () => {
+    const loaderData = {
+      upcomingEvents: [
+        {
+          id: 1,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-06-20",
+          event_time: "19:00",
+          canEdit: true,
+          creatorLabel: "Created by you",
+          userRsvp: null,
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    const { rerender } = renderEvents(loaderData);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Prime Steakhouse" }));
+    expect(screen.getByRole("heading", { name: "Edit Event" })).toBeInTheDocument();
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "update");
+        return formData;
+      })(),
+    };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <EventsPage
+        {...(({ loaderData } as unknown) as Route.ComponentProps)}
+      />
+    );
+
+    expect(screen.queryByRole("heading", { name: "Edit Event" })).not.toBeInTheDocument();
+  });
+
   it("renders maybe and out RSVP badges with fallback creator labels", () => {
     renderEvents({
       upcomingEvents: [

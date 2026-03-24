@@ -66,6 +66,11 @@ function createMockDb({ events = [], recipients = [] }: MockDbOptions = {}) {
 }
 
 describe("normalizePhoneNumber", () => {
+  it("returns null for empty or whitespace-only input", () => {
+    expect(normalizePhoneNumber("")).toBeNull();
+    expect(normalizePhoneNumber("   ")).toBeNull();
+  });
+
   it("normalizes US 10-digit numbers", () => {
     expect(normalizePhoneNumber("555-123-4567")).toBe("+15551234567");
   });
@@ -80,10 +85,16 @@ describe("normalizePhoneNumber", () => {
 
   it("rejects invalid numbers", () => {
     expect(normalizePhoneNumber("123")).toBeNull();
+    expect(normalizePhoneNumber("+44")).toBeNull();
   });
 });
 
 describe("parseSmsReply", () => {
+  it("parses help keywords", () => {
+    expect(parseSmsReply("HELP")).toBe("help");
+    expect(parseSmsReply("info")).toBe("help");
+  });
+
   it("parses yes/no replies", () => {
     expect(parseSmsReply("YES")).toBe("yes");
     expect(parseSmsReply("n")).toBe("no");
@@ -97,6 +108,7 @@ describe("parseSmsReply", () => {
 
   it("returns null for unknown text", () => {
     expect(parseSmsReply("maybe")).toBeNull();
+    expect(parseSmsReply("   ")).toBeNull();
   });
 });
 
@@ -295,6 +307,68 @@ describe("sms delivery and reminder flows", () => {
     const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
     const body = new URLSearchParams(String(requestInit?.body));
     expect(body.get("Body")).toContain("Your RSVP: Maybe.");
+  });
+
+  it("returns early when there are no upcoming events to remind", async () => {
+    const db = createMockDb();
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(db.recipientQueryCalls).toEqual([]);
+    expect(db.insertCalls).toEqual([]);
+  });
+
+  it("logs reminder failures and skips inserts when Twilio rejects a scheduled send", async () => {
+    const db = createMockDb({
+      events: [
+        {
+          id: 77,
+          restaurant_name: "Prime Steakhouse",
+          event_date: "2026-04-02",
+          event_time: "12:00",
+          status: "upcoming",
+        },
+      ],
+      recipients: [
+        {
+          id: 8,
+          phone_number: "+15551234567",
+          rsvp_status: "yes",
+        },
+      ],
+    });
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      text: async () => "carrier blocked",
+      statusText: "Bad Request",
+    } as unknown as Response);
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "SMS reminder failed for +15551234567: carrier blocked"
+    );
+    expect(db.insertCalls).toEqual([]);
   });
 
   it("returns an explicit error for adhoc reminders when credentials are missing", async () => {

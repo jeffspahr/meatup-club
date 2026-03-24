@@ -650,6 +650,137 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(submitSpy).not.toHaveBeenCalled();
   });
 
+  it("updates controlled create/edit fields and closes those forms after successful submissions", () => {
+    const loaderData = {
+      events: [
+        {
+          id: 42,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-05-20",
+          event_time: "18:00",
+          status: "upcoming",
+          displayStatus: "upcoming",
+          created_at: "2026-03-01",
+        },
+      ],
+      topRestaurant: null,
+      topDate: null,
+      smsMembers: [],
+      eventMembersById: { 42: [] },
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    const { rerender } = render(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData,
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Create Event/i }));
+    fireEvent.change(screen.getByLabelText("Restaurant *"), {
+      target: { value: "New Grill" },
+    });
+    fireEvent.change(screen.getByLabelText("Event Date *"), {
+      target: { value: "2026-06-15" },
+    });
+    fireEvent.change(screen.getByLabelText("Event Time"), {
+      target: { value: "19:15" },
+    });
+
+    expect((screen.getByLabelText("Restaurant *") as HTMLInputElement).value).toBe("New Grill");
+    expect((screen.getByLabelText("Restaurant *") as HTMLInputElement).value).toBe("New Grill");
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "create");
+        return formData;
+      })(),
+    };
+    rerender(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData,
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData,
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("heading", { name: "Create New Event" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const editRestaurantInput = screen.getByLabelText("Restaurant *") as HTMLInputElement;
+    const editAddressInput = screen.getByLabelText("Address") as HTMLInputElement;
+    const editDateInput = document.querySelector('input[name="event_date"]') as HTMLInputElement;
+    const editTimeInput = document.querySelector('input[name="event_time"]') as HTMLInputElement;
+    const cancelledCheckbox = screen.getByRole("checkbox", { name: "Mark as cancelled" });
+
+    fireEvent.change(editRestaurantInput, { target: { value: "Updated Grill" } });
+    fireEvent.change(editAddressInput, { target: { value: "700 Oak Ave" } });
+    fireEvent.change(editDateInput, { target: { value: "2026-06-30" } });
+    fireEvent.change(editTimeInput, { target: { value: "20:00" } });
+    fireEvent.click(cancelledCheckbox);
+
+    expect(editRestaurantInput.value).toBe("Updated Grill");
+    expect(editAddressInput.value).toBe("700 Oak Ave");
+    expect(editDateInput.value).toBe("2026-06-30");
+    expect(editTimeInput.value).toBe("20:00");
+    expect(cancelledCheckbox).toBeChecked();
+
+    navigationState = {
+      state: "submitting",
+      formData: (() => {
+        const formData = new FormData();
+        formData.set("_action", "update");
+        return formData;
+      })(),
+    };
+    rerender(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData,
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    navigationState = { state: "idle", formData: null };
+    rerender(
+      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+        <AdminEventsPage
+          {...(({
+            loaderData,
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole("button", { name: "Save Changes" })).not.toBeInTheDocument();
+  });
+
   it("updates an event and schedules calendar updates for active members", async () => {
     const db = createMockDb();
     const queue = { sendBatch: vi.fn().mockResolvedValue(undefined) };

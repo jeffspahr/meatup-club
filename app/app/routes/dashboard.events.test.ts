@@ -437,6 +437,38 @@ describe("dashboard.events route", () => {
     );
   });
 
+  it("continues event creation when enqueueing invite deliveries throws a non-Error value", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce("queue offline");
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "create",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "123 Main St",
+      event_date: "2099-04-20",
+      event_time: "18:30",
+      send_invites: "true",
+    });
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ ok: true, performedAction: "create" });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue staged event invite deliveries",
+      { eventId: 501, message: "queue offline" }
+    );
+    expect(logActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "create_event",
+      })
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("rejects edits from a non-owner who is not an admin", async () => {
     const db = createMockDb({
       editableEvent: {
@@ -518,6 +550,27 @@ describe("dashboard.events route", () => {
     } as never);
 
     expect(result).toEqual({ error: "A valid event date is required." });
+    expect(db.runCalls).toEqual([]);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("requires a positive event id before updating", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "update",
+      id: "0",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "789 Pine",
+      event_date: "2099-05-10",
+      event_time: "18:00",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event ID is required" });
     expect(db.runCalls).toEqual([]);
     expect(db.batch).not.toHaveBeenCalled();
   });
@@ -613,6 +666,57 @@ describe("dashboard.events route", () => {
     );
   });
 
+  it("continues event updates when enqueueing update deliveries throws", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce(new Error("queue unavailable"));
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 1,
+      is_admin: 1,
+      status: "active",
+      email: "admin@example.com",
+      name: "Admin",
+    } as never);
+    const db = createMockDb({
+      editableEvent: {
+        id: 7,
+        restaurant_name: "Legacy Event",
+        restaurant_address: "789 Pine",
+        event_date: "2099-05-10",
+        event_time: "18:00",
+        status: "upcoming",
+        calendar_sequence: 2,
+        created_by: null,
+      },
+    });
+    const request = createRequest({
+      _action: "update",
+      id: "7",
+      restaurant_name: "Updated Legacy Event",
+      restaurant_address: "1010 Maple",
+      event_date: "2099-06-12",
+      event_time: "19:00",
+      send_updates: "true",
+    });
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const response = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(response).toEqual({ ok: true, performedAction: "update" });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue staged event update deliveries",
+      { eventId: 7, message: "queue unavailable" }
+    );
+    expect(logActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "update_event",
+      })
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("rejects RSVP submissions that omit required fields", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -660,6 +764,30 @@ describe("dashboard.events route", () => {
       expect.objectContaining({
         userId: 123,
         actionType: "rsvp",
+      })
+    );
+  });
+
+  it("logs RSVP updates separately when the RSVP already exists", async () => {
+    vi.mocked(upsertRsvp).mockResolvedValueOnce("updated");
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "rsvp",
+      event_id: "9",
+      status: "no",
+      comments: "",
+    });
+
+    const response = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(response).toEqual({ ok: true, performedAction: "rsvp" });
+    expect(logActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 123,
+        actionType: "update_rsvp",
       })
     );
   });

@@ -383,6 +383,51 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("returns a generic create error when the inserted event id cannot be determined", async () => {
+    const db = createMockDb({ createdEventId: null });
+    const request = createRequest({
+      _action: "create",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "123 Main St",
+      event_date: "2026-04-20",
+      event_time: "18:30",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to create event" });
+  });
+
+  it("continues creating events when invite enqueueing fails", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce("queue offline");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "create",
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "123 Main St",
+      event_date: "2026-04-20",
+      event_time: "18:30",
+      send_invites: "true",
+    });
+
+    const response = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect((response as Response).status).toBe(302);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue staged event invite deliveries",
+      { eventId: 101, message: "queue offline" }
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("updates an event through D1 batch statements when raw SQL transactions would fail", async () => {
     const db = createMockDb({ failOnRawTransactions: true });
     const request = createRequest({
@@ -446,6 +491,25 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "update",
       }
     );
+  });
+
+  it("requires an event id before updating", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "update",
+      restaurant_name: "Updated Prime Steakhouse",
+      restaurant_address: "456 Oak Ave",
+      event_date: "2026-05-01",
+      event_time: "19:15",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event ID is required" });
+    expect(db.runCalls).toEqual([]);
   });
 
   it("resends only to missing recipients by default", async () => {
@@ -867,6 +931,59 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "cancel",
       }
     );
+  });
+
+  it("requires a custom message body for custom SMS reminders", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "send_sms_reminder",
+      event_id: "42",
+      message_type: "custom",
+      custom_message: "   ",
+      recipient_scope: "all",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Custom SMS message cannot be empty" });
+  });
+
+  it("requires a selected recipient when SMS scope is specific", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "send_sms_reminder",
+      event_id: "42",
+      message_type: "default",
+      recipient_scope: "specific",
+      recipient_user_id: "",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Select a specific recipient" });
+  });
+
+  it("requires an event id before sending SMS reminders", async () => {
+    const db = createMockDb();
+    const request = createRequest({
+      _action: "send_sms_reminder",
+      event_id: "0",
+      message_type: "default",
+      recipient_scope: "all",
+    });
+
+    const result = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event ID is required for SMS reminders" });
   });
 
   it("rejects unknown action values", async () => {

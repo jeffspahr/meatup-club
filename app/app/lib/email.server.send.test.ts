@@ -359,6 +359,18 @@ describe('Email Sending - Resend API Integration', () => {
   });
 
   describe('sendAnnouncementEmails', () => {
+    it('should return early when there are no non-empty recipients', async () => {
+      const result = await sendAnnouncementEmails({
+        recipientEmails: ['   ', ''],
+        subject: 'Club update',
+        messageText: 'Hello members',
+        resendApiKey: 'test-api-key',
+      });
+
+      expect(result).toEqual({ success: true, sentCount: 0 });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
     it('should send batch announcement emails through the Resend batch endpoint', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -425,6 +437,28 @@ describe('Email Sending - Resend API Integration', () => {
         success: false,
         sentCount: 0,
         error: 'Failed to send announcement email: Too Many Requests',
+      });
+    });
+
+    it('should fail when Resend does not return ids for every accepted batch recipient', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ id: 'email-1' }] }),
+        text: async () => 'OK',
+        statusText: 'OK',
+      } as unknown as Response);
+
+      const result = await sendAnnouncementEmails({
+        recipientEmails: ['alpha@example.com', 'charlie@example.com'],
+        subject: 'Club update',
+        messageText: 'Hello members',
+        resendApiKey: 'test-api-key',
+      });
+
+      expect(result).toEqual({
+        success: false,
+        sentCount: 0,
+        error: 'Resend accepted the batch without returning all email ids',
       });
     });
   });

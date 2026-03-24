@@ -168,6 +168,54 @@ describe("dashboard._index UI", () => {
     expect(await screen.findByText("Welcome Copy")).toBeInTheDocument();
   });
 
+  it("renders markdown-rich content, no-vote poll fallbacks, and a negative RSVP badge", async () => {
+    renderDashboard({
+      user: {
+        id: 9,
+        name: "Pat Member",
+        email: "pat@example.com",
+        phone_number: null,
+      },
+      memberCount: 20,
+      isAdmin: false,
+      activePoll: {
+        id: 10,
+        title: "June Poll",
+        created_at: "2026-06-01T12:00:00.000Z",
+      },
+      topRestaurants: [],
+      topDates: [],
+      nextEvent: {
+        id: 13,
+        restaurant_name: "No Vote House",
+        event_date: "2026-06-22",
+        event_time: "18:00",
+      },
+      userRsvp: { status: "no" },
+      content: [
+        {
+          id: 3,
+          key: "guidelines",
+          title: "Guidelines",
+          content:
+            "### House Rules\n\n**Be kind** and _show up hungry_.\n\n- First\n- Second\n\n1. Reserve\n2. Confirm",
+        },
+      ],
+      userRestaurantVote: null,
+      userDateVoteCount: 0,
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(await screen.findByText("Guidelines")).toBeInTheDocument();
+    expect(screen.getByText("House Rules")).toBeInTheDocument();
+    expect(screen.getByText("Be kind")).toBeInTheDocument();
+    expect(screen.getByText("show up hungry")).toBeInTheDocument();
+    expect(screen.getByText("First")).toBeInTheDocument();
+    expect(screen.getByText("Reserve")).toBeInTheDocument();
+    expect(screen.getAllByText("No votes yet - be the first!")).toHaveLength(2);
+    expect(screen.getByText("Not Going")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Set RSVP →" })).not.toBeInTheDocument();
+  });
+
   it("renders the route hydrate fallback shell", () => {
     const { container } = render(<HydrateFallback />);
 

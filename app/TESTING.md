@@ -57,17 +57,17 @@ npm run test -- email.server.test.ts
 Live numbers from `npm run test:coverage`:
 
 - `91` passing test files
-- `658` passing tests
-- `90.66%` statements
-- `78.16%` branches
-- `87.41%` functions
-- `91.00%` lines
+- `689` passing tests
+- `92.99%` statements
+- `80.76%` branches
+- `90.38%` functions
+- `93.25%` lines
 
 Coverage by area:
 
-- `app/app/components`: `98.55%` statements
-- `app/app/lib`: `92.12%` statements
-- `app/app/routes`: `88.77%` statements
+- `app/app/components`: `98.91%` statements
+- `app/app/lib`: `94.24%` statements
+- `app/app/routes`: `91.49%` statements
 
 Representative well-covered production files:
 
@@ -86,13 +86,14 @@ Representative well-covered production files:
 
 Highest-value remaining gaps in active product code:
 
-- `app/lib/event-email-delivery.server.ts`: `84.41%` statements / `65.26%` branches
-- `app/routes/dashboard.events.tsx`: `79.91%` statements / `72.80%` branches
-- `app/routes/dashboard.admin.events.tsx`: `80.52%` statements / `69.04%` branches
+- `app/lib/event-email-delivery.server.ts`: `89.61%` statements / `72.63%` branches
+- `app/routes/dashboard.events.tsx`: `87.77%` statements / `81.57%` branches
+- `app/routes/dashboard.admin.events.tsx`: `91.08%` statements / `77.21%` branches
+- `app/routes/dashboard._index.tsx`: `95.65%` statements / `65.15%` branches
+- `app/lib/email.server.ts`: `92.20%` statements / `76.14%` branches
+- `app/lib/sms.server.ts`: `93.10%` statements / `81.73%` branches
 - `app/routes/dashboard.admin.announcements.tsx`: `91.11%` statements / `76.92%` branches
 - `app/lib/resend-setup.server.ts`: `90.00%` statements / `80.82%` branches
-- `app/lib/sms.server.ts`: `88.27%` statements / `74.03%` branches
-- `app/routes/dashboard._index.tsx`: `88.40%` statements / `60.60%` branches
 
 Current interpretation notes:
 

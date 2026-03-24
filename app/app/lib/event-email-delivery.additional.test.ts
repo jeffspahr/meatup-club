@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   applyResendDeliveryWebhookEvent,
+  buildStageEventUpdateDeliveriesStatement,
   enqueueStagedEventEmailBatch,
   recoverEventEmailDeliveryBacklog,
   stageEventCancellationDeliveriesForActiveMembers,
@@ -19,7 +20,11 @@ type DeliveryStatus =
   | "bounced"
   | "complained";
 
-function createDeliveryDb() {
+function createDeliveryDb({
+  staleDeliveryIds = [41, 42],
+}: {
+  staleDeliveryIds?: number[];
+} = {}) {
   const deliveries: Array<{
     id: number;
     batch_id: string;
@@ -57,7 +62,7 @@ function createDeliveryDb() {
         normalizedSql.includes("status IN ('pending', 'retry', 'sending')")
       ) {
         return {
-          results: [{ id: 41 }, { id: 42 }],
+          results: staleDeliveryIds.map((id) => ({ id })),
         };
       }
 
@@ -255,6 +260,57 @@ describe("event-email-delivery additional coverage", () => {
     });
 
     expect(count).toBe(0);
+  });
+
+  it("returns zero backlog work when there are no stale deliveries to requeue", async () => {
+    const { db } = createDeliveryDb({ staleDeliveryIds: [] });
+    const queue = { sendBatch: vi.fn().mockResolvedValue(undefined) };
+
+    const count = await recoverEventEmailDeliveryBacklog({
+      db: db as never,
+      queue: queue as never,
+    });
+
+    expect(count).toBe(0);
+    expect(queue.sendBatch).not.toHaveBeenCalled();
+  });
+
+  it("builds update delivery statements from normalized positive user ids", () => {
+    const bind = vi.fn().mockReturnValue("prepared-statement");
+    const prepare = vi.fn().mockReturnValue({ bind });
+
+    const statement = buildStageEventUpdateDeliveriesStatement(
+      { prepare } as never,
+      {
+        batchId: "batch-update",
+        details: {
+          eventId: 22,
+          restaurantName: "Prime Steakhouse",
+          restaurantAddress: "123 Main St",
+          eventDate: "2026-06-20",
+          eventTime: "18:30",
+        },
+        userIds: [3, -1, 3, 1, 0],
+        calendarSequence: 4,
+      }
+    );
+
+    expect(statement).toBe("prepared-statement");
+    expect(prepare).toHaveBeenCalledWith(expect.stringContaining("IN (?, ?)"));
+    expect(bind).toHaveBeenCalledWith(
+      "batch-update",
+      22,
+      "Prime Steakhouse",
+      "123 Main St",
+      "2026-06-20",
+      "18:30",
+      4,
+      22,
+      4,
+      22,
+      1,
+      3
+    );
   });
 
   it("logs and leaves deliveries pending when a staged batch cannot be enqueued", async () => {
