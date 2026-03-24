@@ -717,6 +717,53 @@ describe("dashboard.events route", () => {
     errorSpy.mockRestore();
   });
 
+  it("returns a generic update error when the update batch throws", async () => {
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 1,
+      is_admin: 1,
+      status: "active",
+      email: "admin@example.com",
+      name: "Admin",
+    } as never);
+    const db = createMockDb({
+      editableEvent: {
+        id: 7,
+        restaurant_name: "Legacy Event",
+        restaurant_address: "789 Pine",
+        event_date: "2099-05-10",
+        event_time: "18:00",
+        status: "upcoming",
+        calendar_sequence: 2,
+        created_by: null,
+      },
+    });
+    db.batch.mockRejectedValueOnce(new Error("batch exploded"));
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const result = await action({
+      request: createRequest({
+        _action: "update",
+        id: "7",
+        restaurant_name: "Updated Legacy Event",
+        restaurant_address: "1010 Maple",
+        event_date: "2099-06-12",
+        event_time: "19:00",
+        send_updates: "true",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to update event" });
+    expect(errorSpy).toHaveBeenCalledWith("Event update error:", expect.any(Error));
+    expect(logActivity).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionType: "update_event",
+      })
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("rejects RSVP submissions that omit required fields", async () => {
     const db = createMockDb();
     const request = createRequest({

@@ -57,17 +57,17 @@ npm run test -- email.server.test.ts
 Live numbers from `npm run test:coverage`:
 
 - `91` passing test files
-- `705` passing tests
-- `93.92%` statements
-- `81.87%` branches
-- `91.79%` functions
-- `94.11%` lines
+- `724` passing tests
+- `95.01%` statements
+- `82.49%` branches
+- `93.49%` functions
+- `95.07%` lines
 
 Coverage by area:
 
 - `app/app/components`: `98.91%` statements
-- `app/app/lib`: `95.66%` statements
-- `app/app/routes`: `92.33%` statements
+- `app/app/lib`: `96.06%` statements
+- `app/app/routes`: `93.91%` statements
 
 Representative well-covered production files:
 
@@ -76,34 +76,37 @@ Representative well-covered production files:
 - `app/lib/dateUtils.ts`: `100%` statements
 - `app/lib/session.server.ts`: `100%` statements
 - `app/lib/webhook-idempotency.server.ts`: `100%` statements
-- `app/lib/event-email-delivery.server.ts`: `95.45%` statements
+- `app/lib/event-email-delivery.server.ts`: `96.10%` statements
 - `app/routes/api.webhooks.email-delivery.tsx`: `100%` statements
 - `app/routes/api.places.search.tsx`: `100%` statements
 - `app/routes/api.places.details.tsx`: `100%` statements
 - `app/routes/api.places.photo.tsx`: `100%` statements
+- `app/routes/dashboard._index.tsx`: `100%` statements
+- `app/routes/dashboard.admin.events.tsx`: `99.00%` statements
 - `app/routes/dashboard.admin.polls.tsx`: `93.91%` statements
-- `app/routes/dashboard.events.tsx`: `92.13%` statements
+- `app/routes/dashboard.events.tsx`: `97.37%` statements
 - `app/routes/dashboard.polls.tsx`: `91.57%` statements
 - `app/routes/dashboard.restaurants.tsx`: `94.04%` statements
 
 Highest-value remaining gaps in active product code:
 
-- `app/lib/event-email-delivery.server.ts`: `95.45%` statements / `78.94%` branches
-- `app/routes/dashboard.events.tsx`: `92.13%` statements / `82.01%` branches
-- `app/routes/dashboard.admin.events.tsx`: `92.73%` statements / `79.59%` branches
-- `app/routes/dashboard._index.tsx`: `98.55%` statements / `74.24%` branches
-- `app/lib/email.server.ts`: `93.11%` statements / `78.89%` branches
+- `app/lib/event-email-delivery.server.ts`: `96.10%` statements / `80.00%` branches
+- `app/lib/email.server.ts`: `94.49%` statements / `81.65%` branches
 - `app/lib/sms.server.ts`: `95.17%` statements / `84.61%` branches
+- `app/routes/dashboard.admin.events.tsx`: `99.00%` statements / `82.99%` branches
+- `app/routes/dashboard.events.tsx`: `97.37%` statements / `82.01%` branches
 - `app/routes/dashboard.admin.announcements.tsx`: `91.11%` statements / `76.92%` branches
 - `app/routes/dashboard.admin.email-templates.tsx`: `85.54%` statements / `81.81%` branches
 - `app/routes/dashboard.admin.content.tsx`: `85.71%` statements / `89.28%` branches
+- `app/routes/dashboard.admin.members.tsx`: `88.88%` statements / `76.19%` branches
+- `app/routes/dashboard.profile.tsx`: `90.00%` statements / `50.00%` branches
 - `app/lib/resend-setup.server.ts`: `90.00%` statements / `80.82%` branches
 
 Current interpretation notes:
 
 - `test/route-exports.smoke.test.ts` is still a structural smoke suite. It protects route registration and export shape, but it is not deep behavioral coverage.
 - `test/admin-polls.form-contract.test.tsx` is still a contract-style guardrail, not a full route-level workflow.
-- The suite is now strong enough that broad coverage work should stop being the default. Additional test work should stay narrowly focused on event delivery, member/admin event flows, and other operational or mutation-heavy paths.
+- The suite is now strong enough that broad coverage work should stop being the default. Additional test work should stay narrowly focused on operational-risk provider paths and the few remaining branch-heavy admin/member flows.
 - Static informational routes such as `privacy.tsx`, `terms.tsx`, `sms-consent.tsx`, and `verification.tsx` remain low-value coverage targets and should stay deprioritized.
 - The workflow suite uses a real in-memory SQLite database loaded from `schema.sql` through a D1-style adapter, which keeps the highest-value multi-route tests honest without requiring an external test database.
 - CI enforces coverage thresholds through `vitest.config.ts` and the root `.github/workflows/test.yml` workflow.

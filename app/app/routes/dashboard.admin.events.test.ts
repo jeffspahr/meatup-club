@@ -534,6 +534,58 @@ describe("dashboard.admin.events action flows", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
+  it("continues updating events when update delivery enqueueing fails", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce(new Error("queue unavailable"));
+    const db = createMockDb();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await action({
+      request: createRequest({
+        _action: "update",
+        id: "42",
+        restaurant_name: "Updated Grill",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-25",
+        event_time: "18:15",
+        send_updates: "true",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(302);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue staged event update deliveries",
+      { eventId: 42, message: "queue unavailable" }
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  it("returns a generic update error when the admin update batch throws", async () => {
+    const db = createMockDb();
+    db.batch.mockRejectedValueOnce(new Error("batch exploded"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const result = await action({
+      request: createRequest({
+        _action: "update",
+        id: "42",
+        restaurant_name: "Updated Grill",
+        restaurant_address: "123 Main St",
+        event_date: "2026-04-25",
+        event_time: "18:15",
+        send_updates: "true",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to update event" });
+    expect(errorSpy).toHaveBeenCalledWith("Event update error:", expect.any(Error));
+
+    errorSpy.mockRestore();
+  });
+
   it("requires an event id before updating", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -677,6 +729,19 @@ describe("dashboard.admin.events action flows", () => {
     expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
   });
 
+  it("requires an event id before resending calendar updates", async () => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({
+        _action: "resend_calendar_request",
+        id: "",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event ID is required" });
+  });
+
   it("requires at least one selected recipient for a selective resend", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -785,6 +850,22 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("returns an error when no selected recipients are active members", async () => {
+    const db = createMockDb({ activeSelectedUserIds: [] });
+    const result = await action({
+      request: createRequest({
+        _action: "resend_calendar_request",
+        id: "42",
+        recipient_mode: "selected",
+        recipient_user_ids: ["7", "9"],
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "No active members were selected for calendar resend" });
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
   it("rejects calendar resend for cancelled events", async () => {
     const db = createMockDb({
       editableEvent: {
@@ -817,6 +898,61 @@ describe("dashboard.admin.events action flows", () => {
     expect(result).toEqual({ error: "Cancelled events cannot be resent" });
     expect(buildStageEventUpdateDeliveriesStatement).not.toHaveBeenCalled();
     expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
+  it("returns an error when the resend target event is missing", async () => {
+    const db = createMockDb({ editableEvent: null });
+    const result = await action({
+      request: createRequest({
+        _action: "resend_calendar_request",
+        id: "42",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event not found" });
+    expect(enqueueStagedEventEmailBatch).not.toHaveBeenCalled();
+  });
+
+  it("continues calendar resends when enqueueing the resend batch fails", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce(new Error("queue unavailable"));
+    const db = createMockDb();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const result = await action({
+      request: createRequest({
+        _action: "resend_calendar_request",
+        id: "42",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ success: "Queued calendar resend for 2 missing active members." });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue resent event calendar deliveries",
+      { eventId: 42, message: "queue unavailable" }
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  it("returns a generic resend error when resend batching throws", async () => {
+    const db = createMockDb();
+    db.batch.mockRejectedValueOnce(new Error("batch exploded"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const result = await action({
+      request: createRequest({
+        _action: "resend_calendar_request",
+        id: "42",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to resend calendar event" });
+    expect(errorSpy).toHaveBeenCalledWith("Event calendar resend error:", expect.any(Error));
+
+    errorSpy.mockRestore();
   });
 
   it("rejects invalid RSVP override statuses", async () => {
@@ -954,6 +1090,37 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("returns success even when RSVP override emails fail to send", async () => {
+    const db = createMockDb({ existingRsvp: null });
+    vi.mocked(sendRsvpOverrideEmail).mockRejectedValueOnce(new Error("resend unavailable"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const result = await action({
+      request: createRequest({
+        _action: "override_rsvp",
+        event_id: "42",
+        user_id: "7",
+        status: "yes",
+      }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            RESEND_API_KEY: "test-api-key",
+          },
+        },
+      } as never,
+    } as never);
+
+    expect(result).toEqual({ success: "RSVP override saved and user notified." });
+    expect(errorSpy).toHaveBeenCalledWith(
+      "RSVP override email failed:",
+      expect.any(Error)
+    );
+
+    errorSpy.mockRestore();
+  });
+
   it("queues RSVP override emails with waitUntil when available", async () => {
     const db = createMockDb({ existingRsvp: null });
     const waitUntil = vi.fn();
@@ -1039,6 +1206,57 @@ describe("dashboard.admin.events action flows", () => {
     );
   });
 
+  it("requires an event id before deleting", async () => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({
+        _action: "delete",
+        id: "",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event ID is required" });
+  });
+
+  it("continues deleting events when cancellation enqueueing fails", async () => {
+    vi.mocked(enqueueStagedEventEmailBatch).mockRejectedValueOnce(new Error("queue unavailable"));
+    const db = createMockDb();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await action({
+      request: createRequest({
+        _action: "delete",
+        id: "42",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(response).toBeInstanceOf(Response);
+    expect((response as Response).status).toBe(302);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Failed to enqueue staged event cancellation deliveries",
+      { eventId: 42, message: "queue unavailable" }
+    );
+
+    errorSpy.mockRestore();
+  });
+
+  it("returns a generic delete error when the delete batch throws", async () => {
+    const db = createMockDb();
+    db.batch.mockRejectedValueOnce(new Error("batch exploded"));
+
+    const result = await action({
+      request: createRequest({
+        _action: "delete",
+        id: "42",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Failed to delete event" });
+  });
+
   it("requires a custom message body for custom SMS reminders", async () => {
     const db = createMockDb();
     const request = createRequest({
@@ -1090,6 +1308,39 @@ describe("dashboard.admin.events action flows", () => {
     } as never);
 
     expect(result).toEqual({ error: "Event ID is required for SMS reminders" });
+  });
+
+  it("returns an error when sending SMS reminders for a missing event", async () => {
+    const db = createMockDb({ eventRow: null });
+    const result = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+        message_type: "default",
+        recipient_scope: "all",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Event not found" });
+  });
+
+  it("returns the synchronous SMS success message when waitUntil is unavailable", async () => {
+    const { sendAdhocSmsReminder } = await import("../lib/sms.server");
+    vi.mocked(sendAdhocSmsReminder).mockResolvedValueOnce({ sent: 3, errors: [] });
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "send_sms_reminder",
+        event_id: "42",
+        message_type: "default",
+        recipient_scope: "all",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ success: "Sent 3 SMS reminders." });
   });
 
   it("rejects unknown action values", async () => {

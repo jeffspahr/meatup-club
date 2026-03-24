@@ -425,6 +425,36 @@ describe("email.server advanced notification flows", () => {
     vi.useRealTimers();
   });
 
+  it("falls back to ratelimit-reset headers for durable event invite retry delays", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      statusText: "Too Many Requests",
+      headers: new Headers({
+        "ratelimit-reset": "11",
+      }),
+      text: async () => "slow down",
+    } as unknown as Response);
+
+    const result = await sendEventInviteEmail({
+      eventId: 10,
+      restaurantName: "Prime Steakhouse",
+      restaurantAddress: "789 Pine Rd",
+      eventDate: "2026-04-13",
+      eventTime: "18:15",
+      userEmail: "member@example.com",
+      resendApiKey: "test-api-key",
+      idempotencyKey: "invite:10:0:1",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Failed to send email: Too Many Requests",
+      retryable: true,
+      retryAfterSeconds: 11,
+    });
+  });
+
   it("fails durable event invites when Resend accepts the request without returning an email id", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

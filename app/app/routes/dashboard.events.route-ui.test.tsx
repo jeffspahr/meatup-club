@@ -266,6 +266,43 @@ describe("dashboard.events UI", () => {
     expect(screen.queryByRole("heading", { name: "Edit Event" })).not.toBeInTheDocument();
   });
 
+  it("lets the user adjust and clear the selected restaurant while editing a past event", () => {
+    renderEvents({
+      upcomingEvents: [],
+      pastEvents: [
+        {
+          id: 2,
+          restaurant_name: "Past Grill",
+          restaurant_address: "9 Water St",
+          event_date: "2026-05-01",
+          event_time: "18:00",
+          displayStatus: "completed",
+          canEdit: true,
+          creatorLabel: "Created by you",
+        },
+      ],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    const pastTile = screen.getByRole("article", { name: "Past Grill" });
+    fireEvent.click(within(pastTile).getByRole("button", { name: "Edit" }));
+
+    const addressInput = screen.getByLabelText("Address") as HTMLInputElement;
+    const dateInput = screen.getByLabelText("Event Date *") as HTMLInputElement;
+    const timeInput = screen.getByLabelText("Event Time") as HTMLInputElement;
+
+    fireEvent.change(addressInput, { target: { value: "44 Elm St" } });
+    fireEvent.change(dateInput, { target: { value: "2026-05-15" } });
+    fireEvent.change(timeInput, { target: { value: "20:30" } });
+
+    expect(addressInput.value).toBe("44 Elm St");
+    expect(dateInput.value).toBe("2026-05-15");
+    expect(timeInput.value).toBe("20:30");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(screen.queryByLabelText("Address")).not.toBeInTheDocument();
+  });
+
   it("renders empty states when there are no upcoming or past events", () => {
     renderEvents({
       upcomingEvents: [],
@@ -490,6 +527,35 @@ describe("dashboard.events UI", () => {
     expect((screen.getByLabelText("Event Time") as HTMLInputElement).value).toBe("20:00");
   });
 
+  it("lets the user clear the selected restaurant while editing an upcoming event", () => {
+    const loaderData = {
+      upcomingEvents: [
+        {
+          id: 1,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-06-20",
+          event_time: "19:00",
+          canEdit: true,
+          creatorLabel: "Created by you",
+          userRsvp: null,
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [],
+    } as unknown as Route.ComponentProps["loaderData"];
+
+    renderEvents(loaderData);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Prime Steakhouse" }));
+    expect(screen.getByLabelText("Address")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(screen.queryByLabelText("Address")).not.toBeInTheDocument();
+  });
+
   it("renders maybe and out RSVP badges with fallback creator labels", () => {
     renderEvents({
       upcomingEvents: [
@@ -501,7 +567,7 @@ describe("dashboard.events UI", () => {
           event_time: "19:00",
           canEdit: false,
           creatorLabel: "Created by admin@example.com",
-          userRsvp: { status: "maybe", comments: null },
+          userRsvp: { status: "no", comments: null },
           allRsvps: [],
           notResponded: [],
         },
@@ -520,7 +586,7 @@ describe("dashboard.events UI", () => {
       ],
     } as unknown as Route.ComponentProps["loaderData"]);
 
-    expect(screen.getAllByText("You're maybe").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("You're out").length).toBeGreaterThan(0);
     expect(screen.getByText("Created by admin@example.com")).toBeInTheDocument();
     expect(screen.getByText("Created by an admin")).toBeInTheDocument();
   });

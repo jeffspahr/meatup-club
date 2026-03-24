@@ -260,6 +260,39 @@ describe("dashboard._index UI", () => {
     expect(screen.getByText("Maybe")).toBeInTheDocument();
   });
 
+  it("renders tied top-date copy for members who have not voted on dates yet", () => {
+    renderDashboard({
+      user: {
+        id: 16,
+        name: "Taylor Member",
+        email: "taylor@example.com",
+        phone_number: null,
+      },
+      memberCount: 20,
+      isAdmin: false,
+      activePoll: {
+        id: 13,
+        title: "August Poll",
+        created_at: "2026-08-01T12:00:00.000Z",
+      },
+      topRestaurants: [{ name: "Prime Steakhouse", vote_count: 4 }],
+      topDates: [
+        { suggested_date: "2026-08-20", vote_count: 2 },
+        { suggested_date: "2026-08-27", vote_count: 2 },
+      ],
+      nextEvent: null,
+      userRsvp: null,
+      content: [],
+      userRestaurantVote: null,
+      userDateVoteCount: 0,
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(
+      screen.getByText("Tied: formatted:2026-08-20, formatted:2026-08-27")
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Vote now →")).toHaveLength(2);
+  });
+
   it("renders the route hydrate fallback shell", () => {
     const { container } = render(<HydrateFallback />);
 

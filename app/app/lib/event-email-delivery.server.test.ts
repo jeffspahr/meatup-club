@@ -527,6 +527,23 @@ describe("event-email-delivery.server", () => {
     ]);
   });
 
+  it("returns null when there are no active members to stage invite deliveries for", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      users: [{ id: 2, email: "inactive@example.com", status: "inactive" }],
+    });
+
+    const batch = await stageEventInviteDeliveriesForActiveMembers(db as never, {
+      eventId: 8,
+      restaurantName: "Butcher's Grill",
+      restaurantAddress: "500 Oak Ave",
+      eventDate: "2026-05-01",
+      eventTime: "19:00",
+    });
+
+    expect(batch).toBeNull();
+    expect(deliveries).toEqual([]);
+  });
+
   it("stages update deliveries only for the selected active user ids", async () => {
     const { db, deliveries } = createMockDeliveryDb();
 
