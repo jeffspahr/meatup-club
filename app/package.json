@@ -18,12 +18,12 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@react-router/cloudflare": "7.14.1",
+    "@react-router/cloudflare": "7.14.2",
     "isbot": "^5.1.39",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
-    "react-router": "7.14.1",
+    "react-router": "7.14.2",
     "svix": "^1.91.1"
   },
   "devDependencies": {
