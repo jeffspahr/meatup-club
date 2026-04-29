@@ -60,7 +60,6 @@ describe("dashboard._index UI", () => {
         email: "jeff@example.com",
         phone_number: null,
       },
-      memberCount: 12,
       isAdmin: false,
       activePoll: {
         id: 7,
@@ -126,7 +125,6 @@ describe("dashboard._index UI", () => {
         email: "alex@example.com",
         phone_number: "+15551234567",
       },
-      memberCount: 18,
       isAdmin: true,
       activePoll: null,
       topRestaurants: [],
