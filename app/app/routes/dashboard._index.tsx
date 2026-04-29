@@ -79,13 +79,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .prepare('SELECT * FROM site_content ORDER BY id ASC')
     .all();
 
-  // Get member count
-  const memberCountResult = await db
-    .prepare('SELECT COUNT(*) as count FROM users WHERE status = ?')
-    .bind('active')
-    .first() as CountRow | null;
-  const memberCount = memberCountResult?.count || 0;
-
   const isAdmin = user.is_admin === 1;
 
   // Get active poll
@@ -216,7 +209,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   return {
     user,
-    memberCount,
     isAdmin,
     activePoll,
     topRestaurants,
@@ -230,11 +222,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, memberCount, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
+  const { user, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
-  const quickActionCount = (activePoll ? 1 : 0) + (nextEvent ? 1 : 0) + 3 + (isAdmin ? 1 : 0);
+  const quickActionCount = (activePoll ? 1 : 0) + (nextEvent ? 1 : 0) + 2 + (isAdmin ? 1 : 0);
   const quickActionsGridClass =
     quickActionCount === 4
       ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
@@ -619,16 +611,6 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               </div>
               <h3 className="text-lg font-semibold text-foreground">Events</h3>
               <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
-            </Card>
-          </Link>
-
-          <Link to="/dashboard/members">
-            <Card hover className="card-glow p-6 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <span className="icon-container"><UserGroupIcon className="w-5 h-5" /></span>
-              </div>
-              <h3 className="text-lg font-semibold text-foreground">Members</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{memberCount} active members</p>
             </Card>
           </Link>
 

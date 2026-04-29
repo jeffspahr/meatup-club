@@ -20,7 +20,6 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
     { to: "/dashboard/polls", label: "Polls", exact: true },
     { to: "/dashboard/events", label: "Events", exact: false },
     { to: "/dashboard/restaurants", label: "Restaurants", exact: true },
-    { to: "/dashboard/members", label: "Members", exact: true },
   ];
 
   return (

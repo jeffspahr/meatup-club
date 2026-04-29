@@ -1,8 +1,8 @@
 import type { Route } from "./+types/dashboard.about";
-import type { ContentItem } from "~/lib/types";
+import type { ContentItem, Member } from "~/lib/types";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
-import { PageHeader, Card, Alert } from "~/components/ui";
+import { PageHeader, Card, Alert, UserAvatar, Badge } from "~/components/ui";
 import {
   BookOpenIcon,
   RocketLaunchIcon,
@@ -11,28 +11,71 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
+function firstNameKey(name: string | null): string {
+  return (name || "").trim().split(/\s+/)[0]?.toLowerCase() || "";
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
 
-  const contentResult = await db
-    .prepare('SELECT * FROM site_content ORDER BY id ASC')
-    .all();
+  const [contentResult, membersResult] = await Promise.all([
+    db.prepare('SELECT * FROM site_content ORDER BY id ASC').all(),
+    db
+      .prepare('SELECT id, email, name, picture, is_admin FROM users WHERE status = ?')
+      .bind('active')
+      .all(),
+  ]);
+
+  const members = ((membersResult.results || []) as unknown as Member[])
+    .slice()
+    .sort((a, b) => firstNameKey(a.name).localeCompare(firstNameKey(b.name)));
 
   return {
     content: (contentResult.results || []) as unknown as ContentItem[],
+    members,
   };
 }
 
 export default function AboutPage({ loaderData }: Route.ComponentProps) {
-  const { content } = loaderData;
+  const { content, members } = loaderData;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <PageHeader
         title="About Meatup.Club"
         description="Everything you need to know about our quarterly steakhouse adventures"
       />
+
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold text-foreground mb-4">
+          Members ({members.length})
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1">
+          {members.map((member) => (
+            <Card key={member.id} hover className="px-2 py-1">
+              <div className="flex items-center gap-3">
+                <UserAvatar
+                  src={member.picture}
+                  name={member.name}
+                  email={member.email}
+                  size="sm"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-foreground">
+                      {member.name || 'No name'}
+                    </h3>
+                    {member.is_admin ? (
+                      <Badge variant="accent">Admin</Badge>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       <div className="space-y-8">
         {content.map((item: ContentItem) => (

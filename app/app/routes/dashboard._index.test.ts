@@ -140,7 +140,6 @@ describe("dashboard._index loader", () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        memberCount: 12,
         isAdmin: false,
         activePoll: null,
         topRestaurants: [],
@@ -187,7 +186,6 @@ describe("dashboard._index loader", () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        memberCount: 15,
         isAdmin: true,
         activePoll: { id: 8, title: "May Poll", created_at: "2026-04-01" },
         topRestaurants: [{ name: "Prime Steakhouse", vote_count: 3 }],

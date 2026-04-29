@@ -162,7 +162,6 @@ app/
 │   │   ├── dashboard._index.tsx  # Dashboard home
 │   │   ├── dashboard.rsvp.tsx    # RSVP management
 │   │   ├── dashboard.events.tsx  # Events list
-│   │   ├── dashboard.members.tsx # Members list
 │   │   ├── dashboard.restaurants.tsx # Restaurant voting
 │   │   ├── dashboard.dates.tsx   # Date voting
 │   │   └── dashboard.admin/      # Admin routes

@@ -92,7 +92,6 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       { path: '/dashboard/_index', file: '../app/routes/dashboard._index' },
       { path: '/dashboard/about', file: '../app/routes/dashboard.about' },
       { path: '/dashboard/events', file: '../app/routes/dashboard.events' },
-      { path: '/dashboard/members', file: '../app/routes/dashboard.members' },
       { path: '/dashboard/polls', file: '../app/routes/dashboard.polls' },
       { path: '/dashboard/profile', file: '../app/routes/dashboard.profile' },
       { path: '/dashboard/restaurants', file: '../app/routes/dashboard.restaurants' },
@@ -111,6 +110,11 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       const route = await import('../app/routes/dashboard.rsvp');
       expect(route.loader).toBeDefined(); // Loader exists for redirect
       // No component required - this is a redirect-only route
+    });
+
+    it('/dashboard/members should have loader (redirect-only route)', async () => {
+      const route = await import('../app/routes/dashboard.members');
+      expect(route.loader).toBeDefined();
     });
   });
 

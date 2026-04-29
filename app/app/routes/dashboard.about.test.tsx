@@ -9,14 +9,26 @@ vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
 }));
 
-function createMockDb(content: Array<Record<string, unknown>>) {
+function createMockDb(
+  content: Array<Record<string, unknown>>,
+  members: Array<Record<string, unknown>>
+) {
   return {
-    prepare: vi.fn((sql: string) => ({
-      all: async () => {
-        expect(sql).toContain("SELECT * FROM site_content ORDER BY id ASC");
-        return { results: content };
-      },
-    })),
+    prepare: vi.fn((sql: string) => {
+      if (sql.includes("site_content")) {
+        return {
+          all: async () => ({ results: content }),
+        };
+      }
+      if (sql.includes("FROM users")) {
+        return {
+          bind: vi.fn(() => ({
+            all: async () => ({ results: members }),
+          })),
+        };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    }),
   };
 }
 
@@ -30,7 +42,7 @@ describe("dashboard.about route", () => {
     } as never);
   });
 
-  it("loads site content after enforcing authentication", async () => {
+  it("loads site content and active members after enforcing authentication", async () => {
     const content = [
       {
         id: 1,
@@ -40,27 +52,41 @@ describe("dashboard.about route", () => {
         updated_at: "2026-03-06",
       },
     ];
+    const members = [
+      { id: 2, email: "zane@example.com", name: "Zane Smith", picture: null, is_admin: 0 },
+      { id: 3, email: "alice@example.com", name: "Alice Brown", picture: null, is_admin: 1 },
+    ];
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/about"),
-      context: { cloudflare: { env: { DB: createMockDb(content) } } } as never,
+      context: { cloudflare: { env: { DB: createMockDb(content, members) } } } as never,
       params: {},
     } as never);
 
     expect(requireActiveUser).toHaveBeenCalled();
-    expect(result).toEqual({ content });
+    expect(result.content).toEqual(content);
+    expect(result.members.map((m) => m.name)).toEqual(["Alice Brown", "Zane Smith"]);
   });
 
-  it("falls back to an empty content list when the content query returns no rows", async () => {
+  it("falls back to empty content and members lists when queries return no rows", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard/about"),
       context: {
         cloudflare: {
           env: {
             DB: {
-              prepare: vi.fn(() => ({
-                all: async () => ({ results: undefined }),
-              })),
+              prepare: vi.fn((sql: string) => {
+                if (sql.includes("FROM users")) {
+                  return {
+                    bind: vi.fn(() => ({
+                      all: async () => ({ results: undefined }),
+                    })),
+                  };
+                }
+                return {
+                  all: async () => ({ results: undefined }),
+                };
+              }),
             },
           },
         },
@@ -68,15 +94,19 @@ describe("dashboard.about route", () => {
       params: {},
     } as never);
 
-    expect(result).toEqual({ content: [] });
+    expect(result).toEqual({ content: [], members: [] });
   });
 
-  it("renders markdown-backed content cards and the info alert", () => {
+  it("renders members section, markdown content cards, and the info alert", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/dashboard/about"]}>
         <AboutPage
           {...({
             loaderData: {
+              members: [
+                { id: 2, email: "alice@example.com", name: "Alice Brown", picture: null, is_admin: 1 },
+                { id: 3, email: "bob@example.com", name: "Bob Carter", picture: null, is_admin: 0 },
+              ],
               content: [
                 {
                   id: 1,
@@ -119,6 +149,11 @@ describe("dashboard.about route", () => {
         />
       </MemoryRouter>
     );
+
+    expect(screen.getByText("Members (2)")).toBeInTheDocument();
+    expect(screen.getByText("Alice Brown")).toBeInTheDocument();
+    expect(screen.getByText("Bob Carter")).toBeInTheDocument();
+    expect(screen.getByText("Admin")).toBeInTheDocument();
 
     expect(screen.getByText("Everything you need to know about our quarterly steakhouse adventures")).toBeInTheDocument();
     expect(screen.getByText("What We Are About")).toBeInTheDocument();
