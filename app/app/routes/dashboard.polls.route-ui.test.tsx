@@ -94,21 +94,6 @@ vi.mock("../components/AddRestaurantModal", () => ({
     ) : null,
 }));
 
-vi.mock("../components/CommentSection", () => ({
-  CommentSection: ({
-    comments,
-    placeholder,
-  }: {
-    comments: unknown[];
-    placeholder: string;
-  }) => (
-    <div>
-      <p>{placeholder}</p>
-      <p>Comment count: {comments.length}</p>
-    </div>
-  ),
-}));
-
 function renderPolls(
   loaderData: Route.ComponentProps["loaderData"],
   actionData?: Route.ComponentProps["actionData"]
@@ -143,7 +128,6 @@ describe("dashboard.polls UI", () => {
           },
         ],
         dateVotes: [],
-        comments: [],
         currentUser: { id: 123, isAdmin: false },
       } as unknown as Route.ComponentProps["loaderData"],
       { error: "Invalid action" } as Route.ComponentProps["actionData"]
@@ -155,10 +139,9 @@ describe("dashboard.polls UI", () => {
     expect(screen.getByText("Closed formatted-datetime:2026-04-01T12:00:00.000Z")).toBeInTheDocument();
     expect(screen.getByText("Prime Steakhouse")).toBeInTheDocument();
     expect(screen.getByText("formatted-date:2026-04-20")).toBeInTheDocument();
-    expect(screen.queryByText("Share your thoughts about this poll...")).not.toBeInTheDocument();
   });
 
-  it("submits date, doodle, restaurant, and comment-section route interactions for an active poll", () => {
+  it("submits date, doodle, and restaurant route interactions for an active poll", () => {
     renderPolls({
       dateSuggestions: [
         {
@@ -211,13 +194,10 @@ describe("dashboard.polls UI", () => {
       },
       previousPolls: [],
       dateVotes: [{ date_suggestion_id: 21, user_id: 123 }],
-      comments: [{ id: 1, content: "Looks good", replies: [] }],
       currentUser: { id: 123, isAdmin: false },
     } as unknown as Route.ComponentProps["loaderData"]);
 
     expect(screen.getByText("Pick the next meetup")).toBeInTheDocument();
-    expect(screen.getByText("Share your thoughts about this poll...")).toBeInTheDocument();
-    expect(screen.getByText("Comment count: 1")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Calendar new date" }));
     fireEvent.click(screen.getByRole("button", { name: "Calendar add vote" }));

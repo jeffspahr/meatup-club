@@ -16,19 +16,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   const actionType = formData.get('_action');
 
   if (actionType === 'update_notifications') {
-    const notifyCommentReplies = formData.get('notify_comment_replies') === 'on' ? 1 : 0;
     const notifyPollUpdates = formData.get('notify_poll_updates') === 'on' ? 1 : 0;
     const notifyEventUpdates = formData.get('notify_event_updates') === 'on' ? 1 : 0;
 
     await db
       .prepare(`
         UPDATE users
-        SET notify_comment_replies = ?,
-            notify_poll_updates = ?,
+        SET notify_poll_updates = ?,
             notify_event_updates = ?
         WHERE id = ?
       `)
-      .bind(notifyCommentReplies, notifyPollUpdates, notifyEventUpdates, user.id)
+      .bind(notifyPollUpdates, notifyEventUpdates, user.id)
       .run();
 
     return { success: 'Notification preferences updated successfully' };
@@ -134,22 +132,6 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
           <input type="hidden" name="_action" value="update_notifications" />
 
           <div className="space-y-4">
-            {/* Comment Replies */}
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                name="notify_comment_replies"
-                defaultChecked={user.notify_comment_replies === 1}
-                className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
-              />
-              <div>
-                <div className="font-medium text-foreground">Comment Replies</div>
-                <div className="text-sm text-muted-foreground">
-                  Get notified when someone replies to your comments
-                </div>
-              </div>
-            </label>
-
             {/* Poll Updates */}
             <label className="flex items-start gap-3 cursor-pointer">
               <input

@@ -10,12 +10,6 @@ import {
   removeVote,
   voteForRestaurant,
 } from "../lib/restaurants.server";
-import {
-  createComment,
-  deleteComment,
-  getComments,
-} from "../lib/comments.server";
-import { sendCommentReplyEmail } from "../lib/email.server";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -34,21 +28,10 @@ vi.mock("../lib/restaurants.server", () => ({
   voteForRestaurant: vi.fn(),
 }));
 
-vi.mock("../lib/comments.server", () => ({
-  createComment: vi.fn(),
-  deleteComment: vi.fn(),
-  getComments: vi.fn(),
-}));
-
-vi.mock("../lib/email.server", () => ({
-  sendCommentReplyEmail: vi.fn(),
-}));
-
 type MockDbOptions = {
   activePoll?: Record<string, unknown> | null;
   existingRestaurantVote?: { restaurant_id: number } | null;
   restaurantOwner?: { created_by: number } | null;
-  parentComment?: Record<string, unknown> | null;
   dateSuggestions?: unknown[];
   previousPolls?: unknown[];
   dateVotes?: unknown[];
@@ -59,7 +42,6 @@ function createMockDb({
   activePoll = { id: 1, title: "Weekly Poll", description: "Pick a meetup", created_at: "2026-03-01" },
   existingRestaurantVote = null,
   restaurantOwner = { created_by: 123 },
-  parentComment = null,
   dateSuggestions = [],
   previousPolls = [],
   dateVotes = [],
@@ -85,10 +67,6 @@ function createMockDb({
 
       if (normalizedSql.includes("SELECT created_by FROM restaurants WHERE id = ?")) {
         return restaurantOwner;
-      }
-
-      if (normalizedSql.includes("SELECT c.*, u.email, u.name, u.notify_comment_replies")) {
-        return parentComment;
       }
 
       if (normalizedSql.includes("SELECT name, email FROM users WHERE id = ?")) {
@@ -167,10 +145,6 @@ describe("dashboard.polls route", () => {
     vi.mocked(removeVote).mockResolvedValue(undefined);
     vi.mocked(voteForRestaurant).mockResolvedValue(undefined);
     vi.mocked(deleteRestaurant).mockResolvedValue(undefined);
-    vi.mocked(getComments).mockResolvedValue([]);
-    vi.mocked(createComment).mockResolvedValue(undefined);
-    vi.mocked(deleteComment).mockResolvedValue(true);
-    vi.mocked(sendCommentReplyEmail).mockResolvedValue({ success: true });
   });
 
   describe("loader", () => {
@@ -189,17 +163,15 @@ describe("dashboard.polls route", () => {
         activePoll: null,
         previousPolls: [],
         dateVotes: [],
-        comments: [],
         currentUser: {
           id: 123,
           isAdmin: false,
         },
       });
       expect(getRestaurantsForPoll).not.toHaveBeenCalled();
-      expect(getComments).not.toHaveBeenCalled();
     });
 
-    it("enriches restaurants with creator details and loads comments for the active poll", async () => {
+    it("enriches restaurants with creator details for the active poll", async () => {
       vi.mocked(getRestaurantsForPoll).mockResolvedValue([
         {
           id: 88,
@@ -209,13 +181,6 @@ describe("dashboard.polls route", () => {
           created_by: 777,
           vote_count: 4,
           user_has_voted: true,
-        },
-      ] as never);
-      vi.mocked(getComments).mockResolvedValue([
-        {
-          id: 5,
-          content: 'Looks good',
-          replies: [],
         },
       ] as never);
       const db = createMockDb({
@@ -234,20 +199,12 @@ describe("dashboard.polls route", () => {
       } as never);
 
       expect(getRestaurantsForPoll).toHaveBeenCalledWith(db, 1, 123);
-      expect(getComments).toHaveBeenCalledWith(db, "poll", 1);
       expect(result.restaurantSuggestions).toEqual([
         expect.objectContaining({
           id: 88,
           suggested_by_name: "Alice",
           suggested_by_email: "alice@example.com",
         }),
-      ]);
-      expect(result.comments).toEqual([
-        {
-          id: 5,
-          content: "Looks good",
-          replies: [],
-        },
       ]);
     });
 
@@ -466,160 +423,4 @@ describe("dashboard.polls route", () => {
     });
   });
 
-  describe("comment actions", () => {
-    it("validates comment content before creating a comment", async () => {
-      const db = createMockDb();
-
-      const emptyResult = await action({
-        request: createRequest({
-          _action: "add_comment",
-          content: "   ",
-        }),
-        context: { cloudflare: { env: { DB: db } } } as never,
-      } as never);
-
-      const longResult = await action({
-        request: createRequest({
-          _action: "add_comment",
-          content: "x".repeat(1001),
-        }),
-        context: { cloudflare: { env: { DB: db } } } as never,
-      } as never);
-
-      expect(emptyResult).toEqual({ error: "Comment content is required" });
-      expect(longResult).toEqual({ error: "Comment must be less than 1000 characters" });
-      expect(createComment).not.toHaveBeenCalled();
-    });
-
-    it("creates a top-level comment and redirects", async () => {
-      const db = createMockDb();
-
-      const response = await action({
-        request: createRequest({
-          _action: "add_comment",
-          content: "  Looking forward to this.  ",
-        }),
-        context: { cloudflare: { env: { DB: db, RESEND_API_KEY: "test-key" } } } as never,
-      } as never);
-
-      expect((response as Response).status).toBe(302);
-      expect(createComment).toHaveBeenCalledWith(db, 123, "poll", 1, "Looking forward to this.", null);
-      expect(sendCommentReplyEmail).not.toHaveBeenCalled();
-      expect(logActivity).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actionType: "comment",
-        })
-      );
-    });
-
-    it("sends a reply notification with waitUntil when the parent author wants emails", async () => {
-      const waitUntil = vi.fn();
-      const db = createMockDb({
-        parentComment: {
-          id: 10,
-          user_id: 999,
-          email: "parent@example.com",
-          name: "Parent",
-          notify_comment_replies: 1,
-          content: "Original comment",
-        },
-      });
-
-      const response = await action({
-        request: createRequest({
-          _action: "add_comment",
-          content: "Thanks for the context",
-          parent_id: "10",
-        }),
-        context: {
-          cloudflare: {
-            env: { DB: db, RESEND_API_KEY: "reply-key" },
-            ctx: { waitUntil },
-          },
-        } as never,
-      } as never);
-
-      expect((response as Response).status).toBe(302);
-      expect(createComment).toHaveBeenCalledWith(db, 123, "poll", 1, "Thanks for the context", 10);
-      expect(sendCommentReplyEmail).toHaveBeenCalledWith({
-        to: "parent@example.com",
-        recipientName: "Parent",
-        replierName: "User",
-        originalComment: "Original comment",
-        replyContent: "Thanks for the context",
-        pollUrl: "http://localhost/dashboard/polls",
-        resendApiKey: "reply-key",
-      });
-      expect(waitUntil).toHaveBeenCalledTimes(1);
-    });
-
-    it("skips reply email delivery when the parent author is the same user", async () => {
-      const db = createMockDb({
-        parentComment: {
-          id: 10,
-          user_id: 123,
-          email: "user@example.com",
-          name: "User",
-          notify_comment_replies: 1,
-          content: "Original comment",
-        },
-      });
-
-      const response = await action({
-        request: createRequest({
-          _action: "add_comment",
-          content: "Self-reply",
-          parent_id: "10",
-        }),
-        context: {
-          cloudflare: {
-            env: { DB: db, RESEND_API_KEY: "reply-key" },
-          },
-        } as never,
-      } as never);
-
-      expect((response as Response).status).toBe(302);
-      expect(sendCommentReplyEmail).not.toHaveBeenCalled();
-    });
-
-    it("returns an error when comment deletion fails permission checks", async () => {
-      vi.mocked(deleteComment).mockResolvedValue(false);
-      const db = createMockDb();
-
-      const result = await action({
-        request: createRequest({
-          _action: "delete_comment",
-          comment_id: "55",
-        }),
-        context: { cloudflare: { env: { DB: db } } } as never,
-      } as never);
-
-      expect(result).toEqual({ error: "Permission denied or comment not found" });
-      expect(logActivity).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          actionType: "delete_comment",
-        })
-      );
-    });
-
-    it("deletes a comment and redirects when authorized", async () => {
-      const db = createMockDb();
-
-      const response = await action({
-        request: createRequest({
-          _action: "delete_comment",
-          comment_id: "55",
-        }),
-        context: { cloudflare: { env: { DB: db } } } as never,
-      } as never);
-
-      expect((response as Response).status).toBe(302);
-      expect(deleteComment).toHaveBeenCalledWith(db, 55, 123, false);
-      expect(logActivity).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actionType: "delete_comment",
-        })
-      );
-    });
-  });
 });

@@ -8,7 +8,6 @@ import { DoodleView } from "../components/DoodleView";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { isDateInPastUTC } from "../lib/dateUtils";
 import { logActivity } from "../lib/activity.server";
-import { getComments, createComment, deleteComment } from "../lib/comments.server";
 import {
   getRestaurantsForPoll,
   createRestaurant,
@@ -17,8 +16,7 @@ import {
   removeVote,
   deleteRestaurant,
 } from "../lib/restaurants.server";
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, UserAvatar } from "../components/ui";
-import { CommentSection } from "../components/CommentSection";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 import type { Poll } from "../lib/types";
 import { normalizeRestaurantPhotoUrl } from "../lib/restaurant-photo-url";
 
@@ -126,11 +124,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1)
     .all();
 
-  // Get comments for active poll
-  const comments = activePoll
-    ? await getComments(db, 'poll', activePoll.id)
-    : [];
-
   const dateSuggestions = (dateSuggestionsResult.results || []) as unknown as PollDateSuggestion[];
   const dateVotes = (dateVotesResult.results || []) as unknown as PollDateVote[];
 
@@ -140,7 +133,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
     dateVotes,
-    comments,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -431,123 +423,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/dashboard/polls');
   }
 
-  // COMMENT ACTIONS
-  if (action === 'add_comment') {
-    const content = formData.get('content');
-    const parentId = formData.get('parent_id');
-
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return { error: 'Comment content is required' };
-    }
-
-    if (content.length > 1000) {
-      return { error: 'Comment must be less than 1000 characters' };
-    }
-
-    await createComment(
-      db,
-      user.id,
-      'poll',
-      activePoll.id,
-      content.trim(),
-      parentId ? Number(parentId) : null
-    );
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'comment',
-      actionDetails: { type: 'poll', poll_id: activePoll.id },
-      route: '/dashboard/polls',
-      request,
-    });
-
-    // Send notification if this is a reply
-    if (parentId) {
-      const { sendCommentReplyEmail } = await import('../lib/email.server');
-
-      // Get the parent comment and its author
-      const parentComment = await db
-        .prepare(`
-          SELECT c.*, u.email, u.name, u.notify_comment_replies
-          FROM comments c
-          JOIN users u ON c.user_id = u.id
-          WHERE c.id = ?
-        `)
-        .bind(Number(parentId))
-        .first();
-
-      // Send email if parent author wants notifications and isn't replying to themselves
-      if (
-        parentComment &&
-        parentComment.notify_comment_replies === 1 &&
-        parentComment.user_id !== user.id
-      ) {
-        const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
-        const url = new URL(request.url);
-        const pollUrl = `${url.origin}/dashboard/polls`;
-
-        // Use waitUntil to handle async work properly in Cloudflare Workers
-        const emailPromise = sendCommentReplyEmail({
-          to: parentComment.email as string,
-          recipientName: parentComment.name as string | null,
-          replierName: user.name || user.email,
-          originalComment: parentComment.content as string,
-          replyContent: content.trim(),
-          pollUrl,
-          resendApiKey: resendApiKey || "",
-        }).catch(err => {
-          console.error('Failed to send comment reply email:', err);
-          throw err;
-        });
-
-        // Use waitUntil if available, otherwise await
-        if (context.cloudflare.ctx?.waitUntil) {
-          context.cloudflare.ctx.waitUntil(emailPromise);
-        } else {
-          await emailPromise;
-        }
-      }
-    }
-
-    return redirect('/dashboard/polls');
-  }
-
-  if (action === 'delete_comment') {
-    const commentId = formData.get('comment_id');
-
-    if (!commentId) {
-      return { error: 'Comment ID is required' };
-    }
-
-    const success = await deleteComment(
-      db,
-      parseInt(commentId as string),
-      user.id,
-      user.is_admin === 1
-    );
-
-    if (!success) {
-      return { error: 'Permission denied or comment not found' };
-    }
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'delete_comment',
-      actionDetails: { comment_id: commentId },
-      route: '/dashboard/polls',
-      request,
-    });
-
-    return redirect('/dashboard/polls');
-  }
-
   return { error: 'Invalid action' };
 }
 
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, comments, currentUser } = loaderData;
+  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
 
@@ -700,15 +580,6 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
         <EmptyState
           title="No active poll at the moment"
           description="Check back soon!"
-        />
-      )}
-
-      {/* Comments Section */}
-      {activePoll && (
-        <CommentSection
-          comments={comments}
-          currentUser={currentUser}
-          placeholder="Share your thoughts about this poll..."
         />
       )}
 
