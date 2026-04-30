@@ -2,8 +2,6 @@
 
 import type { MessageBatch } from "@cloudflare/workers-types";
 import { createRequestHandler } from "react-router";
-// @ts-expect-error — generated build output has no type declarations
-import * as build from "../build/server/index.js";
 import {
   type EventEmailQueueMessage,
   processEventEmailQueueBatch,
@@ -12,6 +10,15 @@ import {
 import { maybeEnsureResendEmailSetup } from "../app/lib/resend-setup.server";
 import { sendScheduledSmsReminders } from "../app/lib/sms.server";
 import type { CloudflareEnv } from "../app/env";
+
+// In dev, Vite resolves the virtual module to live source so HMR-aware asset
+// URLs are served. In prod, the `v8_viteEnvironmentApi` build flow doesn't
+// emit `build/client/.vite/manifest.json`, so the virtual server-build can't
+// be generated — fall back to the static build output instead.
+const build = import.meta.env.DEV
+  ? await import("virtual:react-router/server-build")
+  : // @ts-expect-error — generated build output has no type declarations
+    await import("../build/server/index.js");
 
 const requestHandler = createRequestHandler(build, "production");
 
