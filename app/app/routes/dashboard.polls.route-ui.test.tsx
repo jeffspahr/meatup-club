@@ -192,6 +192,17 @@ describe("dashboard.polls UI", () => {
           suggested_by_email: "alex@example.com",
           photo_url: "https://images.example.com/prime.jpg",
         },
+        {
+          id: 57,
+          name: "Oak Room",
+          address: "456 Elm St",
+          cuisine: "Steakhouse",
+          vote_count: 1,
+          user_has_voted: 0,
+          suggested_by_name: "Sam",
+          suggested_by_email: "sam@example.com",
+          photo_url: null,
+        },
       ],
       activePoll: {
         id: 12,
@@ -217,9 +228,14 @@ describe("dashboard.polls UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /\+ Add Restaurant/i }));
     fireEvent.click(screen.getByRole("button", { name: "Modal submit" }));
-    fireEvent.click(screen.getByText("Prime Steakhouse"));
 
-    expect(submitSpy).toHaveBeenCalledTimes(8);
+    fireEvent.change(screen.getByLabelText("Your vote"), { target: { value: "57" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Vote" }));
+
+    fireEvent.change(screen.getByLabelText("Your vote"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Vote" }));
+
+    expect(submitSpy).toHaveBeenCalledTimes(9);
     expect((submitSpy.mock.calls[0][0] as FormData).get("_action")).toBe("suggest_date");
     expect((submitSpy.mock.calls[0][0] as FormData).get("suggested_date")).toBe("2026-06-10");
     expect((submitSpy.mock.calls[1][0] as FormData).get("_action")).toBe("vote_date");
@@ -239,6 +255,7 @@ describe("dashboard.polls UI", () => {
     expect((submitSpy.mock.calls[6][0] as FormData).get("_action")).toBe("suggest_restaurant");
     expect((submitSpy.mock.calls[6][0] as FormData).get("place_id")).toBe("place-123");
     expect((submitSpy.mock.calls[7][0] as FormData).get("_action")).toBe("vote_restaurant");
-    expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("55");
+    expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("57");
+    expect((submitSpy.mock.calls[8][0] as FormData).get("_action")).toBe("unvote_restaurant");
   });
 });

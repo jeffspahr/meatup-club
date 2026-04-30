@@ -22,10 +22,8 @@ type MockDbOptions = {
   activePoll?: Record<string, unknown> | null;
   maxRestaurantVotes?: number | null;
   topRestaurants?: Array<Record<string, unknown>>;
-  userRestaurantVote?: Record<string, unknown> | null;
   maxDateVotes?: number | null;
   topDates?: Array<Record<string, unknown>>;
-  userDateVoteCount?: number;
   events?: Array<Record<string, unknown>>;
   userRsvp?: Record<string, unknown> | null;
   restaurants?: Array<Record<string, unknown>>;
@@ -37,10 +35,8 @@ function createMockDb({
   activePoll = null,
   maxRestaurantVotes = 0,
   topRestaurants = [],
-  userRestaurantVote = null,
   maxDateVotes = 0,
   topDates = [],
-  userDateVoteCount = 0,
   events = [],
   userRsvp = null,
   restaurants = [],
@@ -61,16 +57,8 @@ function createMockDb({
         return { max_votes: maxRestaurantVotes };
       }
 
-      if (normalizedSql.includes("SELECT r.name FROM restaurant_votes rv")) {
-        return userRestaurantVote;
-      }
-
       if (normalizedSql.includes("SELECT MAX(vote_count) as max_votes") && normalizedSql.includes("FROM date_suggestions ds")) {
         return { max_votes: maxDateVotes };
-      }
-
-      if (normalizedSql.includes("SELECT COUNT(*) as count FROM date_votes")) {
-        return { count: userDateVoteCount };
       }
 
       if (normalizedSql === "SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?") {
@@ -152,8 +140,6 @@ describe("dashboard._index loader", () => {
         topDates: [],
         nextEvent: null,
         userRsvp: null,
-        userRestaurantVote: null,
-        userDateVoteCount: 0,
         content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
         restaurants: [],
       })
@@ -216,10 +202,8 @@ describe("dashboard._index loader", () => {
       activePoll: { id: 8, title: "May Poll", created_at: "2026-04-01" },
       maxRestaurantVotes: 3,
       topRestaurants: [{ name: "Prime Steakhouse", vote_count: 3 }],
-      userRestaurantVote: { name: "Prime Steakhouse" },
       maxDateVotes: 4,
       topDates: [{ suggested_date: "2026-05-01", vote_count: 4 }],
-      userDateVoteCount: 2,
       events: [
         { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
         { id: 6, restaurant_name: "Past Grill", event_date: "2026-03-01", event_time: "18:00", status: "upcoming" },
@@ -241,8 +225,6 @@ describe("dashboard._index loader", () => {
         topDates: [{ suggested_date: "2026-05-01", vote_count: 4 }],
         nextEvent: { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
         userRsvp: { status: "maybe" },
-        userRestaurantVote: { name: "Prime Steakhouse" },
-        userDateVoteCount: 2,
       })
     );
   });

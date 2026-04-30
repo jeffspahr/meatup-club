@@ -105,8 +105,6 @@ describe("dashboard._index UI", () => {
           content: "**Quarterly** meetup details",
         },
       ],
-      userRestaurantVote: null,
-      userDateVoteCount: 0,
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
@@ -118,7 +116,10 @@ describe("dashboard._index UI", () => {
 
     expect(screen.getByText("Tied: Prime Steakhouse, Oak Room")).toBeInTheDocument();
     expect(screen.getByText("formatted:2026-05-20")).toBeInTheDocument();
-    expect(screen.getAllByText("Vote now →")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Vote on this poll →" })).toHaveAttribute(
+      "href",
+      "/dashboard/polls",
+    );
     expect(screen.getByRole("link", { name: "Set RSVP →" })).toHaveAttribute(
       "href",
       "/dashboard/events"
@@ -164,8 +165,6 @@ describe("dashboard._index UI", () => {
           content: "Members only details",
         },
       ],
-      userRestaurantVote: null,
-      userDateVoteCount: 0,
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
@@ -206,8 +205,6 @@ describe("dashboard._index UI", () => {
       nextEvent: null,
       userRsvp: null,
       content: [],
-      userRestaurantVote: null,
-      userDateVoteCount: 0,
       restaurants: [
         {
           id: 1,
@@ -257,8 +254,6 @@ describe("dashboard._index UI", () => {
       nextEvent: null,
       userRsvp: null,
       content: [],
-      userRestaurantVote: null,
-      userDateVoteCount: 0,
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 

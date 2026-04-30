@@ -1,5 +1,5 @@
 import { Form, Link, isRouteErrorResponse, redirect, useSubmit } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
@@ -365,37 +365,37 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant ID is required' };
     }
 
-    // Check if user already voted for this restaurant
+    // Track whether this is a change (for activity log) without toggling.
     const existingVote = await db
       .prepare('SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
       .bind(activePoll.id, user.id)
       .first();
 
-    if (existingVote && existingVote.restaurant_id === parseInt(restaurantId as string)) {
-      // Unvote - user clicked the same restaurant
-      await removeVote(db, activePoll.id, user.id);
+    await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
 
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: 'unvote_restaurant',
-        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id },
-        route: '/dashboard/polls',
-        request,
-      });
-    } else {
-      // New vote or change vote (voteForRestaurant replaces existing vote)
-      await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'vote_restaurant',
+      actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
+      route: '/dashboard/polls',
+      request,
+    });
 
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: 'vote_restaurant',
-        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
-        route: '/dashboard/polls',
-        request,
-      });
-    }
+    return redirect('/dashboard/polls');
+  }
+
+  if (action === 'unvote_restaurant') {
+    await removeVote(db, activePoll.id, user.id);
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'unvote_restaurant',
+      actionDetails: { poll_id: activePoll.id },
+      route: '/dashboard/polls',
+      request,
+    });
 
     return redirect('/dashboard/polls');
   }
@@ -602,6 +602,12 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
     submit(formData, { method: 'post' });
   }
 
+  function handleRestaurantUnvote() {
+    const formData = new FormData();
+    formData.append('_action', 'unvote_restaurant');
+    submit(formData, { method: 'post' });
+  }
+
   function handleDoodleVoteToggle(suggestionId: number, remove: boolean) {
     const formData = new FormData();
     formData.append('_action', 'vote_date');
@@ -667,7 +673,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 <div>
                   <h3 className="text-xl font-semibold text-foreground">Vote on Restaurants</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    You can vote for one restaurant. Click again to change or remove your vote.
+                    Pick a restaurant from the list and submit your vote.
                   </p>
                 </div>
                 <Button onClick={() => setShowRestaurantModal(true)}>
@@ -675,7 +681,6 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 </Button>
               </div>
 
-              {/* Restaurant Modal */}
               <AddRestaurantModal
                 isOpen={showRestaurantModal}
                 onClose={() => setShowRestaurantModal(false)}
@@ -683,56 +688,11 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 title="Search for a Restaurant"
               />
 
-              {/* Restaurant Suggestions List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {restaurantSuggestions.map((suggestion: any) => (
-                  <div
-                    key={suggestion.id}
-                    className={`border-2 rounded-lg p-4 transition-all cursor-pointer ${
-                      suggestion.user_has_voted > 0
-                        ? 'border-accent bg-accent/10'
-                        : 'border-border hover:border-accent'
-                    }`}
-                    onClick={() => handleRestaurantVote(suggestion.id)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg text-foreground">{suggestion.name}</h4>
-                        {suggestion.address && (
-                          <p className="text-sm text-muted-foreground">{suggestion.address}</p>
-                        )}
-                        {suggestion.cuisine && (
-                          <span className="text-xs text-muted-foreground">{suggestion.cuisine}</span>
-                        )}
-                      </div>
-                      {suggestion.photo_url && (
-                        <img
-                          src={suggestion.photo_url}
-                          alt={suggestion.name}
-                          className="w-16 h-16 object-cover rounded ml-2"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <span className="text-sm text-muted-foreground">
-                        {suggestion.vote_count} {suggestion.vote_count === 1 ? 'vote' : 'votes'}
-                        {suggestion.user_has_voted > 0 && ' · You voted'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        by {suggestion.suggested_by_name || suggestion.suggested_by_email}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {restaurantSuggestions.length === 0 && (
-                <EmptyState
-                  title="No restaurant suggestions yet"
-                  description="Be the first to suggest one!"
-                />
-              )}
+              <RestaurantVotePicker
+                suggestions={restaurantSuggestions}
+                onVote={handleRestaurantVote}
+                onUnvote={handleRestaurantUnvote}
+              />
             </div>
           </Card>
         </div>
@@ -785,6 +745,79 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
         </div>
       )}
     </main>
+  );
+}
+
+interface RestaurantVotePickerProps {
+  suggestions: Array<{
+    id: number;
+    name: string;
+    vote_count: number;
+    user_has_voted: number;
+  }>;
+  onVote: (suggestionId: number) => void;
+  onUnvote: () => void;
+}
+
+function RestaurantVotePicker({ suggestions, onVote, onUnvote }: RestaurantVotePickerProps) {
+  const sorted = [...suggestions].sort((a, b) => a.name.localeCompare(b.name));
+  const currentVote = sorted.find((s) => s.user_has_voted > 0) ?? null;
+  const [selectedId, setSelectedId] = useState<string>(currentVote ? String(currentVote.id) : '');
+
+  // Keep dropdown in sync with the loader's view of the current vote after submit.
+  useEffect(() => {
+    setSelectedId(currentVote ? String(currentVote.id) : '');
+  }, [currentVote?.id]);
+
+  if (sorted.length === 0) {
+    return (
+      <EmptyState
+        title="No restaurants yet"
+        description="Add a restaurant from the dashboard to start voting."
+      />
+    );
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selectedId) {
+      onUnvote();
+      return;
+    }
+    onVote(parseInt(selectedId, 10));
+  }
+
+  const isUnchanged = selectedId === (currentVote ? String(currentVote.id) : '');
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <label htmlFor="restaurant-vote" className="block text-sm font-medium text-foreground">
+        Your vote
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          id="restaurant-vote"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="flex-1 min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+        >
+          <option value="">— No vote —</option>
+          {sorted.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.vote_count} {s.vote_count === 1 ? 'vote' : 'votes'})
+            </option>
+          ))}
+        </select>
+        <Button type="submit" disabled={isUnchanged}>
+          {selectedId ? 'Submit Vote' : 'Remove Vote'}
+        </Button>
+      </div>
+      {currentVote && (
+        <p className="text-sm text-muted-foreground">
+          Current vote: <span className="font-medium text-foreground">{currentVote.name}</span>
+        </p>
+      )}
+    </form>
   );
 }
 

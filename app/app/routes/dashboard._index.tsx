@@ -26,7 +26,6 @@ import {
   Cog6ToothIcon,
   BugAntIcon,
   LightBulbIcon,
-  CheckIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 
@@ -35,10 +34,6 @@ interface SiteContentItem {
   key: string;
   title: string;
   content: string;
-}
-
-interface CountRow {
-  count: number;
 }
 
 interface ActivePollRow {
@@ -59,10 +54,6 @@ interface TopRestaurantRow {
 interface TopDateRow {
   suggested_date: string;
   vote_count: number;
-}
-
-interface UserRestaurantVoteRow {
-  name: string;
 }
 
 interface EventRow {
@@ -107,9 +98,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind('active')
     .first() as ActivePollRow | null;
 
-  // Get top restaurant(s) for active poll and user's vote
+  // Get top restaurant(s) for active poll
   let topRestaurants: TopRestaurantRow[] = [];
-  let userRestaurantVote: UserRestaurantVoteRow | null = null;
   if (activePoll) {
     // First get the max vote count
     const maxVoteResult = await db
@@ -146,22 +136,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         .all();
       topRestaurants = (topRestaurantsResult.results || []) as unknown as TopRestaurantRow[];
     }
-
-    // Get user's restaurant vote for this poll
-    userRestaurantVote = await db
-      .prepare(`
-        SELECT r.name
-        FROM restaurant_votes rv
-        JOIN restaurants r ON rv.restaurant_id = r.id
-        WHERE rv.poll_id = ? AND rv.user_id = ?
-      `)
-      .bind(activePoll.id, user.id)
-      .first() as UserRestaurantVoteRow | null;
   }
 
-  // Get top date(s) for active poll and user's vote count
+  // Get top date(s) for active poll
   let topDates: TopDateRow[] = [];
-  let userDateVoteCount = 0;
   if (activePoll) {
     // First get the max vote count
     const maxDateVoteResult = await db
@@ -194,17 +172,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         .all();
       topDates = (topDatesResult.results || []) as unknown as TopDateRow[];
     }
-
-    // Get count of user's date votes for this poll
-    const userDateVoteResult = await db
-      .prepare(`
-        SELECT COUNT(*) as count
-        FROM date_votes
-        WHERE poll_id = ? AND user_id = ?
-      `)
-      .bind(activePoll.id, user.id)
-      .first() as CountRow | null;
-    userDateVoteCount = userDateVoteResult?.count || 0;
   }
 
   // Get next upcoming event (ignore cancelled, filter by datetime in app timezone)
@@ -260,8 +227,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     nextEvent,
     userRsvp,
     content: (contentResult.results || []) as unknown as SiteContentItem[],
-    userRestaurantVote,
-    userDateVoteCount,
     restaurants,
   };
 }
@@ -337,7 +302,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, userRestaurantVote, userDateVoteCount, restaurants } = loaderData;
+  const { user, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, restaurants } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
@@ -345,11 +310,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantDetail | null>(null);
   const restaurantFetcher = useFetcher<typeof action>();
   const restaurantError = restaurantFetcher.data && 'error' in restaurantFetcher.data ? restaurantFetcher.data.error : null;
-  const quickActionCount = (activePoll ? 1 : 0) + (nextEvent ? 1 : 0) + 1 + (isAdmin ? 1 : 0);
-  const quickActionsGridClass =
-    quickActionCount === 4
-      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-      : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+  const quickActionsGridClass = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
 
   function handleRestaurantSubmit(placeDetails: {
     placeId: string;
@@ -524,113 +485,82 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      {/* Active Poll Banner */}
+      {/* Active Poll */}
       {activePoll ? (
-        <Link to="/dashboard/polls">
-          <Card
-            hover
-            className="card-glow mb-8 p-6 sm:p-8 dashboard-section"
-            style={{ '--section-delay': '120ms' } as CSSProperties}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
-                <span className="icon-container-lg"><ClipboardDocumentCheckIcon className="w-6 h-6" /></span>
-                <div>
-                  <h3 className="text-xl font-display font-semibold text-foreground">
-                    {activePoll.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Active poll • Started {formatDateForDisplay(activePoll.created_at, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
+        <Card
+          className="card-glow mb-8 p-6 sm:p-8 dashboard-section"
+          style={{ '--section-delay': '120ms' } as CSSProperties}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <span className="icon-container-lg"><ClipboardDocumentCheckIcon className="w-6 h-6" /></span>
+              <div>
+                <h2 className="text-xl font-display font-semibold text-foreground">
+                  {activePoll.title}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Active poll • Started {formatDateForDisplay(activePoll.created_at, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
               </div>
-              <Badge variant="accent">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                Voting Open
-              </Badge>
             </div>
+            <Badge variant="accent">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+              Voting Open
+            </Badge>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="p-5 bg-muted/20">
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant</p>
-                {userRestaurantVote ? (
-                  <>
-                    <p className="font-semibold text-foreground flex items-center gap-2">
-                      <CheckIcon className="w-4 h-4 text-accent" />
-                      You voted: {userRestaurantVote.name}
-                    </p>
-                    {topRestaurants.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {topRestaurants.length > 1 ? (
-                          <>Tied ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''} each): {topRestaurants.map(r => r.name).join(', ')}</>
-                        ) : (
-                          <>Leading: {topRestaurants[0].name} ({topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''})</>
-                        )}
-                      </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="p-5 bg-muted/20">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant Leader</p>
+              {topRestaurants.length > 0 ? (
+                <>
+                  <p className="font-semibold text-foreground">
+                    {topRestaurants.length > 1 ? (
+                      <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
+                    ) : (
+                      topRestaurants[0].name
                     )}
-                  </>
-                ) : topRestaurants.length > 0 ? (
-                  <>
-                    <p className="font-semibold text-foreground">
-                      {topRestaurants.length > 1 ? (
-                        <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
-                      ) : (
-                        topRestaurants[0].name
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-accent mt-2 font-medium">Vote now →</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
-                )}
-              </Card>
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No votes yet</p>
+              )}
+            </Card>
 
-              <Card className="p-5 bg-muted/20">
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Dates</p>
-                {userDateVoteCount > 0 ? (
-                  <>
-                    <p className="font-semibold text-foreground flex items-center gap-2">
-                      <CheckIcon className="w-4 h-4 text-accent" />
-                      You voted on {userDateVoteCount} date{userDateVoteCount !== 1 ? 's' : ''}
-                    </p>
-                    {topDates.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {topDates.length > 1 ? (
-                          <>Tied ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''} each): {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
-                        ) : (
-                          <>Leading: {formatDateForDisplay(topDates[0].suggested_date, { month: 'short', day: 'numeric' })} ({topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''})</>
-                        )}
-                      </p>
+            <Card className="p-5 bg-muted/20">
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Date Leader</p>
+              {topDates.length > 0 ? (
+                <>
+                  <p className="font-semibold text-foreground">
+                    {topDates.length > 1 ? (
+                      <>Tied: {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
+                    ) : (
+                      formatDateForDisplay(topDates[0].suggested_date)
                     )}
-                  </>
-                ) : topDates.length > 0 ? (
-                  <>
-                    <p className="font-semibold text-foreground">
-                      {topDates.length > 1 ? (
-                        <>Tied: {topDates.map(d => formatDateForDisplay(d.suggested_date)).join(', ')}</>
-                      ) : (
-                        formatDateForDisplay(topDates[0].suggested_date)
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-accent mt-2 font-medium">Vote now →</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No votes yet - be the first!</p>
-                )}
-              </Card>
-            </div>
-          </Card>
-        </Link>
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No votes yet</p>
+              )}
+            </Card>
+          </div>
+
+          <div className="mt-6">
+            <Link to="/dashboard/polls" className="btn-primary">
+              Vote on this poll →
+            </Link>
+          </div>
+        </Card>
       ) : (
         <Card
           className="mb-8 p-6 sm:p-8 dashboard-section border-border/30"
@@ -640,7 +570,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <div className="flex items-center gap-4">
               <span className="icon-container-lg bg-muted"><ClipboardDocumentListIcon className="w-6 h-6" /></span>
               <div>
-                <h3 className="text-xl font-display font-semibold text-foreground">No Active Poll</h3>
+                <h2 className="text-xl font-display font-semibold text-foreground">No Active Poll</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isAdmin
                     ? "Start a new poll to begin voting on the next meetup location and date."
@@ -722,21 +652,6 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
         </div>
         <div className={quickActionsGridClass}>
-          {activePoll && (
-            <Link to="/dashboard/polls">
-              <Card hover className="card-glow p-6 h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container"><ClipboardDocumentCheckIcon className="w-5 h-5" /></span>
-                  <Badge variant="accent">Active</Badge>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Vote on Polls</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {topRestaurants[0]?.vote_count || 0} restaurant votes, {topDates[0]?.vote_count || 0} date votes
-                </p>
-              </Card>
-            </Link>
-          )}
-
           {nextEvent && (
             <Link to="/dashboard/events">
               <Card hover className="card-glow p-6 h-full">

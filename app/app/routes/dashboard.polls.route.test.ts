@@ -384,15 +384,14 @@ describe("dashboard.polls route", () => {
       );
     });
 
-    it("removes the current user's restaurant vote when they click the same option again", async () => {
+    it("removes the current user's restaurant vote via unvote_restaurant", async () => {
       const db = createMockDb({
         existingRestaurantVote: { restaurant_id: 5 },
       });
 
       const response = await action({
         request: createRequest({
-          _action: "vote_restaurant",
-          suggestion_id: "5",
+          _action: "unvote_restaurant",
         }),
         context: { cloudflare: { env: { DB: db } } } as never,
       } as never);
@@ -429,6 +428,24 @@ describe("dashboard.polls route", () => {
           actionDetails: expect.objectContaining({ changed: true }),
         })
       );
+    });
+
+    it("re-submitting the same vote keeps it in place (no toggle)", async () => {
+      const db = createMockDb({
+        existingRestaurantVote: { restaurant_id: 5 },
+      });
+
+      const response = await action({
+        request: createRequest({
+          _action: "vote_restaurant",
+          suggestion_id: "5",
+        }),
+        context: { cloudflare: { env: { DB: db } } } as never,
+      } as never);
+
+      expect((response as Response).status).toBe(302);
+      expect(voteForRestaurant).toHaveBeenCalledWith(db, 1, 5, 123);
+      expect(removeVote).not.toHaveBeenCalled();
     });
 
     it("rejects deleting a restaurant the user does not own", async () => {
