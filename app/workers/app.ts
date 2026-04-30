@@ -12,18 +12,11 @@ import {
 import { maybeEnsureResendEmailSetup } from "../app/lib/resend-setup.server";
 import { sendScheduledSmsReminders } from "../app/lib/sms.server";
 import type { CloudflareEnv } from "../app/env";
-import { getCanonicalRedirectUrl } from "./canonical-host";
 
 const requestHandler = createRequestHandler(build, "production");
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
-    // Keep the Worker-level fallback until the edge redirect has been verified in production.
-    const redirectUrl = getCanonicalRedirectUrl(request.url);
-    if (redirectUrl) {
-      return Response.redirect(redirectUrl, 301);
-    }
-
     try {
       return requestHandler(request, {
         cloudflare: { env, ctx },
