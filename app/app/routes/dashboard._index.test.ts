@@ -20,26 +20,26 @@ type MockDbOptions = {
   content?: Array<Record<string, unknown>>;
   memberCount?: number;
   activePoll?: Record<string, unknown> | null;
-  maxRestaurantVotes?: number | null;
-  topRestaurants?: Array<Record<string, unknown>>;
-  maxDateVotes?: number | null;
-  topDates?: Array<Record<string, unknown>>;
   events?: Array<Record<string, unknown>>;
   userRsvp?: Record<string, unknown> | null;
   restaurants?: Array<Record<string, unknown>>;
+  dateSuggestions?: Array<Record<string, unknown>>;
+  dateVotes?: Array<Record<string, unknown>>;
+  pollRestaurants?: Array<Record<string, unknown>>;
+  previousPolls?: Array<Record<string, unknown>>;
 };
 
 function createMockDb({
   content = [],
   memberCount = 0,
   activePoll = null,
-  maxRestaurantVotes = 0,
-  topRestaurants = [],
-  maxDateVotes = 0,
-  topDates = [],
   events = [],
   userRsvp = null,
   restaurants = [],
+  dateSuggestions = [],
+  dateVotes = [],
+  pollRestaurants = [],
+  previousPolls = [],
 }: MockDbOptions = {}) {
   const prepare = vi.fn((sql: string) => {
     const normalizedSql = sql.replace(/\s+/g, " ").trim();
@@ -51,14 +51,6 @@ function createMockDb({
 
       if (normalizedSql === "SELECT * FROM polls WHERE status = ? ORDER BY created_at DESC LIMIT 1") {
         return activePoll;
-      }
-
-      if (normalizedSql.includes("SELECT MAX(vote_count) as max_votes") && normalizedSql.includes("FROM restaurants r")) {
-        return { max_votes: maxRestaurantVotes };
-      }
-
-      if (normalizedSql.includes("SELECT MAX(vote_count) as max_votes") && normalizedSql.includes("FROM date_suggestions ds")) {
-        return { max_votes: maxDateVotes };
       }
 
       if (normalizedSql === "SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?") {
@@ -73,20 +65,30 @@ function createMockDb({
         return { results: content };
       }
 
-      if (normalizedSql.includes("SELECT r.name, COUNT(rv.id) as vote_count")) {
-        return { results: topRestaurants };
-      }
-
-      if (normalizedSql.includes("SELECT ds.suggested_date, COUNT(dv.id) as vote_count")) {
-        return { results: topDates };
-      }
-
       if (normalizedSql === "SELECT * FROM events WHERE status != ? ORDER BY event_date ASC") {
         return { results: events };
       }
 
       if (normalizedSql.includes("FROM restaurants r LEFT JOIN users u ON r.created_by = u.id ORDER BY r.name ASC")) {
         return { results: restaurants };
+      }
+
+      if (normalizedSql.includes("FROM date_suggestions ds JOIN users u ON ds.user_id = u.id")) {
+        return { results: dateSuggestions };
+      }
+
+      if (normalizedSql.includes("FROM date_votes dv JOIN date_suggestions ds")) {
+        return { results: dateVotes };
+      }
+
+      if (normalizedSql.includes("FROM restaurants r LEFT JOIN poll_excluded_restaurants per")) {
+        return { results: pollRestaurants };
+      }
+
+      if (
+        normalizedSql.includes("FROM polls p LEFT JOIN restaurants r ON p.winning_restaurant_id = r.id")
+      ) {
+        return { results: previousPolls };
       }
 
       throw new Error(`Unexpected all() query: ${normalizedSql}`);
@@ -137,7 +139,10 @@ describe("dashboard._index loader", () => {
         isAdmin: false,
         activePoll: null,
         topRestaurants: [],
-        topDates: [],
+        dateSuggestions: [],
+        dateVotes: [],
+        restaurantSuggestions: [],
+        previousPolls: [],
         nextEvent: null,
         userRsvp: null,
         content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
@@ -200,10 +205,10 @@ describe("dashboard._index loader", () => {
     const db = createMockDb({
       memberCount: 15,
       activePoll: { id: 8, title: "May Poll", created_at: "2026-04-01" },
-      maxRestaurantVotes: 3,
-      topRestaurants: [{ name: "Prime Steakhouse", vote_count: 3 }],
-      maxDateVotes: 4,
-      topDates: [{ suggested_date: "2026-05-01", vote_count: 4 }],
+      pollRestaurants: [
+        { id: 1, name: "Prime Steakhouse", vote_count: 3, user_has_voted: 0 },
+        { id: 2, name: "Beta Grill", vote_count: 1, user_has_voted: 0 },
+      ],
       events: [
         { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
         { id: 6, restaurant_name: "Past Grill", event_date: "2026-03-01", event_time: "18:00", status: "upcoming" },
@@ -222,7 +227,6 @@ describe("dashboard._index loader", () => {
         isAdmin: true,
         activePoll: { id: 8, title: "May Poll", created_at: "2026-04-01" },
         topRestaurants: [{ name: "Prime Steakhouse", vote_count: 3 }],
-        topDates: [{ suggested_date: "2026-05-01", vote_count: 4 }],
         nextEvent: { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
         userRsvp: { status: "maybe" },
       })

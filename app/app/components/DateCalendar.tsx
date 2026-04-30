@@ -149,7 +149,7 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-3">
+    <div className="bg-card border border-border rounded-lg p-3 max-w-[20rem] mx-auto w-full">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-foreground">

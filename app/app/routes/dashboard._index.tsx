@@ -3,11 +3,29 @@ import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
-import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from '../lib/dateUtils';
+import {
+  formatDateForDisplay,
+  formatDateTimeForDisplay,
+  formatTimeForDisplay,
+  getAppTimeZone,
+  isDateInPastUTC,
+  isEventInPastInTimeZone,
+} from '../lib/dateUtils';
 import { Alert, Badge, Button, Card, EmptyState } from "../components/ui";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { RestaurantDetailModal, type RestaurantDetail } from "../components/RestaurantDetailModal";
-import { createRestaurant, deleteRestaurant, findRestaurantByPlaceId } from "../lib/restaurants.server";
+import { DateCalendar } from "../components/DateCalendar";
+import { DoodleView } from "../components/DoodleView";
+import { RestaurantVotePicker } from "../components/RestaurantVotePicker";
+import {
+  createRestaurant,
+  deleteRestaurant,
+  findRestaurantByPlaceId,
+  getRestaurantsForPoll,
+  removeVote,
+  voteForRestaurant,
+} from "../lib/restaurants.server";
+import { logActivity } from "../lib/activity.server";
 import { normalizeRestaurantPhotoUrl } from "../lib/restaurant-photo-url";
 import { parseCityState } from "../lib/addressUtils";
 import { confirmAction } from "../lib/confirm.client";
@@ -42,17 +60,42 @@ interface ActivePollRow {
   created_at: string;
 }
 
-interface MaxVotesRow {
-  max_votes: number | null;
+interface PollDateSuggestion {
+  id: number;
+  user_id: number;
+  poll_id: number;
+  suggested_date: string;
+  suggested_by_name: string | null;
+  suggested_by_email: string;
+  vote_count: number;
+  user_has_voted: number;
+}
+
+interface PollDateVote {
+  date_suggestion_id: number;
+  user_id: number;
+  suggested_date: string;
+  user_name: string | null;
+  user_email: string;
+}
+
+interface PollRestaurantSuggestion {
+  id: number;
+  name: string;
+  vote_count: number;
+  user_has_voted: number;
+}
+
+interface PreviousPollRow {
+  id: number;
+  title: string;
+  closed_at: string;
+  winner_restaurant: string | null;
+  winner_date: string | null;
 }
 
 interface TopRestaurantRow {
   name: string;
-  vote_count: number;
-}
-
-interface TopDateRow {
-  suggested_date: string;
   vote_count: number;
 }
 
@@ -84,146 +127,148 @@ interface RestaurantRow {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
-
-  // Get site content
-  const contentResult = await db
-    .prepare('SELECT * FROM site_content ORDER BY id ASC')
-    .all();
-
   const isAdmin = user.is_admin === 1;
-
-  // Get active poll
-  const activePoll = await db
-    .prepare('SELECT * FROM polls WHERE status = ? ORDER BY created_at DESC LIMIT 1')
-    .bind('active')
-    .first() as ActivePollRow | null;
-
-  // Get top restaurant(s) for active poll
-  let topRestaurants: TopRestaurantRow[] = [];
-  if (activePoll) {
-    // First get the max vote count
-    const maxVoteResult = await db
-      .prepare(`
-        SELECT MAX(vote_count) as max_votes
-        FROM (
-          SELECT COUNT(rv.id) as vote_count
-          FROM restaurants r
-          LEFT JOIN restaurant_votes rv ON r.id = rv.restaurant_id AND rv.poll_id = ?
-          LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
-          WHERE per.id IS NULL
-          GROUP BY r.id
-        )
-      `)
-      .bind(activePoll.id, activePoll.id)
-      .first() as MaxVotesRow | null;
-
-    const maxVotes = maxVoteResult?.max_votes || 0;
-
-    // Get all restaurants with the max vote count
-    if (maxVotes > 0) {
-      const topRestaurantsResult = await db
-        .prepare(`
-          SELECT r.name, COUNT(rv.id) as vote_count
-          FROM restaurants r
-          LEFT JOIN restaurant_votes rv ON r.id = rv.restaurant_id AND rv.poll_id = ?
-          LEFT JOIN poll_excluded_restaurants per ON per.restaurant_id = r.id AND per.poll_id = ?
-          WHERE per.id IS NULL
-          GROUP BY r.id
-          HAVING vote_count = ?
-          ORDER BY r.name ASC
-        `)
-        .bind(activePoll.id, activePoll.id, maxVotes)
-        .all();
-      topRestaurants = (topRestaurantsResult.results || []) as unknown as TopRestaurantRow[];
-    }
-  }
-
-  // Get top date(s) for active poll
-  let topDates: TopDateRow[] = [];
-  if (activePoll) {
-    // First get the max vote count
-    const maxDateVoteResult = await db
-      .prepare(`
-        SELECT MAX(vote_count) as max_votes
-        FROM (
-          SELECT COUNT(dv.id) as vote_count
-          FROM date_suggestions ds
-          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
-          GROUP BY ds.id
-        )
-      `)
-      .bind(activePoll.id)
-      .first() as MaxVotesRow | null;
-
-    const maxDateVotes = maxDateVoteResult?.max_votes || 0;
-
-    // Get all dates with the max vote count
-    if (maxDateVotes > 0) {
-      const topDatesResult = await db
-        .prepare(`
-          SELECT ds.suggested_date, COUNT(dv.id) as vote_count
-          FROM date_suggestions ds
-          LEFT JOIN date_votes dv ON ds.id = dv.date_suggestion_id AND dv.poll_id = ?
-          GROUP BY ds.id
-          HAVING vote_count = ?
-          ORDER BY ds.suggested_date ASC
-        `)
-        .bind(activePoll.id, maxDateVotes)
-        .all();
-      topDates = (topDatesResult.results || []) as unknown as TopDateRow[];
-    }
-  }
-
-  // Get next upcoming event (ignore cancelled, filter by datetime in app timezone)
-  const eventsForNext = await db
-    .prepare('SELECT * FROM events WHERE status != ? ORDER BY event_date ASC')
-    .bind('cancelled')
-    .all();
   const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+
+  // Phase 1: queries that don't depend on each other.
+  const [
+    contentResult,
+    activePoll,
+    previousPollsResult,
+    eventsForNext,
+    restaurantsResult,
+  ] = await Promise.all([
+    db.prepare('SELECT * FROM site_content ORDER BY id ASC').all(),
+    db
+      .prepare('SELECT * FROM polls WHERE status = ? ORDER BY created_at DESC LIMIT 1')
+      .bind('active')
+      .first() as Promise<ActivePollRow | null>,
+    db
+      .prepare(`
+        SELECT
+          p.id,
+          p.title,
+          p.closed_at,
+          r.name as winner_restaurant,
+          ds.suggested_date as winner_date
+        FROM polls p
+        LEFT JOIN restaurants r ON p.winning_restaurant_id = r.id
+        LEFT JOIN date_suggestions ds ON p.winning_date_id = ds.id
+        WHERE p.status = 'closed'
+        ORDER BY p.created_at DESC
+        LIMIT 10
+      `)
+      .all(),
+    db
+      .prepare('SELECT * FROM events WHERE status != ? ORDER BY event_date ASC')
+      .bind('cancelled')
+      .all(),
+    db
+      .prepare(`
+        SELECT
+          r.id,
+          r.created_by,
+          r.name,
+          r.address,
+          r.google_rating,
+          r.price_level,
+          r.photo_url,
+          r.google_maps_url,
+          r.opening_hours,
+          u.name as suggested_by_name
+        FROM restaurants r
+        LEFT JOIN users u ON r.created_by = u.id
+        ORDER BY r.name ASC
+      `)
+      .all(),
+  ]);
+
+  const previousPolls = (previousPollsResult.results || []) as unknown as PreviousPollRow[];
   const eventRows = (eventsForNext.results || []) as unknown as EventRow[];
   const nextEvent = eventRows.find((event) =>
     !isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
   ) || null;
-
-  // Get user's RSVP for the next event
-  let userRsvp: UserRsvpRow | null = null;
-  if (nextEvent) {
-    userRsvp = await db
-      .prepare('SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?')
-      .bind(nextEvent.id, user.id)
-      .first() as UserRsvpRow | null;
-  }
-
-  // Get all restaurants for the dashboard table
-  const restaurantsResult = await db
-    .prepare(`
-      SELECT
-        r.id,
-        r.created_by,
-        r.name,
-        r.address,
-        r.google_rating,
-        r.price_level,
-        r.photo_url,
-        r.google_maps_url,
-        r.opening_hours,
-        u.name as suggested_by_name
-      FROM restaurants r
-      LEFT JOIN users u ON r.created_by = u.id
-      ORDER BY r.name ASC
-    `)
-    .all();
   const restaurants = ((restaurantsResult.results || []) as unknown as RestaurantRow[]).map((r) => ({
     ...r,
     photo_url: normalizeRestaurantPhotoUrl(r.photo_url, request.url),
   }));
+
+  // Phase 2 (parallel): poll-scoped + nextEvent-scoped queries. All independent.
+  const [dateSuggestionsResult, dateVotesResult, pollRestaurantRows, userRsvpRow] = await Promise.all([
+    activePoll
+      ? db
+          .prepare(`
+            SELECT
+              ds.*,
+              u.name as suggested_by_name,
+              u.email as suggested_by_email,
+              (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND poll_id = ?) as vote_count,
+              (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND user_id = ? AND poll_id = ?) as user_has_voted
+            FROM date_suggestions ds
+            JOIN users u ON ds.user_id = u.id
+            WHERE ds.poll_id = ?
+            ORDER BY ds.suggested_date ASC
+          `)
+          .bind(activePoll.id, user.id, activePoll.id, activePoll.id)
+          .all()
+      : Promise.resolve({ results: [] }),
+    activePoll
+      ? db
+          .prepare(`
+            SELECT
+              dv.date_suggestion_id,
+              dv.user_id,
+              ds.suggested_date,
+              u.name as user_name,
+              u.email as user_email
+            FROM date_votes dv
+            JOIN date_suggestions ds ON dv.date_suggestion_id = ds.id
+            JOIN users u ON dv.user_id = u.id
+            WHERE dv.poll_id = ?
+            ORDER BY ds.suggested_date ASC, u.name ASC
+          `)
+          .bind(activePoll.id)
+          .all()
+      : Promise.resolve({ results: [] }),
+    activePoll ? getRestaurantsForPoll(db, activePoll.id, user.id) : Promise.resolve([]),
+    nextEvent
+      ? (db
+          .prepare('SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?')
+          .bind(nextEvent.id, user.id)
+          .first() as Promise<UserRsvpRow | null>)
+      : Promise.resolve(null),
+  ]);
+
+  const dateSuggestions = (dateSuggestionsResult.results || []) as unknown as PollDateSuggestion[];
+  const dateVotes = (dateVotesResult.results || []) as unknown as PollDateVote[];
+  const restaurantSuggestions: PollRestaurantSuggestion[] = pollRestaurantRows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    vote_count: r.vote_count,
+    user_has_voted:
+      typeof r.user_has_voted === 'number' ? r.user_has_voted : r.user_has_voted ? 1 : 0,
+  }));
+  const userRsvp = userRsvpRow;
+
+  // Derive restaurant leader(s) from already-loaded poll data — no extra query.
+  // restaurantSuggestions arrives sorted by vote_count DESC, name ASC.
+  const maxVotes = restaurantSuggestions[0]?.vote_count ?? 0;
+  const topRestaurants: TopRestaurantRow[] =
+    maxVotes > 0
+      ? restaurantSuggestions
+          .filter((r) => r.vote_count === maxVotes)
+          .map((r) => ({ name: r.name, vote_count: r.vote_count }))
+      : [];
 
   return {
     user,
     isAdmin,
     activePoll,
     topRestaurants,
-    topDates,
+    dateSuggestions,
+    dateVotes,
+    restaurantSuggestions,
+    previousPolls,
     nextEvent,
     userRsvp,
     content: (contentResult.results || []) as unknown as SiteContentItem[],
@@ -231,11 +276,215 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   };
 }
 
+// Poll intents return `{ ok: true }` rather than `redirect('/dashboard')` so
+// that submissions via `useFetcher` revalidate the loader in place without
+// triggering a navigation (which would scroll the page back to the top).
 export async function action({ request, context }: Route.ActionArgs) {
   const user = await requireActiveUser(request, context);
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const intent = formData.get('_action');
+
+  // Poll-scoped actions need an active poll. Look it up once.
+  const pollIntents = new Set([
+    'suggest_date',
+    'vote_date',
+    'delete_date',
+    'vote_restaurant',
+    'unvote_restaurant',
+  ]);
+
+  if (pollIntents.has(intent as string)) {
+    const activePoll = (await db
+      .prepare(`SELECT id FROM polls WHERE status = 'active' ORDER BY created_at DESC LIMIT 1`)
+      .first()) as { id: number } | null;
+
+    if (!activePoll) {
+      return { error: 'No active poll. Actions require an active poll.' };
+    }
+
+    if (intent === 'suggest_date') {
+      const suggestedDate = formData.get('suggested_date');
+      if (!suggestedDate) {
+        return { error: 'Date is required' };
+      }
+      if (isDateInPastUTC(suggestedDate as string)) {
+        return { error: 'Cannot add dates in the past' };
+      }
+
+      const existing = await db
+        .prepare('SELECT id FROM date_suggestions WHERE suggested_date = ? AND poll_id = ?')
+        .bind(suggestedDate, activePoll.id)
+        .first();
+      if (existing) {
+        return { error: 'This date has already been added for the current poll' };
+      }
+
+      const result = await db
+        .prepare('INSERT INTO date_suggestions (user_id, poll_id, suggested_date) VALUES (?, ?, ?)')
+        .bind(user.id, activePoll.id, suggestedDate)
+        .run();
+
+      if (result.meta.last_row_id) {
+        await db
+          .prepare('INSERT INTO date_votes (poll_id, date_suggestion_id, user_id) VALUES (?, ?, ?)')
+          .bind(activePoll.id, result.meta.last_row_id, user.id)
+          .run();
+      }
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'suggest_date',
+        actionDetails: { date: suggestedDate, poll_id: activePoll.id },
+        route: '/dashboard',
+        request,
+      });
+
+      return { ok: true };
+    }
+
+    if (intent === 'vote_date') {
+      const suggestionId = formData.get('suggestion_id');
+      const remove = formData.get('remove') === 'true';
+      if (!suggestionId) {
+        return { error: 'Suggestion ID is required' };
+      }
+
+      const suggestion = await db
+        .prepare('SELECT id, poll_id, suggested_date FROM date_suggestions WHERE id = ?')
+        .bind(suggestionId)
+        .first() as { id: number; poll_id: number; suggested_date: string } | null;
+
+      if (!suggestion || suggestion.poll_id !== activePoll.id) {
+        return { error: 'Suggestion not found in active poll' };
+      }
+
+      if (remove) {
+        await db
+          .prepare('DELETE FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?')
+          .bind(activePoll.id, suggestionId, user.id)
+          .run();
+
+        await logActivity({
+          db,
+          userId: user.id,
+          actionType: 'unvote_date',
+          actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+          route: '/dashboard',
+          request,
+        });
+      } else {
+        if (isDateInPastUTC(suggestion.suggested_date)) {
+          return { error: 'Cannot vote on dates in the past' };
+        }
+
+        const existing = await db
+          .prepare('SELECT id FROM date_votes WHERE poll_id = ? AND date_suggestion_id = ? AND user_id = ?')
+          .bind(activePoll.id, suggestionId, user.id)
+          .first();
+
+        if (!existing) {
+          await db
+            .prepare('INSERT INTO date_votes (poll_id, date_suggestion_id, user_id) VALUES (?, ?, ?)')
+            .bind(activePoll.id, suggestionId, user.id)
+            .run();
+
+          await logActivity({
+            db,
+            userId: user.id,
+            actionType: 'vote_date',
+            actionDetails: { suggestion_id: suggestionId, poll_id: activePoll.id },
+            route: '/dashboard',
+            request,
+          });
+        }
+      }
+
+      return { ok: true };
+    }
+
+    if (intent === 'delete_date') {
+      const suggestionId = formData.get('suggestion_id');
+      if (!suggestionId) {
+        return { error: 'Suggestion ID is required' };
+      }
+
+      const suggestion = await db
+        .prepare('SELECT user_id, poll_id FROM date_suggestions WHERE id = ?')
+        .bind(suggestionId)
+        .first() as { user_id: number; poll_id: number } | null;
+
+      if (!suggestion || suggestion.poll_id !== activePoll.id) {
+        return { error: 'Suggestion not found in active poll' };
+      }
+
+      if (suggestion.user_id !== user.id && user.is_admin !== 1) {
+        return { error: 'Permission denied' };
+      }
+
+      await db
+        .prepare('DELETE FROM date_votes WHERE date_suggestion_id = ?')
+        .bind(suggestionId)
+        .run();
+
+      await db
+        .prepare('DELETE FROM date_suggestions WHERE id = ?')
+        .bind(suggestionId)
+        .run();
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'delete_date',
+        actionDetails: { suggestion_id: suggestionId },
+        route: '/dashboard',
+        request,
+      });
+
+      return { ok: true };
+    }
+
+    if (intent === 'vote_restaurant') {
+      const restaurantId = formData.get('suggestion_id');
+      if (!restaurantId) {
+        return { error: 'Restaurant ID is required' };
+      }
+
+      const existingVote = await db
+        .prepare('SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
+        .bind(activePoll.id, user.id)
+        .first();
+
+      await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'vote_restaurant',
+        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
+        route: '/dashboard',
+        request,
+      });
+
+      return { ok: true };
+    }
+
+    if (intent === 'unvote_restaurant') {
+      await removeVote(db, activePoll.id, user.id);
+
+      await logActivity({
+        db,
+        userId: user.id,
+        actionType: 'unvote_restaurant',
+        actionDetails: { poll_id: activePoll.id },
+        route: '/dashboard',
+        request,
+      });
+
+      return { ok: true };
+    }
+  }
 
   if (intent === 'suggest_restaurant') {
     const name = formData.get('name');
@@ -302,15 +551,78 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { user, isAdmin, activePoll, topRestaurants, topDates, nextEvent, userRsvp, content, restaurants } = loaderData;
+  const {
+    user,
+    isAdmin,
+    activePoll,
+    topRestaurants,
+    dateSuggestions,
+    dateVotes,
+    restaurantSuggestions,
+    previousPolls,
+    nextEvent,
+    userRsvp,
+    content,
+    restaurants,
+  } = loaderData;
   const firstName = user.name?.split(' ')[0] || 'Friend';
   const [showContent, setShowContent] = useState(false);
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
   const [showAddRestaurant, setShowAddRestaurant] = useState(false);
+  const [showPastPolls, setShowPastPolls] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantDetail | null>(null);
   const restaurantFetcher = useFetcher<typeof action>();
+  const pollFetcher = useFetcher<typeof action>();
   const restaurantError = restaurantFetcher.data && 'error' in restaurantFetcher.data ? restaurantFetcher.data.error : null;
+  const pollError = pollFetcher.data && 'error' in pollFetcher.data ? pollFetcher.data.error : null;
   const quickActionsGridClass = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+
+  function handleDateClick(dateStr: string) {
+    if (!activePoll) return;
+    const existing = dateSuggestions.find((s) => s.suggested_date === dateStr);
+    const formData = new FormData();
+
+    if (!existing) {
+      formData.append('_action', 'suggest_date');
+      formData.append('suggested_date', dateStr);
+    } else if (existing.user_has_voted > 0) {
+      if (existing.user_id === user.id) {
+        formData.append('_action', 'delete_date');
+        formData.append('suggestion_id', existing.id.toString());
+      } else {
+        formData.append('_action', 'vote_date');
+        formData.append('suggestion_id', existing.id.toString());
+        formData.append('remove', 'true');
+      }
+    } else {
+      formData.append('_action', 'vote_date');
+      formData.append('suggestion_id', existing.id.toString());
+      formData.append('remove', 'false');
+    }
+
+    pollFetcher.submit(formData, { method: 'post' });
+  }
+
+  function handleDoodleVoteToggle(suggestionId: number, remove: boolean) {
+    const formData = new FormData();
+    formData.append('_action', 'vote_date');
+    formData.append('suggestion_id', suggestionId.toString());
+    formData.append('remove', remove ? 'true' : 'false');
+    pollFetcher.submit(formData, { method: 'post' });
+  }
+
+  function handlePollRestaurantVote(suggestionId: number) {
+    const formData = new FormData();
+    formData.append('_action', 'vote_restaurant');
+    formData.append('suggestion_id', suggestionId.toString());
+    pollFetcher.submit(formData, { method: 'post' });
+  }
+
+  function handlePollRestaurantUnvote() {
+    const formData = new FormData();
+    formData.append('_action', 'unvote_restaurant');
+    pollFetcher.submit(formData, { method: 'post' });
+  }
 
   function handleRestaurantSubmit(placeDetails: {
     placeId: string;
@@ -513,52 +825,70 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="p-5 bg-muted/20">
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant Leader</p>
-              {topRestaurants.length > 0 ? (
-                <>
-                  <p className="font-semibold text-foreground">
-                    {topRestaurants.length > 1 ? (
-                      <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
-                    ) : (
-                      topRestaurants[0].name
-                    )}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">No votes yet</p>
-              )}
-            </Card>
+          {pollError && (
+            <Alert variant="error" className="mb-6">
+              {pollError}
+            </Alert>
+          )}
 
-            <Card className="p-5 bg-muted/20">
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Date Leader</p>
-              {topDates.length > 0 ? (
-                <>
-                  <p className="font-semibold text-foreground">
-                    {topDates.length > 1 ? (
-                      <>Tied: {topDates.map(d => formatDateForDisplay(d.suggested_date, { month: 'short', day: 'numeric' })).join(', ')}</>
-                    ) : (
-                      formatDateForDisplay(topDates[0].suggested_date)
-                    )}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {topDates[0].vote_count} vote{topDates[0].vote_count !== 1 ? 's' : ''}
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">No votes yet</p>
-              )}
-            </Card>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left column: vote on restaurants, then vote on dates (calendar) */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Vote on Restaurants</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pick a restaurant from the list and submit your vote.
+                </p>
+                <RestaurantVotePicker
+                  suggestions={restaurantSuggestions}
+                  onVote={handlePollRestaurantVote}
+                  onUnvote={handlePollRestaurantUnvote}
+                />
+              </div>
 
-          <div className="mt-6">
-            <Link to="/dashboard/polls" className="btn-primary">
-              Vote on this poll →
-            </Link>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-1">Vote on Dates</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Click a calendar day to add or vote.
+                </p>
+                <DateCalendar
+                  suggestions={dateSuggestions}
+                  activePollId={activePoll.id}
+                  currentUserId={user.id}
+                  onDateClick={handleDateClick}
+                />
+              </div>
+            </div>
+
+            {/* Right column: restaurant leader, then availability grid */}
+            <div className="space-y-6">
+              <Card className="p-5 bg-muted/20">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Restaurant Leader</p>
+                {topRestaurants.length > 0 ? (
+                  <>
+                    <p className="font-semibold text-foreground">
+                      {topRestaurants.length > 1 ? (
+                        <>Tied: {topRestaurants.map(r => r.name).join(', ')}</>
+                      ) : (
+                        topRestaurants[0].name
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {topRestaurants[0].vote_count} vote{topRestaurants[0].vote_count !== 1 ? 's' : ''}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No votes yet</p>
+                )}
+              </Card>
+
+              <DoodleView
+                dateSuggestions={dateSuggestions}
+                dateVotes={dateVotes}
+                currentUserId={user.id}
+                onVoteToggle={handleDoodleVoteToggle}
+              />
+            </div>
           </div>
         </Card>
       ) : (
@@ -797,6 +1127,54 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         onClose={() => setSelectedRestaurant(null)}
         onDelete={handleDeleteRestaurant}
       />
+
+      {/* Past Polls */}
+      {previousPolls.length > 0 && (
+        <div
+          className="mb-12 dashboard-section"
+          style={{ '--section-delay': '230ms' } as CSSProperties}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-display font-semibold text-foreground">Past Polls</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Recently closed polls and their winners.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPastPolls((value) => !value)}
+              className="btn-ghost"
+            >
+              {showPastPolls ? 'Hide' : 'Show'} ({previousPolls.length})
+            </button>
+          </div>
+
+          {showPastPolls && (
+            <div className="space-y-4">
+              {previousPolls.map((poll) => (
+                <Card key={poll.id} className="p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <h3 className="text-lg font-semibold text-foreground">{poll.title}</h3>
+                    <Badge variant="muted">
+                      Closed {formatDateTimeForDisplay(poll.closed_at)}
+                    </Badge>
+                  </div>
+                  {poll.winner_restaurant && poll.winner_date && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-sm font-semibold text-foreground mb-2">Winner:</p>
+                      <div className="flex items-center gap-4 text-sm text-foreground">
+                        <span>{poll.winner_restaurant}</span>
+                        <span>{formatDateForDisplay(poll.winner_date)}</span>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Feedback Section */}
       <div
