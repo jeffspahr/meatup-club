@@ -1,4 +1,4 @@
-import { Form, Link, isRouteErrorResponse, redirect, useSubmit } from "react-router";
+import { Link, isRouteErrorResponse, redirect, useSubmit } from "react-router";
 import { useEffect, useState } from "react";
 import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";

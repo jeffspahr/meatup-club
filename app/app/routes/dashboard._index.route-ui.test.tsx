@@ -259,6 +259,10 @@ describe("dashboard._index UI", () => {
 
     expect(screen.getByRole("button", { name: "+ Add Restaurant" })).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("No restaurants yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("Add the first steakhouse to start the collection."),
+    ).toBeInTheDocument();
   });
 
   it("renders the route hydrate fallback shell", () => {

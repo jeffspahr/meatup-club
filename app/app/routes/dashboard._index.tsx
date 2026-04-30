@@ -4,7 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, type CSSProperties } from 'react';
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from '../lib/dateUtils';
-import { Alert, Badge, Button, Card } from "../components/ui";
+import { Alert, Badge, Button, Card, EmptyState } from "../components/ui";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { RestaurantDetailModal, type RestaurantDetail } from "../components/RestaurantDetailModal";
 import { createRestaurant, deleteRestaurant, findRestaurantByPlaceId } from "../lib/restaurants.server";
@@ -718,7 +718,12 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           </Alert>
         )}
 
-        {restaurants.length > 0 && (
+        {restaurants.length === 0 ? (
+          <EmptyState
+            title="No restaurants yet"
+            description="Add the first steakhouse to start the collection."
+          />
+        ) : (
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
