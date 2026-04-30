@@ -4,6 +4,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardPage, { HydrateFallback } from "./dashboard._index";
 import type { Route } from "./+types/dashboard._index";
 
+const fetcherSubmit = vi.fn();
+const fetcherState: { data: { error?: string; ok?: true } | null } = { data: null };
+
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+
+  return {
+    ...actual,
+    useFetcher: () => ({
+      submit: fetcherSubmit,
+      data: fetcherState.data,
+      state: "idle",
+      Form: ({ children, ...props }: { children: React.ReactNode }) => (
+        <form {...props}>{children}</form>
+      ),
+    }),
+  };
+});
+
 vi.mock("../lib/dateUtils", async () => {
   const actual = await vi.importActual<typeof import("../lib/dateUtils")>("../lib/dateUtils");
 
@@ -88,6 +107,7 @@ describe("dashboard._index UI", () => {
       ],
       userRestaurantVote: null,
       userDateVoteCount: 0,
+      restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
     expect(
@@ -146,6 +166,7 @@ describe("dashboard._index UI", () => {
       ],
       userRestaurantVote: null,
       userDateVoteCount: 0,
+      restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
     expect(screen.queryByText("Get SMS reminders + RSVP by text")).not.toBeInTheDocument();
@@ -164,6 +185,85 @@ describe("dashboard._index UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show Details" }));
     expect(await screen.findByText("Welcome Copy")).toBeInTheDocument();
+  });
+
+  it("renders the restaurants table and opens the detail modal on row click", async () => {
+    window.localStorage.setItem("hasVisitedDashboard", "true");
+    fetcherState.data = null;
+    fetcherSubmit.mockClear();
+
+    renderDashboard({
+      user: {
+        id: 5,
+        name: "Member",
+        email: "member@example.com",
+        phone_number: "+15550000000",
+      },
+      isAdmin: false,
+      activePoll: null,
+      topRestaurants: [],
+      topDates: [],
+      nextEvent: null,
+      userRsvp: null,
+      content: [],
+      userRestaurantVote: null,
+      userDateVoteCount: 0,
+      restaurants: [
+        {
+          id: 1,
+          created_by: 5,
+          name: "Alpha Steakhouse",
+          address: "1 Main St, Brooklyn, NY 11201, USA",
+          google_rating: 4.5,
+          price_level: 3,
+          photo_url: null,
+          google_maps_url: "https://maps.google.com/?q=alpha",
+          opening_hours: null,
+          suggested_by_name: "Alice",
+        },
+      ],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(screen.getByText("Alpha Steakhouse")).toBeInTheDocument();
+    expect(screen.getByText("Brooklyn, NY")).toBeInTheDocument();
+    expect(screen.getByText("$$$")).toBeInTheDocument();
+    expect(screen.getByText("4.5")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Alpha Steakhouse"));
+    expect(await screen.findByRole("link", { name: "View on Google Maps →" })).toHaveAttribute(
+      "href",
+      "https://maps.google.com/?q=alpha",
+    );
+    expect(screen.getByText("Suggested by Alice")).toBeInTheDocument();
+    // Suggester (current user matches created_by) sees Delete
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("hides the restaurants table when empty but keeps the Add Restaurant CTA", () => {
+    window.localStorage.setItem("hasVisitedDashboard", "true");
+    fetcherState.data = null;
+
+    renderDashboard({
+      user: {
+        id: 5,
+        name: "Member",
+        email: "member@example.com",
+        phone_number: "+15550000000",
+      },
+      isAdmin: false,
+      activePoll: null,
+      topRestaurants: [],
+      topDates: [],
+      nextEvent: null,
+      userRsvp: null,
+      content: [],
+      userRestaurantVote: null,
+      userDateVoteCount: 0,
+      restaurants: [],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(screen.getByRole("button", { name: "+ Add Restaurant" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("renders the route hydrate fallback shell", () => {

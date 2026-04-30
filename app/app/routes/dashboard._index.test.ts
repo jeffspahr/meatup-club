@@ -28,6 +28,7 @@ type MockDbOptions = {
   userDateVoteCount?: number;
   events?: Array<Record<string, unknown>>;
   userRsvp?: Record<string, unknown> | null;
+  restaurants?: Array<Record<string, unknown>>;
 };
 
 function createMockDb({
@@ -42,6 +43,7 @@ function createMockDb({
   userDateVoteCount = 0,
   events = [],
   userRsvp = null,
+  restaurants = [],
 }: MockDbOptions = {}) {
   const prepare = vi.fn((sql: string) => {
     const normalizedSql = sql.replace(/\s+/g, " ").trim();
@@ -93,6 +95,10 @@ function createMockDb({
 
       if (normalizedSql === "SELECT * FROM events WHERE status != ? ORDER BY event_date ASC") {
         return { results: events };
+      }
+
+      if (normalizedSql.includes("FROM restaurants r LEFT JOIN users u ON r.created_by = u.id ORDER BY r.name ASC")) {
+        return { results: restaurants };
       }
 
       throw new Error(`Unexpected all() query: ${normalizedSql}`);
@@ -149,8 +155,51 @@ describe("dashboard._index loader", () => {
         userRestaurantVote: null,
         userDateVoteCount: 0,
         content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
+        restaurants: [],
       })
     );
+  });
+
+  it("returns the restaurant collection sorted by name", async () => {
+    const db = createMockDb({
+      restaurants: [
+        {
+          id: 10,
+          created_by: 5,
+          name: "Alpha Steakhouse",
+          address: "1 Main St, Brooklyn, NY 11201, USA",
+          google_rating: 4.5,
+          price_level: 3,
+          photo_url: null,
+          google_maps_url: "https://maps.google.com/?q=alpha",
+          opening_hours: null,
+          suggested_by_name: "Alice",
+        },
+        {
+          id: 11,
+          created_by: 6,
+          name: "Beta Grill",
+          address: "2 Oak Ave, Newark, NJ 07102, USA",
+          google_rating: 4.1,
+          price_level: 2,
+          photo_url: null,
+          google_maps_url: null,
+          opening_hours: null,
+          suggested_by_name: "Bob",
+        },
+      ],
+    });
+
+    const result = await loader({
+      request: new Request("http://localhost/dashboard"),
+      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
+      params: {},
+    } as never);
+
+    expect((result as { restaurants: Array<{ id: number; name: string }> }).restaurants).toEqual([
+      expect.objectContaining({ id: 10, name: "Alpha Steakhouse" }),
+      expect.objectContaining({ id: 11, name: "Beta Grill" }),
+    ]);
   });
 
   it("returns active poll leaders, the next event, and the user's RSVP", async () => {
