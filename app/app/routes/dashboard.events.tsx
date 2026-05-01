@@ -1,27 +1,13 @@
 import { Form, Link, isRouteErrorResponse, useNavigation } from "react-router";
 import { useEffect, useRef, useState } from "react";
-import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/dashboard.events";
 import { requireActiveUser } from "../lib/auth.server";
-import { logActivity } from "../lib/activity.server";
+import { canEditEvent } from "../lib/events.server";
 import {
-  buildCreateEventStatement,
-  buildSelectLastInsertedEventIdStatement,
-  getInsertedEventIdFromQueryResult,
-  buildUpdateEventStatement,
-  canEditEvent,
-  getEditableEventById,
-  parseEventMutationFormData,
-} from "../lib/events.server";
-import {
-  buildSelectStagedDeliveryIdsStatement,
-  buildStageEventInviteDeliveriesForLastInsertedEventStatement,
-  buildStageEventUpdateDeliveriesForActiveMembersStatement,
-  enqueueStagedEventEmailBatch,
-  toStagedEventEmailBatchFromQueryResult,
-  type StagedEventEmailBatch,
-} from "../lib/event-email-delivery.server";
-import { upsertRsvp } from "../lib/rsvps.server";
+  runCreateEventAction,
+  runRsvpEventAction,
+  runUpdateEventAction,
+} from "../lib/event-actions.server";
 import { EventRestaurantFields } from "../components/EventRestaurantFields";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 import type { Event, RsvpWithUser } from "../lib/types";
@@ -324,196 +310,24 @@ export async function action({ request, context }: Route.ActionArgs) {
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const actionType = String(formData.get("_action") || "rsvp");
-  const queueContext = {
+  const ctx = {
     db,
     queue: context.cloudflare.env.EMAIL_DELIVERY_QUEUE,
+    user,
+    formData,
+    request,
+    route: "/dashboard/events",
   };
 
   if (actionType === "create") {
-    const sendInvites = formData.get("send_invites") === "true";
-    const parsed = parseEventMutationFormData(formData);
-
-    if (parsed.error || !parsed.value) {
-      return { error: parsed.error || "Failed to create event" };
-    }
-
-    const input = parsed.value;
-
-    try {
-      let eventId = 0;
-      let stagedInviteBatch: StagedEventEmailBatch | null = null;
-      const createBatchId = sendInvites ? crypto.randomUUID() : null;
-      const createStatements = [
-        buildCreateEventStatement(db, input, user.id),
-        buildSelectLastInsertedEventIdStatement(db),
-      ];
-
-      if (createBatchId) {
-        createStatements.push(
-          buildStageEventInviteDeliveriesForLastInsertedEventStatement(db, {
-            batchId: createBatchId,
-            details: {
-              restaurantName: input.restaurantName,
-              restaurantAddress: input.restaurantAddress,
-              eventDate: input.eventDate,
-              eventTime: input.eventTime,
-            },
-          }),
-          buildSelectStagedDeliveryIdsStatement(db, createBatchId)
-        );
-      }
-
-      const createResults = await db.batch(createStatements);
-      eventId = getInsertedEventIdFromQueryResult(
-        createResults[1] as D1Result<{ id: number }>
-      ) || 0;
-
-      if (!eventId) {
-        throw new Error("Failed to determine created event id");
-      }
-
-      if (createBatchId) {
-        stagedInviteBatch = toStagedEventEmailBatchFromQueryResult(
-          createBatchId,
-          "invite",
-          createResults[createResults.length - 1] as D1Result<{ id: number }>
-        );
-      }
-
-      try {
-        await enqueueStagedEventEmailBatch(queueContext, stagedInviteBatch);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error("Failed to enqueue staged event invite deliveries", { eventId, message });
-      }
-
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: "create_event",
-        actionDetails: { event_id: eventId, send_invites: sendInvites },
-        route: "/dashboard/events",
-        request,
-      });
-
-      return { ok: true as const, performedAction: "create" as EventMutationAction };
-    } catch (error) {
-      console.error("Event creation error:", error);
-      return { error: "Failed to create event" };
-    }
+    return runCreateEventAction(ctx);
   }
 
   if (actionType === "update") {
-    const eventId = Number(formData.get("id"));
-    const sendUpdates = formData.get("send_updates") === "true";
-
-    if (!Number.isInteger(eventId) || eventId <= 0) {
-      return { error: "Event ID is required" };
-    }
-
-    const existingEvent = await getEditableEventById(db, eventId);
-    if (!existingEvent) {
-      return { error: "Event not found" };
-    }
-
-    if (!canEditEvent(user, existingEvent)) {
-      return { error: "You do not have permission to edit this event" };
-    }
-
-    const parsed = parseEventMutationFormData(formData);
-    if (parsed.error || !parsed.value) {
-      return { error: parsed.error || "Failed to update event" };
-    }
-
-    try {
-      const input = {
-        ...parsed.value,
-        status: existingEvent.status === "cancelled" ? "cancelled" : "upcoming",
-      } as const;
-
-      const nextSequence = Number(existingEvent.calendar_sequence ?? 0) + 1;
-      let stagedUpdateBatch: StagedEventEmailBatch | null = null;
-      const updateBatchId = sendUpdates ? crypto.randomUUID() : null;
-      const updateStatements = [
-        buildUpdateEventStatement(db, eventId, input, nextSequence),
-      ];
-
-      if (updateBatchId) {
-        updateStatements.push(
-          buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
-            batchId: updateBatchId,
-            details: {
-              eventId,
-              restaurantName: input.restaurantName,
-              restaurantAddress: input.restaurantAddress,
-              eventDate: input.eventDate,
-              eventTime: input.eventTime,
-            },
-            calendarSequence: nextSequence,
-          }),
-          buildSelectStagedDeliveryIdsStatement(db, updateBatchId)
-        );
-      }
-
-      const updateResults = await db.batch(updateStatements);
-
-      if (updateBatchId) {
-        stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(
-          updateBatchId,
-          "update",
-          updateResults[updateResults.length - 1] as D1Result<{ id: number }>
-        );
-      }
-
-      try {
-        await enqueueStagedEventEmailBatch(queueContext, stagedUpdateBatch);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error("Failed to enqueue staged event update deliveries", { eventId, message });
-      }
-
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: "update_event",
-        actionDetails: { event_id: eventId, send_updates: sendUpdates },
-        route: "/dashboard/events",
-        request,
-      });
-
-      return { ok: true as const, performedAction: "update" as EventMutationAction };
-    } catch (error) {
-      console.error("Event update error:", error);
-      return { error: "Failed to update event" };
-    }
+    return runUpdateEventAction(ctx);
   }
 
-  const eventId = formData.get("event_id");
-  const status = formData.get("status");
-  const comments = formData.get("comments");
-
-  if (!eventId || !status) {
-    return { error: "Missing required fields" };
-  }
-
-  const result = await upsertRsvp({
-    db,
-    eventId: Number(eventId),
-    userId: user.id,
-    status: String(status),
-    comments: (comments as string) || null,
-  });
-
-  await logActivity({
-    db,
-    userId: user.id,
-    actionType: result === "created" ? "rsvp" : "update_rsvp",
-    actionDetails: { event_id: eventId, status, comments },
-    route: "/dashboard/events",
-    request,
-  });
-
-  return { ok: true as const, performedAction: "rsvp" as EventMutationAction };
+  return runRsvpEventAction(ctx);
 }
 
 export default function EventsPage({ loaderData, actionData }: Route.ComponentProps) {
