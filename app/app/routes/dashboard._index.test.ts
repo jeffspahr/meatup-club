@@ -21,7 +21,9 @@ type MockDbOptions = {
   memberCount?: number;
   activePoll?: Record<string, unknown> | null;
   events?: Array<Record<string, unknown>>;
+  members?: Array<Record<string, unknown>>;
   userRsvp?: Record<string, unknown> | null;
+  allRsvpsForEvent?: Array<Record<string, unknown>>;
   restaurants?: Array<Record<string, unknown>>;
   dateSuggestions?: Array<Record<string, unknown>>;
   dateVotes?: Array<Record<string, unknown>>;
@@ -34,7 +36,9 @@ function createMockDb({
   memberCount = 0,
   activePoll = null,
   events = [],
+  members = [],
   userRsvp = null,
+  allRsvpsForEvent = [],
   restaurants = [],
   dateSuggestions = [],
   dateVotes = [],
@@ -53,7 +57,7 @@ function createMockDb({
         return activePoll;
       }
 
-      if (normalizedSql === "SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?") {
+      if (normalizedSql === "SELECT * FROM rsvps WHERE event_id = ? AND user_id = ?") {
         return userRsvp;
       }
 
@@ -65,8 +69,16 @@ function createMockDb({
         return { results: content };
       }
 
-      if (normalizedSql === "SELECT * FROM events WHERE status != ? ORDER BY event_date ASC") {
+      if (normalizedSql.includes("FROM events e LEFT JOIN users u ON e.created_by = u.id")) {
         return { results: events };
+      }
+
+      if (normalizedSql === "SELECT id, name, email, picture FROM users WHERE status = ? ORDER BY name ASC") {
+        return { results: members };
+      }
+
+      if (normalizedSql.includes("FROM rsvps r JOIN users u ON r.user_id = u.id")) {
+        return { results: allRsvpsForEvent };
       }
 
       if (normalizedSql.includes("FROM restaurants r LEFT JOIN users u ON r.created_by = u.id ORDER BY r.name ASC")) {
@@ -120,12 +132,25 @@ describe("dashboard._index loader", () => {
     } as never);
   });
 
-  it("returns dashboard data without active poll or next event", async () => {
+  it("returns dashboard data with no upcoming events when all events are in the past", async () => {
     const db = createMockDb({
       content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
       memberCount: 12,
       activePoll: null,
-      events: [{ id: 1, restaurant_name: "Past Grill", event_date: "2026-03-01", event_time: "18:00", status: "upcoming" }],
+      events: [
+        {
+          id: 1,
+          restaurant_name: "Past Grill",
+          restaurant_address: null,
+          event_date: "2026-03-01",
+          event_time: "18:00",
+          status: "upcoming",
+          calendar_sequence: 0,
+          created_by: null,
+          creator_name: null,
+          creator_email: null,
+        },
+      ],
     });
 
     const result = await loader({
@@ -143,12 +168,12 @@ describe("dashboard._index loader", () => {
         dateVotes: [],
         restaurantSuggestions: [],
         previousPolls: [],
-        nextEvent: null,
-        userRsvp: null,
+        upcomingEvents: [],
         content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
         restaurants: [],
       })
     );
+    expect((result as { pastEvents: unknown[] }).pastEvents).toHaveLength(1);
   });
 
   it("returns the restaurant collection sorted by name", async () => {
@@ -193,7 +218,7 @@ describe("dashboard._index loader", () => {
     ]);
   });
 
-  it("returns active poll leaders, the next event, and the user's RSVP", async () => {
+  it("returns active poll leaders, upcoming events with RSVP detail, and past events", async () => {
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 123,
       is_admin: 1,
@@ -210,10 +235,34 @@ describe("dashboard._index loader", () => {
         { id: 2, name: "Beta Grill", vote_count: 1, user_has_voted: 0 },
       ],
       events: [
-        { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
-        { id: 6, restaurant_name: "Past Grill", event_date: "2026-03-01", event_time: "18:00", status: "upcoming" },
+        {
+          id: 5,
+          restaurant_name: "Future Steakhouse",
+          restaurant_address: "1 Main St",
+          event_date: "2026-05-10",
+          event_time: "19:00",
+          status: "upcoming",
+          calendar_sequence: 0,
+          created_by: 123,
+          creator_name: "User Test",
+          creator_email: "user@example.com",
+        },
+        {
+          id: 6,
+          restaurant_name: "Past Grill",
+          restaurant_address: null,
+          event_date: "2026-03-01",
+          event_time: "18:00",
+          status: "upcoming",
+          calendar_sequence: 0,
+          created_by: 999,
+          creator_name: "Other",
+          creator_email: "other@example.com",
+        },
       ],
-      userRsvp: { status: "maybe" },
+      members: [{ id: 123, name: "User Test", email: "user@example.com", picture: null }],
+      userRsvp: { status: "maybe", comments: null },
+      allRsvpsForEvent: [],
     });
 
     const result = await loader({
@@ -222,14 +271,30 @@ describe("dashboard._index loader", () => {
       params: {},
     } as never);
 
-    expect(result).toEqual(
+    const typed = result as {
+      isAdmin: boolean;
+      activePoll: unknown;
+      topRestaurants: unknown;
+      upcomingEvents: Array<{ id: number; userRsvp: { status: string } | null }>;
+      pastEvents: Array<{ id: number; restaurant_name: string }>;
+    };
+
+    expect(typed.isAdmin).toBe(true);
+    expect(typed.activePoll).toEqual({ id: 8, title: "May Poll", created_at: "2026-04-01" });
+    expect(typed.topRestaurants).toEqual([{ name: "Prime Steakhouse", vote_count: 3 }]);
+
+    expect(typed.upcomingEvents).toHaveLength(1);
+    expect(typed.upcomingEvents[0]).toEqual(
       expect.objectContaining({
-        isAdmin: true,
-        activePoll: { id: 8, title: "May Poll", created_at: "2026-04-01" },
-        topRestaurants: [{ name: "Prime Steakhouse", vote_count: 3 }],
-        nextEvent: { id: 5, restaurant_name: "Future Steakhouse", event_date: "2026-05-10", event_time: "19:00", status: "upcoming" },
-        userRsvp: { status: "maybe" },
+        id: 5,
+        restaurant_name: "Future Steakhouse",
+        userRsvp: { status: "maybe", comments: null },
       })
+    );
+
+    expect(typed.pastEvents).toHaveLength(1);
+    expect(typed.pastEvents[0]).toEqual(
+      expect.objectContaining({ id: 6, restaurant_name: "Past Grill" })
     );
   });
 });

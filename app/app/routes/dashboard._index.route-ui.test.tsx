@@ -22,6 +22,10 @@ vi.mock("react-router", async () => {
       ),
     }),
     useSubmit: () => submitMock,
+    useNavigation: () => ({ state: "idle", formData: null }),
+    Form: ({ children, ...props }: { children: React.ReactNode }) => (
+      <form {...props}>{children}</form>
+    ),
   };
 });
 
@@ -95,13 +99,26 @@ describe("dashboard._index UI", () => {
       dateVotes: [],
       restaurantSuggestions: [],
       previousPolls: [],
-      nextEvent: {
-        id: 11,
-        restaurant_name: "Prime Steakhouse",
-        event_date: "2026-05-20",
-        event_time: "19:00",
-      },
-      userRsvp: null,
+      upcomingEvents: [
+        {
+          id: 11,
+          restaurant_name: "Prime Steakhouse",
+          restaurant_address: "1 Main St",
+          event_date: "2026-05-20",
+          event_time: "19:00",
+          status: "upcoming",
+          calendar_sequence: 0,
+          created_by: 999,
+          creator_name: "Other User",
+          creator_email: "other@example.com",
+          canEdit: false,
+          creatorLabel: "Created by Other User",
+          userRsvp: null,
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [],
       content: [
         {
           id: 1,
@@ -123,11 +140,8 @@ describe("dashboard._index UI", () => {
     expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Dates" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Restaurants" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Set RSVP →" })).toHaveAttribute(
-      "href",
-      "/dashboard/events"
-    );
-    expect(screen.getByText("Action Needed")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Upcoming Events" })).toBeInTheDocument();
+    expect(screen.getAllByText("RSVP needed").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     await waitFor(() => {
@@ -156,13 +170,26 @@ describe("dashboard._index UI", () => {
       dateVotes: [],
       restaurantSuggestions: [],
       previousPolls: [],
-      nextEvent: {
-        id: 12,
-        restaurant_name: "Future House",
-        event_date: "2026-06-01",
-        event_time: "18:30",
-      },
-      userRsvp: { status: "yes" },
+      upcomingEvents: [
+        {
+          id: 12,
+          restaurant_name: "Future House",
+          restaurant_address: "2 Oak Ave",
+          event_date: "2026-06-01",
+          event_time: "18:30",
+          status: "upcoming",
+          calendar_sequence: 0,
+          created_by: 1,
+          creator_name: "Alex Admin",
+          creator_email: "alex@example.com",
+          canEdit: true,
+          creatorLabel: "Created by you",
+          userRsvp: { status: "yes", comments: null },
+          allRsvps: [],
+          notResponded: [],
+        },
+      ],
+      pastEvents: [],
       content: [
         {
           id: 2,
@@ -183,8 +210,7 @@ describe("dashboard._index UI", () => {
       "href",
       "/dashboard/admin/polls"
     );
-    expect(screen.getByText("Going")).toBeInTheDocument();
-    expect(screen.getByText("Update your response")).toBeInTheDocument();
+    expect(screen.getAllByText("You're in").length).toBeGreaterThan(0);
     expect(screen.getByText("Admin Panel")).toBeInTheDocument();
     expect(screen.queryByText("Welcome Copy")).not.toBeInTheDocument();
 
@@ -211,8 +237,8 @@ describe("dashboard._index UI", () => {
       dateVotes: [],
       restaurantSuggestions: [],
       previousPolls: [],
-      nextEvent: null,
-      userRsvp: null,
+      upcomingEvents: [],
+      pastEvents: [],
       content: [],
       restaurants: [
         {
@@ -263,8 +289,8 @@ describe("dashboard._index UI", () => {
       dateVotes: [],
       restaurantSuggestions: [],
       previousPolls: [],
-      nextEvent: null,
-      userRsvp: null,
+      upcomingEvents: [],
+      pastEvents: [],
       content: [],
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
