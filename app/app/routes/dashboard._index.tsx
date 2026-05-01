@@ -962,11 +962,11 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       )}
 
       {/* Upcoming Events */}
-      <div
-        className="mb-12 dashboard-section"
+      <Card
+        className="mb-8 p-6 sm:p-8 dashboard-section"
         style={{ '--section-delay': '150ms' } as CSSProperties}
       >
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-4">
             <span className="icon-container-lg"><CalendarDaysIcon className="w-6 h-6" /></span>
             <div>
@@ -1001,12 +1001,14 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         ) : null}
 
         {upcomingEvents.length === 0 ? (
-          <EmptyState
-            title="No upcoming events"
-            description="Create an ad hoc event or check back after the next poll closes."
-          />
+          <div className="mt-8 pt-6 border-t border-border/30 text-center">
+            <p className="text-base font-semibold text-foreground mb-1">No upcoming events</p>
+            <p className="text-sm text-muted-foreground">
+              Create an ad hoc event or check back after the next poll closes.
+            </p>
+          </div>
         ) : (
-          <div className="grid gap-5 xl:auto-rows-fr xl:grid-cols-2">
+          <div className="grid gap-5 xl:auto-rows-fr xl:grid-cols-2 mt-2">
             {upcomingEvents.map((event) => {
               const isExpanded = expandedEventId === event.id || editingEventId === event.id;
               const isEditing = editingEventId === event.id;
@@ -1026,7 +1028,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             })}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Active Poll */}
       {activePoll ? (
