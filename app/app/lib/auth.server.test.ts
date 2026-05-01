@@ -43,7 +43,6 @@ const baseUser = {
   is_admin: 0,
   status: "active",
   requires_reauth: 0,
-  notify_comment_replies: 1,
   notify_poll_updates: 1,
   notify_event_updates: 1,
   phone_number: null,

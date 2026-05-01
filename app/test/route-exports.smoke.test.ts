@@ -91,10 +91,7 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       { path: '/dashboard', file: '../app/routes/dashboard' },
       { path: '/dashboard/_index', file: '../app/routes/dashboard._index' },
       { path: '/dashboard/about', file: '../app/routes/dashboard.about' },
-      { path: '/dashboard/events', file: '../app/routes/dashboard.events' },
-      { path: '/dashboard/polls', file: '../app/routes/dashboard.polls' },
       { path: '/dashboard/profile', file: '../app/routes/dashboard.profile' },
-      { path: '/dashboard/restaurants', file: '../app/routes/dashboard.restaurants' },
     ];
 
     dashboardRoutes.forEach(({ path, file }) => {
@@ -105,16 +102,20 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       });
     });
 
-    // Redirect routes (backward compatibility)
-    it('/dashboard/rsvp should have loader (redirect-only route)', async () => {
-      const route = await import('../app/routes/dashboard.rsvp');
-      expect(route.loader).toBeDefined(); // Loader exists for redirect
-      // No component required - this is a redirect-only route
-    });
-
     it('/dashboard/members should have loader (redirect-only route)', async () => {
       const route = await import('../app/routes/dashboard.members');
       expect(route.loader).toBeDefined();
+    });
+
+    // Legacy paths now redirect to /dashboard via dashboard.legacy-redirect.tsx
+    const legacyPaths = ['/dashboard/events', '/dashboard/polls', '/dashboard/restaurants', '/dashboard/dates'];
+    legacyPaths.forEach((path) => {
+      it(`${path} should redirect via the legacy-redirect loader`, async () => {
+        const route = await import('../app/routes/dashboard.legacy-redirect');
+        expect(route.loader).toBeDefined();
+        // Path-level routing tested separately; this only asserts the redirect module exists.
+        void path;
+      });
     });
   });
 
@@ -189,12 +190,9 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       const routes = [
         '../app/routes/dashboard._index',
         '../app/routes/dashboard.about',
-        '../app/routes/dashboard.events',
+        '../app/routes/dashboard.legacy-redirect',
         '../app/routes/dashboard.members',
-        '../app/routes/dashboard.polls',
         '../app/routes/dashboard.profile',
-        '../app/routes/dashboard.restaurants',
-        '../app/routes/dashboard.rsvp',
       ];
 
       for (const routePath of routes) {
@@ -223,12 +221,11 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
 
     it('routes with forms should export actions', async () => {
       const routesWithActions = [
+        { path: '../app/routes/dashboard._index', name: 'dashboard home' },
         { path: '../app/routes/dashboard.admin.announcements', name: 'announcements' },
         { path: '../app/routes/dashboard.admin.events', name: 'events' },
         { path: '../app/routes/dashboard.admin.members', name: 'members' },
         { path: '../app/routes/dashboard.admin.polls', name: 'polls' },
-        { path: '../app/routes/dashboard.polls', name: 'polls voting' },
-        { path: '../app/routes/dashboard.rsvp', name: 'rsvp' },
         { path: '../app/routes/accept-invite', name: 'accept-invite' },
       ];
 

@@ -64,9 +64,12 @@ vi.mock("svix", () => ({
 
 import { action as acceptInviteAction, loader as acceptInviteLoader } from "../app/routes/accept-invite";
 import { action as adminPollsAction } from "../app/routes/dashboard.admin.polls";
-import { action as pollsAction, loader as pollsLoader } from "../app/routes/dashboard.polls";
-import { loader as eventsLoader } from "../app/routes/dashboard.events";
+import { action as dashboardAction, loader as dashboardLoader } from "../app/routes/dashboard._index";
 import { action as emailWebhookAction } from "../app/routes/api.webhooks.email-rsvp";
+
+const pollsAction = dashboardAction;
+const pollsLoader = dashboardLoader;
+const eventsLoader = dashboardLoader;
 
 function createContext(harness: ReturnType<typeof createSqliteD1Harness>, extraEnv: Record<string, unknown> = {}) {
   const waitUntil = vi.fn((promise: Promise<unknown>) => promise);
@@ -178,19 +181,19 @@ describe("workflow truth suite", () => {
     });
 
     const events = await eventsLoader({
-      request: new Request("http://localhost/dashboard/events"),
+      request: new Request("http://localhost/dashboard"),
       context,
       params: {},
     } as never);
 
-    expect(events).toEqual({
-      currentUser: {
-        id: userId,
-        isAdmin: false,
-      },
-      upcomingEvents: [],
-      pastEvents: [],
-    });
+    expect(events).toEqual(
+      expect.objectContaining({
+        upcomingEvents: [],
+        pastEvents: [],
+      })
+    );
+    expect(events.user.id).toBe(userId);
+    expect(events.isAdmin).toBe(false);
   });
 
   it("carries member voting through poll closing and exposes the created event to members", async () => {
@@ -229,7 +232,7 @@ describe("workflow truth suite", () => {
         _action: "suggest_restaurant",
         name: "Prime House",
         address: "123 Main St",
-        place_id: "place-123",
+        google_place_id: "place-123",
         cuisine: "Steakhouse",
       }),
       context: memberContext,

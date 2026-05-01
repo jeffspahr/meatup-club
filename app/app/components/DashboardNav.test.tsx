@@ -24,9 +24,9 @@ function renderNav(pathname: string, isAdmin: boolean) {
 
 describe("DashboardNav", () => {
   it("marks the current route as active and shows the admin link for admins", () => {
-    renderNav("/dashboard/events/123", true);
+    renderNav("/dashboard/about", true);
 
-    expect(screen.getByRole("link", { name: "Events" })).toHaveClass("nav-link-active");
+    expect(screen.getByRole("link", { name: "About" })).toHaveClass("nav-link-active");
     expect(screen.getByRole("link", { name: "Admin" })).toBeInTheDocument();
   });
 

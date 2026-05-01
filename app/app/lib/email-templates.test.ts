@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  generateCommentReplyEmail,
   generateInviteEmail,
   generateRsvpOverrideEmail,
 } from "./email-templates";
@@ -18,23 +17,6 @@ describe("email-templates", () => {
     expect(email.text).toContain("https://meatup.club/accept-invite");
     expect(email.html).toContain("Join the Group");
     expect(email.html).toContain("<strong>Jeff</strong> has invited you");
-  });
-
-  it("truncates long original comments and points reply notifications back to profile settings", () => {
-    const longComment = "A".repeat(120);
-
-    const email = generateCommentReplyEmail({
-      recipientName: "Sam",
-      replierName: "Chris",
-      originalComment: longComment,
-      replyContent: "I am in for Thursday.",
-      pollUrl: "https://meatup.club/dashboard/polls/7",
-    });
-
-    expect(email.subject).toBe("Chris replied to your comment");
-    expect(email.text).toContain(`${"A".repeat(100)}...`);
-    expect(email.html).toContain("I am in for Thursday.");
-    expect(email.html).toContain("https://meatup.club/dashboard/profile");
   });
 
   it("generates RSVP override email content with capitalized status and fallback recipient name", () => {

@@ -17,9 +17,6 @@ export default function DashboardNav({ isAdmin }: DashboardNavProps) {
   const navLinks = [
     { to: "/dashboard", label: "Home", exact: true },
     { to: "/dashboard/about", label: "About", exact: true },
-    { to: "/dashboard/polls", label: "Polls", exact: true },
-    { to: "/dashboard/events", label: "Events", exact: false },
-    { to: "/dashboard/restaurants", label: "Restaurants", exact: true },
   ];
 
   return (

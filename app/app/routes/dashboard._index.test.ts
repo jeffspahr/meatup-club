@@ -169,7 +169,6 @@ describe("dashboard._index loader", () => {
         restaurantSuggestions: [],
         previousPolls: [],
         upcomingEvents: [],
-        content: [{ id: 1, key: "description", title: "About", content: "Club details" }],
         restaurants: [],
       })
     );

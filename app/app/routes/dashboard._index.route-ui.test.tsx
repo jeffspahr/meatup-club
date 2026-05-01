@@ -119,22 +119,12 @@ describe("dashboard._index UI", () => {
         },
       ],
       pastEvents: [],
-      content: [
-        {
-          id: 1,
-          key: "description",
-          title: "Club Notes",
-          content: "**Quarterly** meetup details",
-        },
-      ],
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
     expect(
       await screen.findByText("Get SMS reminders + RSVP by text")
     ).toBeInTheDocument();
-    expect(await screen.findByText("Club Notes")).toBeInTheDocument();
-    expect(window.localStorage.getItem("hasVisitedDashboard")).toBe("true");
 
     expect(screen.getByText("Tied: Prime Steakhouse, Oak Room")).toBeInTheDocument();
     expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
@@ -148,9 +138,6 @@ describe("dashboard._index UI", () => {
       expect(screen.queryByText("Get SMS reminders + RSVP by text")).not.toBeInTheDocument();
     });
     expect(window.localStorage.getItem("dismissedSmsPrompt")).toBe("true");
-
-    fireEvent.click(screen.getByRole("button", { name: "Hide Details" }));
-    expect(screen.queryByText("Club Notes")).not.toBeInTheDocument();
   });
 
   it("renders the returning-admin view with no active poll and an existing RSVP", async () => {
@@ -190,14 +177,6 @@ describe("dashboard._index UI", () => {
         },
       ],
       pastEvents: [],
-      content: [
-        {
-          id: 2,
-          key: "description",
-          title: "Welcome Copy",
-          content: "Members only details",
-        },
-      ],
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
@@ -211,11 +190,6 @@ describe("dashboard._index UI", () => {
       "/dashboard/admin/polls"
     );
     expect(screen.getAllByText("You're in").length).toBeGreaterThan(0);
-    expect(screen.getByText("Admin Panel")).toBeInTheDocument();
-    expect(screen.queryByText("Welcome Copy")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Show Details" }));
-    expect(await screen.findByText("Welcome Copy")).toBeInTheDocument();
   });
 
   it("renders the restaurants table and opens the detail modal on row click", async () => {
@@ -239,7 +213,6 @@ describe("dashboard._index UI", () => {
       previousPolls: [],
       upcomingEvents: [],
       pastEvents: [],
-      content: [],
       restaurants: [
         {
           id: 1,
@@ -338,7 +311,6 @@ describe("dashboard._index UI", () => {
       previousPolls: [],
       upcomingEvents: [],
       pastEvents: [],
-      content: [],
       restaurants: [],
     } as unknown as Route.ComponentProps["loaderData"]);
 
