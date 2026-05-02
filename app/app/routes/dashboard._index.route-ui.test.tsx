@@ -236,6 +236,53 @@ describe("dashboard._index UI", () => {
     expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
   });
 
+  it("opens the restaurant detail modal via keyboard (Enter and Space)", async () => {
+    window.localStorage.setItem("hasVisitedDashboard", "true");
+    fetcherState.data = null;
+    fetcherSubmit.mockClear();
+
+    renderDashboard({
+      user: {
+        id: 5,
+        name: "Member",
+        email: "member@example.com",
+        phone_number: "+15550000000",
+      },
+      isAdmin: false,
+      activePoll: null,
+      topRestaurants: [],
+      topDates: [],
+      nextEvent: null,
+      userRsvp: null,
+      content: [],
+      restaurants: [
+        {
+          id: 1,
+          created_by: 5,
+          name: "Alpha Steakhouse",
+          address: "1 Main St, Brooklyn, NY 11201, USA",
+          google_rating: 4.5,
+          price_level: 3,
+          photo_url: null,
+          google_maps_url: "https://maps.google.com/?q=alpha",
+          opening_hours: null,
+          suggested_by_name: "Alice",
+        },
+      ],
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    const row = screen.getByRole("button", { name: "View details for Alpha Steakhouse" });
+    expect(row).toHaveAttribute("tabIndex", "0");
+
+    fireEvent.keyDown(row, { key: "Enter" });
+    expect(await screen.findByRole("link", { name: "View on Google Maps →" })).toBeInTheDocument();
+
+    // Close and re-open with Space to confirm both activation keys work
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.keyDown(row, { key: " " });
+    expect(await screen.findByRole("link", { name: "View on Google Maps →" })).toBeInTheDocument();
+  });
+
   it("hides the restaurants table when empty but keeps the Add Restaurant CTA", () => {
     window.localStorage.setItem("hasVisitedDashboard", "true");
     fetcherState.data = null;

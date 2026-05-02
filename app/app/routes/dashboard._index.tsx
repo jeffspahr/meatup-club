@@ -705,7 +705,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             <div>
               <h2 className="text-xl font-display font-semibold text-foreground">Restaurants</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                The collection — click a row for details.
+                The collection — select a row for details.
               </p>
             </div>
           </div>
@@ -738,22 +738,31 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 <tbody className="divide-y divide-border/30">
                   {restaurants.map((r) => {
                     const cityState = parseCityState(r.address);
+                    const openDetails = () =>
+                      setSelectedRestaurant({
+                        id: r.id,
+                        created_by: r.created_by,
+                        name: r.name,
+                        address: r.address,
+                        photo_url: r.photo_url,
+                        google_maps_url: r.google_maps_url,
+                        opening_hours: r.opening_hours,
+                        suggested_by_name: r.suggested_by_name,
+                      });
                     return (
                       <tr
                         key={r.id}
-                        onClick={() =>
-                          setSelectedRestaurant({
-                            id: r.id,
-                            created_by: r.created_by,
-                            name: r.name,
-                            address: r.address,
-                            photo_url: r.photo_url,
-                            google_maps_url: r.google_maps_url,
-                            opening_hours: r.opening_hours,
-                            suggested_by_name: r.suggested_by_name,
-                          })
-                        }
-                        className="hover:bg-muted/20 cursor-pointer transition-colors"
+                        onClick={openDetails}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openDetails();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View details for ${r.name}`}
+                        className="hover:bg-muted/20 focus:bg-muted/20 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
                       >
                         <td className="px-4 py-3 font-medium text-foreground">{r.name}</td>
                         <td className="px-4 py-3 text-muted-foreground">
