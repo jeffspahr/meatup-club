@@ -11,7 +11,6 @@ export type AuthUser = {
   is_admin: number;
   status: string;
   requires_reauth: number;
-  notify_comment_replies: number;
   notify_poll_updates: number;
   notify_event_updates: number;
   phone_number: string | null;

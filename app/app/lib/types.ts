@@ -9,7 +9,6 @@
 // Re-export types that already live in their own modules
 export type { AuthUser } from "./auth.server";
 export type { Restaurant, RestaurantWithVotes } from "./restaurants.server";
-export type { Comment, CommentableType } from "./comments.server";
 export type { ActivityType, LogActivityParams } from "./activity.server";
 
 // ─── Event ──────────────────────────────────────────────────────────────────

@@ -1,7 +1,6 @@
 import { Link, useFetcher, useNavigation } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
-import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import {
   formatDateForDisplay,
@@ -50,27 +49,15 @@ import { parseCityState } from "../lib/addressUtils";
 import { confirmAction } from "../lib/confirm.client";
 import {
   DevicePhoneMobileIcon,
-  BookOpenIcon,
-  RocketLaunchIcon,
   ClipboardDocumentListIcon,
-  UserGroupIcon,
-  ShieldCheckIcon,
   ClipboardDocumentCheckIcon,
   MapPinIcon,
   CalendarDaysIcon,
   BuildingStorefrontIcon,
-  Cog6ToothIcon,
   BugAntIcon,
   LightBulbIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
-
-interface SiteContentItem {
-  id: number;
-  key: string;
-  title: string;
-  content: string;
-}
 
 interface ActivePollRow {
   id: number;
@@ -138,14 +125,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   // Phase 1: queries that don't depend on each other.
   const [
-    contentResult,
     activePoll,
     previousPollsResult,
     allEventsResult,
     allMembersResult,
     restaurantsResult,
   ] = await Promise.all([
-    db.prepare('SELECT * FROM site_content ORDER BY id ASC').all(),
     db
       .prepare('SELECT * FROM polls WHERE status = ? ORDER BY created_at DESC LIMIT 1')
       .bind('active')
@@ -340,7 +325,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     previousPolls,
     upcomingEvents: upcomingEvents as EventCard[],
     pastEvents,
-    content: (contentResult.results || []) as unknown as SiteContentItem[],
     restaurants,
   };
 }
@@ -646,11 +630,8 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
     previousPolls,
     upcomingEvents,
     pastEvents,
-    content,
     restaurants,
   } = loaderData;
-  const firstName = user.name?.split(' ')[0] || 'Friend';
-  const [showContent, setShowContent] = useState(false);
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
   const [showAddRestaurant, setShowAddRestaurant] = useState(false);
   const [showPastPolls, setShowPastPolls] = useState(false);
@@ -673,7 +654,6 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   const eventError = actionData && 'error' in actionData ? actionData.error : null;
   const navigation = useNavigation();
   const submittedEventActionRef = useRef<string | null>(null);
-  const quickActionsGridClass = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
 
   function isUpcomingEvent(eventId: number) {
     return upcomingEvents.some((event) => event.id === eventId);
@@ -788,15 +768,6 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
     setSelectedRestaurant(null);
   }
 
-  // Show content expanded on first visit
-  useEffect(() => {
-    const hasVisitedDashboard = localStorage.getItem('hasVisitedDashboard');
-    if (!hasVisitedDashboard) {
-      setShowContent(true);
-      localStorage.setItem('hasVisitedDashboard', 'true');
-    }
-  }, []);
-
   useEffect(() => {
     if (user.phone_number) {
       return;
@@ -850,19 +821,17 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
   return (
     <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Hero Section */}
-      <div className="mb-12 dashboard-hero">
-        <div className="dashboard-kicker inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] mb-6">
-          <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-          Quarterly Meetup Hub
-        </div>
-        <h1 className="dashboard-hero-title text-4xl sm:text-5xl lg:text-6xl tracking-tight">
-          Welcome{firstName !== 'Friend' ? `, ${firstName}` : ''}
+      <header
+        className="mb-8 dashboard-section"
+        style={{ '--section-delay': '20ms' } as CSSProperties}
+      >
+        <h1 className="text-3xl sm:text-4xl font-display font-semibold text-foreground">
+          Meatup Club
         </h1>
-        <p className="dashboard-hero-subtitle mt-4 text-lg text-muted-foreground">
-          Everything you need to plan the next steakhouse meetup.
+        <p className="mt-2 text-lg text-muted-foreground">
+          No vegans.
         </p>
-      </div>
+      </header>
 
       {/* SMS Prompt */}
       {showSmsPrompt && (
@@ -899,67 +868,6 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         </Card>
       )}
 
-      {/* Site Content Section */}
-      {content.length > 0 && (
-        <Card
-          className="mb-8 p-6 sm:p-8 dashboard-section"
-          style={{ '--section-delay': '80ms' } as CSSProperties}
-        >
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-4">
-              <span className="icon-container-lg"><BuildingStorefrontIcon className="w-6 h-6" /></span>
-              <div>
-                <h2 className="text-xl font-display font-semibold text-foreground">
-                  About Meatup.Club
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Everything you need to know about our quarterly steakhouse adventures.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowContent(!showContent)}
-              className="btn-ghost"
-            >
-              {showContent ? 'Hide' : 'Show'} Details
-            </button>
-          </div>
-
-          {showContent && (
-            <div className="space-y-4 mt-8 pt-6 border-t border-border/30">
-              {content.map((item) => (
-                <Card key={item.id} className="p-5 bg-muted/30">
-                  <h3 className="text-base font-semibold text-foreground mb-3 flex items-center gap-3">
-                    <span className="w-5 h-5 text-accent">
-                      {item.key === 'description' && <BookOpenIcon className="w-5 h-5" />}
-                      {item.key === 'goals' && <RocketLaunchIcon className="w-5 h-5" />}
-                      {item.key === 'guidelines' && <ClipboardDocumentListIcon className="w-5 h-5" />}
-                      {item.key === 'membership' && <UserGroupIcon className="w-5 h-5" />}
-                      {item.key === 'safety' && <ShieldCheckIcon className="w-5 h-5" />}
-                    </span>
-                    {item.title}
-                  </h3>
-                  <div className="prose prose-sm max-w-none text-foreground/80">
-                    <ReactMarkdown
-                      components={{
-                        ul: ({ children }) => <ul className="space-y-1 list-disc ml-6">{children}</ul>,
-                        ol: ({ children }) => <ol className="space-y-1 list-decimal ml-6">{children}</ol>,
-                        li: ({ children }) => <li className="text-foreground/80">{children}</li>,
-                        p: ({ children }) => <p className="mb-2">{children}</p>,
-                        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
-                        em: ({ children }) => <em className="italic">{children}</em>,
-                        h3: ({ children }) => <h3 className="text-base font-semibold mb-1 text-foreground">{children}</h3>,
-                      }}
-                    >
-                      {item.content}
-                    </ReactMarkdown>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
 
       {/* Upcoming Events */}
       <Card
@@ -1150,31 +1058,6 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             )}
           </div>
         </Card>
-      )}
-
-      {/* Quick Actions */}
-      {isAdmin && (
-        <div
-          className="mb-12 dashboard-section"
-          style={{ '--section-delay': '200ms' } as CSSProperties}
-        >
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-            <h2 className="text-xl font-display font-semibold text-foreground">Quick Actions</h2>
-            <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
-          </div>
-          <div className={quickActionsGridClass}>
-            <Link to="/dashboard/admin">
-              <Card hover className="card-glow p-6 h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container"><Cog6ToothIcon className="w-5 h-5" /></span>
-                  <Badge variant="muted">Admin</Badge>
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Admin Panel</h3>
-                <p className="mt-2 text-sm text-muted-foreground">Manage polls, events, and members</p>
-              </Card>
-            </Link>
-          </div>
-        </div>
       )}
 
       {/* Restaurants Section */}
@@ -1396,13 +1279,10 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         style={{ '--section-delay': '240ms' } as CSSProperties}
       >
         <div className="divider-accent mb-10" />
-        <Card className="p-8 text-center">
-          <h3 className="text-xl font-display font-semibold text-foreground mb-3">
+        <Card className="p-6 text-center">
+          <h3 className="text-xl font-display font-semibold text-foreground mb-4">
             Have feedback or found a bug?
           </h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Help us improve Meatup.Club by reporting issues or suggesting new features
-          </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <a
               href="https://github.com/jeffspahr/meatup-club/issues/new?template=bug_report.md"
