@@ -271,6 +271,42 @@ describe("dashboard.admin.polls loader and UI", () => {
     );
   });
 
+  it("renders a close-only form when an active poll has no winners", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/polls"]}>
+        <AdminPollsPage
+          {...(({
+            loaderData: {
+              activePoll: {
+                id: 10,
+                title: "June Poll",
+                created_at: "2026-05-01T00:00:00.000Z",
+              },
+              topRestaurant: null,
+              topDate: null,
+              allRestaurants: [],
+              allDates: [],
+              closedPolls: [],
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("June Poll")).toBeInTheDocument();
+    expect(screen.getByTestId("vote-leaders-card")).toHaveTextContent("no-restaurant");
+    expect(screen.getByText("No winners yet. Closing this poll will not create an event.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Poll Without Winners" })).toBeInTheDocument();
+    expect(document.querySelector('input[name="_action"]')).toHaveValue("close");
+    expect(document.querySelector('input[name="poll_id"]')).toHaveValue("10");
+    expect(document.querySelector('select[name="winning_restaurant_id"]')).toBeNull();
+    expect(document.querySelector('select[name="winning_date_id"]')).toBeNull();
+    expect(screen.queryByLabelText("Create event from winners")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Send calendar invites to all members")).not.toBeInTheDocument();
+    expect(document.querySelector('input[name="event_time"]')).toBeNull();
+  });
+
   it("renders the create-poll form and empty history state when no poll is active", () => {
     render(
       <MemoryRouter initialEntries={["/dashboard/admin/polls"]}>
