@@ -38,9 +38,11 @@ export function DoodleView({
     setIsMounted(true);
   }, []);
 
-  // Don't render anything during SSR
+  // SSR / pre-hydration: reserve space so the layout doesn't shift when the
+  // grid pops in. Filtering depends on the user's local timezone, which we
+  // can only resolve client-side.
   if (!isMounted) {
-    return null;
+    return <div className="min-h-[12rem]" aria-hidden />;
   }
 
   // Filter dates based on user's local timezone (client-side only)
@@ -98,7 +100,7 @@ export function DoodleView({
   const displayedDates = showAll ? votedDates : popularDates;
 
   return (
-    <div className="mt-6">
+    <div>
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-foreground">Availability Grid</h4>
         {hasHiddenDates && (

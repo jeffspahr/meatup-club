@@ -5,6 +5,7 @@ import DashboardPage, { HydrateFallback } from "./dashboard._index";
 import type { Route } from "./+types/dashboard._index";
 
 const fetcherSubmit = vi.fn();
+const submitMock = vi.fn();
 const fetcherState: { data: { error?: string; ok?: true } | null } = { data: null };
 
 vi.mock("react-router", async () => {
@@ -20,6 +21,7 @@ vi.mock("react-router", async () => {
         <form {...props}>{children}</form>
       ),
     }),
+    useSubmit: () => submitMock,
   };
 });
 
@@ -89,7 +91,10 @@ describe("dashboard._index UI", () => {
         { name: "Prime Steakhouse", vote_count: 2 },
         { name: "Oak Room", vote_count: 2 },
       ],
-      topDates: [{ suggested_date: "2026-05-20", vote_count: 3 }],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
       nextEvent: {
         id: 11,
         restaurant_name: "Prime Steakhouse",
@@ -115,11 +120,9 @@ describe("dashboard._index UI", () => {
     expect(window.localStorage.getItem("hasVisitedDashboard")).toBe("true");
 
     expect(screen.getByText("Tied: Prime Steakhouse, Oak Room")).toBeInTheDocument();
-    expect(screen.getByText("formatted:2026-05-20")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Vote on this poll →" })).toHaveAttribute(
-      "href",
-      "/dashboard/polls",
-    );
+    expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Vote on Dates" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Vote on Restaurants" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Set RSVP →" })).toHaveAttribute(
       "href",
       "/dashboard/events"
@@ -149,7 +152,10 @@ describe("dashboard._index UI", () => {
       isAdmin: true,
       activePoll: null,
       topRestaurants: [],
-      topDates: [],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
       nextEvent: {
         id: 12,
         restaurant_name: "Future House",
@@ -201,7 +207,10 @@ describe("dashboard._index UI", () => {
       isAdmin: false,
       activePoll: null,
       topRestaurants: [],
-      topDates: [],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
       nextEvent: null,
       userRsvp: null,
       content: [],
@@ -297,7 +306,10 @@ describe("dashboard._index UI", () => {
       isAdmin: false,
       activePoll: null,
       topRestaurants: [],
-      topDates: [],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
       nextEvent: null,
       userRsvp: null,
       content: [],
