@@ -71,7 +71,6 @@ describe("dashboard.profile route", () => {
       email: "user@example.com",
       name: "User",
       picture: "https://example.com/user.jpg",
-      notify_comment_replies: 1,
       notify_poll_updates: 0,
       notify_event_updates: 1,
       phone_number: null,
@@ -104,7 +103,6 @@ describe("dashboard.profile route", () => {
     const result = await action({
       request: createRequest({
         _action: "update_notifications",
-        notify_comment_replies: "on",
         notify_event_updates: "on",
       }),
       context: { cloudflare: { env: { DB: db } } } as never,
@@ -114,8 +112,8 @@ describe("dashboard.profile route", () => {
     expect(result).toEqual({ success: "Notification preferences updated successfully" });
     expect(db.runCalls).toEqual([
       expect.objectContaining({
-        sql: expect.stringContaining("UPDATE users SET notify_comment_replies = ?"),
-        bindArgs: [1, 0, 1, 123],
+        sql: expect.stringContaining("UPDATE users SET notify_poll_updates = ?"),
+        bindArgs: [0, 1, 123],
       }),
     ]);
   });

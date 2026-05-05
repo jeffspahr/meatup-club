@@ -94,21 +94,6 @@ vi.mock("../components/AddRestaurantModal", () => ({
     ) : null,
 }));
 
-vi.mock("../components/CommentSection", () => ({
-  CommentSection: ({
-    comments,
-    placeholder,
-  }: {
-    comments: unknown[];
-    placeholder: string;
-  }) => (
-    <div>
-      <p>{placeholder}</p>
-      <p>Comment count: {comments.length}</p>
-    </div>
-  ),
-}));
-
 function renderPolls(
   loaderData: Route.ComponentProps["loaderData"],
   actionData?: Route.ComponentProps["actionData"]
@@ -143,7 +128,6 @@ describe("dashboard.polls UI", () => {
           },
         ],
         dateVotes: [],
-        comments: [],
         currentUser: { id: 123, isAdmin: false },
       } as unknown as Route.ComponentProps["loaderData"],
       { error: "Invalid action" } as Route.ComponentProps["actionData"]
@@ -155,10 +139,9 @@ describe("dashboard.polls UI", () => {
     expect(screen.getByText("Closed formatted-datetime:2026-04-01T12:00:00.000Z")).toBeInTheDocument();
     expect(screen.getByText("Prime Steakhouse")).toBeInTheDocument();
     expect(screen.getByText("formatted-date:2026-04-20")).toBeInTheDocument();
-    expect(screen.queryByText("Share your thoughts about this poll...")).not.toBeInTheDocument();
   });
 
-  it("submits date, doodle, restaurant, and comment-section route interactions for an active poll", () => {
+  it("submits date, doodle, and restaurant route interactions for an active poll", () => {
     renderPolls({
       dateSuggestions: [
         {
@@ -192,6 +175,17 @@ describe("dashboard.polls UI", () => {
           suggested_by_email: "alex@example.com",
           photo_url: "https://images.example.com/prime.jpg",
         },
+        {
+          id: 57,
+          name: "Oak Room",
+          address: "456 Elm St",
+          cuisine: "Steakhouse",
+          vote_count: 1,
+          user_has_voted: 0,
+          suggested_by_name: "Sam",
+          suggested_by_email: "sam@example.com",
+          photo_url: null,
+        },
       ],
       activePoll: {
         id: 12,
@@ -200,13 +194,10 @@ describe("dashboard.polls UI", () => {
       },
       previousPolls: [],
       dateVotes: [{ date_suggestion_id: 21, user_id: 123 }],
-      comments: [{ id: 1, content: "Looks good", replies: [] }],
       currentUser: { id: 123, isAdmin: false },
     } as unknown as Route.ComponentProps["loaderData"]);
 
     expect(screen.getByText("Pick the next meetup")).toBeInTheDocument();
-    expect(screen.getByText("Share your thoughts about this poll...")).toBeInTheDocument();
-    expect(screen.getByText("Comment count: 1")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Calendar new date" }));
     fireEvent.click(screen.getByRole("button", { name: "Calendar add vote" }));
@@ -217,9 +208,14 @@ describe("dashboard.polls UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /\+ Add Restaurant/i }));
     fireEvent.click(screen.getByRole("button", { name: "Modal submit" }));
-    fireEvent.click(screen.getByText("Prime Steakhouse"));
 
-    expect(submitSpy).toHaveBeenCalledTimes(8);
+    fireEvent.change(screen.getByLabelText("Your vote"), { target: { value: "57" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit Vote" }));
+
+    fireEvent.change(screen.getByLabelText("Your vote"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Vote" }));
+
+    expect(submitSpy).toHaveBeenCalledTimes(9);
     expect((submitSpy.mock.calls[0][0] as FormData).get("_action")).toBe("suggest_date");
     expect((submitSpy.mock.calls[0][0] as FormData).get("suggested_date")).toBe("2026-06-10");
     expect((submitSpy.mock.calls[1][0] as FormData).get("_action")).toBe("vote_date");
@@ -239,6 +235,7 @@ describe("dashboard.polls UI", () => {
     expect((submitSpy.mock.calls[6][0] as FormData).get("_action")).toBe("suggest_restaurant");
     expect((submitSpy.mock.calls[6][0] as FormData).get("place_id")).toBe("place-123");
     expect((submitSpy.mock.calls[7][0] as FormData).get("_action")).toBe("vote_restaurant");
-    expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("55");
+    expect((submitSpy.mock.calls[7][0] as FormData).get("suggestion_id")).toBe("57");
+    expect((submitSpy.mock.calls[8][0] as FormData).get("_action")).toBe("unvote_restaurant");
   });
 });

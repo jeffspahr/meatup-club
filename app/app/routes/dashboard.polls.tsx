@@ -1,5 +1,5 @@
-import { Form, Link, isRouteErrorResponse, redirect, useSubmit } from "react-router";
-import { useState } from "react";
+import { Link, isRouteErrorResponse, redirect, useSubmit } from "react-router";
+import { useEffect, useState } from "react";
 import type { Route } from "./+types/dashboard.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { formatDateForDisplay, formatDateTimeForDisplay } from "../lib/dateUtils";
@@ -8,7 +8,6 @@ import { DoodleView } from "../components/DoodleView";
 import { AddRestaurantModal } from "../components/AddRestaurantModal";
 import { isDateInPastUTC } from "../lib/dateUtils";
 import { logActivity } from "../lib/activity.server";
-import { getComments, createComment, deleteComment } from "../lib/comments.server";
 import {
   getRestaurantsForPoll,
   createRestaurant,
@@ -17,8 +16,7 @@ import {
   removeVote,
   deleteRestaurant,
 } from "../lib/restaurants.server";
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, UserAvatar } from "../components/ui";
-import { CommentSection } from "../components/CommentSection";
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 import type { Poll } from "../lib/types";
 import { normalizeRestaurantPhotoUrl } from "../lib/restaurant-photo-url";
 
@@ -126,11 +124,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .bind(activePoll?.id || -1)
     .all();
 
-  // Get comments for active poll
-  const comments = activePoll
-    ? await getComments(db, 'poll', activePoll.id)
-    : [];
-
   const dateSuggestions = (dateSuggestionsResult.results || []) as unknown as PollDateSuggestion[];
   const dateVotes = (dateVotesResult.results || []) as unknown as PollDateVote[];
 
@@ -140,7 +133,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     activePoll: activePoll || null,
     previousPolls: previousPollsResult.results || [],
     dateVotes,
-    comments,
     currentUser: {
       id: user.id,
       isAdmin: user.is_admin === 1,
@@ -365,37 +357,37 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Restaurant ID is required' };
     }
 
-    // Check if user already voted for this restaurant
+    // Track whether this is a change (for activity log) without toggling.
     const existingVote = await db
       .prepare('SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
       .bind(activePoll.id, user.id)
       .first();
 
-    if (existingVote && existingVote.restaurant_id === parseInt(restaurantId as string)) {
-      // Unvote - user clicked the same restaurant
-      await removeVote(db, activePoll.id, user.id);
+    await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
 
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: 'unvote_restaurant',
-        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id },
-        route: '/dashboard/polls',
-        request,
-      });
-    } else {
-      // New vote or change vote (voteForRestaurant replaces existing vote)
-      await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'vote_restaurant',
+      actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
+      route: '/dashboard/polls',
+      request,
+    });
 
-      await logActivity({
-        db,
-        userId: user.id,
-        actionType: 'vote_restaurant',
-        actionDetails: { restaurant_id: restaurantId, poll_id: activePoll.id, changed: !!existingVote },
-        route: '/dashboard/polls',
-        request,
-      });
-    }
+    return redirect('/dashboard/polls');
+  }
+
+  if (action === 'unvote_restaurant') {
+    await removeVote(db, activePoll.id, user.id);
+
+    await logActivity({
+      db,
+      userId: user.id,
+      actionType: 'unvote_restaurant',
+      actionDetails: { poll_id: activePoll.id },
+      route: '/dashboard/polls',
+      request,
+    });
 
     return redirect('/dashboard/polls');
   }
@@ -431,123 +423,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     return redirect('/dashboard/polls');
   }
 
-  // COMMENT ACTIONS
-  if (action === 'add_comment') {
-    const content = formData.get('content');
-    const parentId = formData.get('parent_id');
-
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return { error: 'Comment content is required' };
-    }
-
-    if (content.length > 1000) {
-      return { error: 'Comment must be less than 1000 characters' };
-    }
-
-    await createComment(
-      db,
-      user.id,
-      'poll',
-      activePoll.id,
-      content.trim(),
-      parentId ? Number(parentId) : null
-    );
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'comment',
-      actionDetails: { type: 'poll', poll_id: activePoll.id },
-      route: '/dashboard/polls',
-      request,
-    });
-
-    // Send notification if this is a reply
-    if (parentId) {
-      const { sendCommentReplyEmail } = await import('../lib/email.server');
-
-      // Get the parent comment and its author
-      const parentComment = await db
-        .prepare(`
-          SELECT c.*, u.email, u.name, u.notify_comment_replies
-          FROM comments c
-          JOIN users u ON c.user_id = u.id
-          WHERE c.id = ?
-        `)
-        .bind(Number(parentId))
-        .first();
-
-      // Send email if parent author wants notifications and isn't replying to themselves
-      if (
-        parentComment &&
-        parentComment.notify_comment_replies === 1 &&
-        parentComment.user_id !== user.id
-      ) {
-        const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
-        const url = new URL(request.url);
-        const pollUrl = `${url.origin}/dashboard/polls`;
-
-        // Use waitUntil to handle async work properly in Cloudflare Workers
-        const emailPromise = sendCommentReplyEmail({
-          to: parentComment.email as string,
-          recipientName: parentComment.name as string | null,
-          replierName: user.name || user.email,
-          originalComment: parentComment.content as string,
-          replyContent: content.trim(),
-          pollUrl,
-          resendApiKey: resendApiKey || "",
-        }).catch(err => {
-          console.error('Failed to send comment reply email:', err);
-          throw err;
-        });
-
-        // Use waitUntil if available, otherwise await
-        if (context.cloudflare.ctx?.waitUntil) {
-          context.cloudflare.ctx.waitUntil(emailPromise);
-        } else {
-          await emailPromise;
-        }
-      }
-    }
-
-    return redirect('/dashboard/polls');
-  }
-
-  if (action === 'delete_comment') {
-    const commentId = formData.get('comment_id');
-
-    if (!commentId) {
-      return { error: 'Comment ID is required' };
-    }
-
-    const success = await deleteComment(
-      db,
-      parseInt(commentId as string),
-      user.id,
-      user.is_admin === 1
-    );
-
-    if (!success) {
-      return { error: 'Permission denied or comment not found' };
-    }
-
-    await logActivity({
-      db,
-      userId: user.id,
-      actionType: 'delete_comment',
-      actionDetails: { comment_id: commentId },
-      route: '/dashboard/polls',
-      request,
-    });
-
-    return redirect('/dashboard/polls');
-  }
-
   return { error: 'Invalid action' };
 }
 
 export default function PollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, comments, currentUser } = loaderData;
+  const { dateSuggestions, restaurantSuggestions, activePoll, previousPolls, dateVotes, currentUser } = loaderData;
   const submit = useSubmit();
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
 
@@ -599,6 +479,12 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
     const formData = new FormData();
     formData.append('_action', 'vote_restaurant');
     formData.append('suggestion_id', suggestionId.toString());
+    submit(formData, { method: 'post' });
+  }
+
+  function handleRestaurantUnvote() {
+    const formData = new FormData();
+    formData.append('_action', 'unvote_restaurant');
     submit(formData, { method: 'post' });
   }
 
@@ -667,7 +553,7 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 <div>
                   <h3 className="text-xl font-semibold text-foreground">Vote on Restaurants</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    You can vote for one restaurant. Click again to change or remove your vote.
+                    Pick a restaurant from the list and submit your vote.
                   </p>
                 </div>
                 <Button onClick={() => setShowRestaurantModal(true)}>
@@ -675,7 +561,6 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 </Button>
               </div>
 
-              {/* Restaurant Modal */}
               <AddRestaurantModal
                 isOpen={showRestaurantModal}
                 onClose={() => setShowRestaurantModal(false)}
@@ -683,56 +568,11 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
                 title="Search for a Restaurant"
               />
 
-              {/* Restaurant Suggestions List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {restaurantSuggestions.map((suggestion: any) => (
-                  <div
-                    key={suggestion.id}
-                    className={`border-2 rounded-lg p-4 transition-all cursor-pointer ${
-                      suggestion.user_has_voted > 0
-                        ? 'border-accent bg-accent/10'
-                        : 'border-border hover:border-accent'
-                    }`}
-                    onClick={() => handleRestaurantVote(suggestion.id)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-lg text-foreground">{suggestion.name}</h4>
-                        {suggestion.address && (
-                          <p className="text-sm text-muted-foreground">{suggestion.address}</p>
-                        )}
-                        {suggestion.cuisine && (
-                          <span className="text-xs text-muted-foreground">{suggestion.cuisine}</span>
-                        )}
-                      </div>
-                      {suggestion.photo_url && (
-                        <img
-                          src={suggestion.photo_url}
-                          alt={suggestion.name}
-                          className="w-16 h-16 object-cover rounded ml-2"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                      <span className="text-sm text-muted-foreground">
-                        {suggestion.vote_count} {suggestion.vote_count === 1 ? 'vote' : 'votes'}
-                        {suggestion.user_has_voted > 0 && ' · You voted'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        by {suggestion.suggested_by_name || suggestion.suggested_by_email}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {restaurantSuggestions.length === 0 && (
-                <EmptyState
-                  title="No restaurant suggestions yet"
-                  description="Be the first to suggest one!"
-                />
-              )}
+              <RestaurantVotePicker
+                suggestions={restaurantSuggestions}
+                onVote={handleRestaurantVote}
+                onUnvote={handleRestaurantUnvote}
+              />
             </div>
           </Card>
         </div>
@@ -740,15 +580,6 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
         <EmptyState
           title="No active poll at the moment"
           description="Check back soon!"
-        />
-      )}
-
-      {/* Comments Section */}
-      {activePoll && (
-        <CommentSection
-          comments={comments}
-          currentUser={currentUser}
-          placeholder="Share your thoughts about this poll..."
         />
       )}
 
@@ -785,6 +616,79 @@ export default function PollsPage({ loaderData, actionData }: Route.ComponentPro
         </div>
       )}
     </main>
+  );
+}
+
+interface RestaurantVotePickerProps {
+  suggestions: Array<{
+    id: number;
+    name: string;
+    vote_count: number;
+    user_has_voted: number;
+  }>;
+  onVote: (suggestionId: number) => void;
+  onUnvote: () => void;
+}
+
+function RestaurantVotePicker({ suggestions, onVote, onUnvote }: RestaurantVotePickerProps) {
+  const sorted = [...suggestions].sort((a, b) => a.name.localeCompare(b.name));
+  const currentVote = sorted.find((s) => s.user_has_voted > 0) ?? null;
+  const [selectedId, setSelectedId] = useState<string>(currentVote ? String(currentVote.id) : '');
+
+  // Keep dropdown in sync with the loader's view of the current vote after submit.
+  useEffect(() => {
+    setSelectedId(currentVote ? String(currentVote.id) : '');
+  }, [currentVote?.id]);
+
+  if (sorted.length === 0) {
+    return (
+      <EmptyState
+        title="No restaurants yet"
+        description="Add a restaurant from the dashboard to start voting."
+      />
+    );
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selectedId) {
+      onUnvote();
+      return;
+    }
+    onVote(parseInt(selectedId, 10));
+  }
+
+  const isUnchanged = selectedId === (currentVote ? String(currentVote.id) : '');
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <label htmlFor="restaurant-vote" className="block text-sm font-medium text-foreground">
+        Your vote
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          id="restaurant-vote"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          className="flex-1 min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+        >
+          <option value="">— No vote —</option>
+          {sorted.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.vote_count} {s.vote_count === 1 ? 'vote' : 'votes'})
+            </option>
+          ))}
+        </select>
+        <Button type="submit" disabled={isUnchanged}>
+          {selectedId ? 'Submit Vote' : 'Remove Vote'}
+        </Button>
+      </div>
+      {currentVote && (
+        <p className="text-sm text-muted-foreground">
+          Current vote: <span className="font-medium text-foreground">{currentVote.name}</span>
+        </p>
+      )}
+    </form>
   );
 }
 
