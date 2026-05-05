@@ -126,6 +126,8 @@ describe("dashboard._index UI", () => {
       await screen.findByText("Get SMS reminders + RSVP by text")
     ).toBeInTheDocument();
 
+    expect(screen.getByRole("heading", { name: "Meatup Club" })).toBeInTheDocument();
+    expect(screen.getByText("No vegans.")).toBeInTheDocument();
     expect(screen.getByText("Tied: Prime Steakhouse, Oak Room")).toBeInTheDocument();
     expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Dates" })).toBeInTheDocument();
@@ -259,10 +261,12 @@ describe("dashboard._index UI", () => {
       isAdmin: false,
       activePoll: null,
       topRestaurants: [],
-      topDates: [],
-      nextEvent: null,
-      userRsvp: null,
-      content: [],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
+      upcomingEvents: [],
+      pastEvents: [],
       restaurants: [
         {
           id: 1,

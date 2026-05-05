@@ -821,6 +821,18 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
   return (
     <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <header
+        className="mb-8 dashboard-section"
+        style={{ '--section-delay': '20ms' } as CSSProperties}
+      >
+        <h1 className="text-3xl sm:text-4xl font-display font-semibold text-foreground">
+          Meatup Club
+        </h1>
+        <p className="mt-2 text-lg text-muted-foreground">
+          No vegans.
+        </p>
+      </header>
+
       {/* SMS Prompt */}
       {showSmsPrompt && (
         <Card
