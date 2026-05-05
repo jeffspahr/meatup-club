@@ -1,8 +1,8 @@
-import { Link, useFetcher } from "react-router";
+import { Link, useFetcher, useNavigation } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import {
   formatDateForDisplay,
   formatDateTimeForDisplay,
@@ -17,6 +17,8 @@ import { RestaurantDetailModal, type RestaurantDetail } from "../components/Rest
 import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { RestaurantVotePicker } from "../components/RestaurantVotePicker";
+import { CreateEventForm } from "../components/CreateEventForm";
+import { UpcomingEventCard } from "../components/UpcomingEventCard";
 import {
   createRestaurant,
   deleteRestaurant,
@@ -25,6 +27,23 @@ import {
   removeVote,
   voteForRestaurant,
 } from "../lib/restaurants.server";
+import { canEditEvent } from "../lib/events.server";
+import {
+  runCreateEventAction,
+  runRsvpEventAction,
+  runUpdateEventAction,
+} from "../lib/event-actions.server";
+import {
+  EMPTY_EVENT_FORM,
+  getCreatorLabel,
+  sortEventsBySchedule,
+  toEditableState,
+  type EventCard,
+  type EventFormState,
+  type EventMemberRow,
+  type EventRow as EventLoaderRow,
+} from "../lib/events-shared";
+import type { RsvpWithUser } from "../lib/types";
 import { logActivity } from "../lib/activity.server";
 import { normalizeRestaurantPhotoUrl } from "../lib/restaurant-photo-url";
 import { parseCityState } from "../lib/addressUtils";
@@ -38,9 +57,8 @@ import {
   ShieldCheckIcon,
   ClipboardDocumentCheckIcon,
   MapPinIcon,
-  HandRaisedIcon,
+  CalendarDaysIcon,
   BuildingStorefrontIcon,
-  TicketIcon,
   Cog6ToothIcon,
   BugAntIcon,
   LightBulbIcon,
@@ -99,18 +117,6 @@ interface TopRestaurantRow {
   vote_count: number;
 }
 
-interface EventRow {
-  id: number;
-  restaurant_name: string;
-  event_date: string;
-  event_time: string | null;
-  status: string;
-}
-
-interface UserRsvpRow {
-  status: "yes" | "no" | "maybe";
-}
-
 interface RestaurantRow {
   id: number;
   created_by: number;
@@ -135,7 +141,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     contentResult,
     activePoll,
     previousPollsResult,
-    eventsForNext,
+    allEventsResult,
+    allMembersResult,
     restaurantsResult,
   ] = await Promise.all([
     db.prepare('SELECT * FROM site_content ORDER BY id ASC').all(),
@@ -160,8 +167,19 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       `)
       .all(),
     db
-      .prepare('SELECT * FROM events WHERE status != ? ORDER BY event_date ASC')
-      .bind('cancelled')
+      .prepare(`
+        SELECT
+          e.*,
+          u.name as creator_name,
+          u.email as creator_email
+        FROM events e
+        LEFT JOIN users u ON e.created_by = u.id
+        ORDER BY e.event_date DESC
+      `)
+      .all(),
+    db
+      .prepare('SELECT id, name, email, picture FROM users WHERE status = ? ORDER BY name ASC')
+      .bind('active')
       .all(),
     db
       .prepare(`
@@ -184,60 +202,112 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   ]);
 
   const previousPolls = (previousPollsResult.results || []) as unknown as PreviousPollRow[];
-  const eventRows = (eventsForNext.results || []) as unknown as EventRow[];
-  const nextEvent = eventRows.find((event) =>
-    !isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
-  ) || null;
+  const allEventRows = (allEventsResult.results || []) as unknown as EventLoaderRow[];
+  const allMembers = (allMembersResult.results || []) as unknown as EventMemberRow[];
   const restaurants = ((restaurantsResult.results || []) as unknown as RestaurantRow[]).map((r) => ({
     ...r,
     photo_url: normalizeRestaurantPhotoUrl(r.photo_url, request.url),
   }));
 
-  // Phase 2 (parallel): poll-scoped + nextEvent-scoped queries. All independent.
-  const [dateSuggestionsResult, dateVotesResult, pollRestaurantRows, userRsvpRow] = await Promise.all([
-    activePoll
-      ? db
-          .prepare(`
-            SELECT
-              ds.*,
-              u.name as suggested_by_name,
-              u.email as suggested_by_email,
-              (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND poll_id = ?) as vote_count,
-              (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND user_id = ? AND poll_id = ?) as user_has_voted
-            FROM date_suggestions ds
-            JOIN users u ON ds.user_id = u.id
-            WHERE ds.poll_id = ?
-            ORDER BY ds.suggested_date ASC
-          `)
-          .bind(activePoll.id, user.id, activePoll.id, activePoll.id)
-          .all()
-      : Promise.resolve({ results: [] }),
-    activePoll
-      ? db
-          .prepare(`
-            SELECT
-              dv.date_suggestion_id,
-              dv.user_id,
-              ds.suggested_date,
-              u.name as user_name,
-              u.email as user_email
-            FROM date_votes dv
-            JOIN date_suggestions ds ON dv.date_suggestion_id = ds.id
-            JOIN users u ON dv.user_id = u.id
-            WHERE dv.poll_id = ?
-            ORDER BY ds.suggested_date ASC, u.name ASC
-          `)
-          .bind(activePoll.id)
-          .all()
-      : Promise.resolve({ results: [] }),
-    activePoll ? getRestaurantsForPoll(db, activePoll.id, user.id) : Promise.resolve([]),
-    nextEvent
-      ? (db
-          .prepare('SELECT status FROM rsvps WHERE event_id = ? AND user_id = ?')
-          .bind(nextEvent.id, user.id)
-          .first() as Promise<UserRsvpRow | null>)
-      : Promise.resolve(null),
-  ]);
+  const upcomingEventsRaw = sortEventsBySchedule(
+    allEventRows.filter(
+      (event) =>
+        event.status !== 'cancelled' &&
+        !isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
+    ),
+    'asc'
+  ).map((event) => ({
+    ...event,
+    canEdit: canEditEvent(user, event),
+    creatorLabel: getCreatorLabel(event, user.id),
+  }));
+
+  const pastEvents = sortEventsBySchedule(
+    allEventRows.filter(
+      (event) =>
+        event.status === 'cancelled' ||
+        isEventInPastInTimeZone(event.event_date, event.event_time || '18:00', appTimeZone)
+    ),
+    'desc'
+  ).map((event) => ({
+    id: event.id,
+    restaurant_name: event.restaurant_name,
+    event_date: event.event_date,
+    event_time: event.event_time,
+    displayStatus: event.status === 'cancelled' ? ('cancelled' as const) : ('completed' as const),
+  }));
+
+  // Phase 2 (parallel): poll-scoped queries + per-upcoming-event RSVP details.
+  const [dateSuggestionsResult, dateVotesResult, pollRestaurantRows, upcomingEvents] =
+    await Promise.all([
+      activePoll
+        ? db
+            .prepare(`
+              SELECT
+                ds.*,
+                u.name as suggested_by_name,
+                u.email as suggested_by_email,
+                (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND poll_id = ?) as vote_count,
+                (SELECT COUNT(*) FROM date_votes WHERE date_suggestion_id = ds.id AND user_id = ? AND poll_id = ?) as user_has_voted
+              FROM date_suggestions ds
+              JOIN users u ON ds.user_id = u.id
+              WHERE ds.poll_id = ?
+              ORDER BY ds.suggested_date ASC
+            `)
+            .bind(activePoll.id, user.id, activePoll.id, activePoll.id)
+            .all()
+        : Promise.resolve({ results: [] }),
+      activePoll
+        ? db
+            .prepare(`
+              SELECT
+                dv.date_suggestion_id,
+                dv.user_id,
+                ds.suggested_date,
+                u.name as user_name,
+                u.email as user_email
+              FROM date_votes dv
+              JOIN date_suggestions ds ON dv.date_suggestion_id = ds.id
+              JOIN users u ON dv.user_id = u.id
+              WHERE dv.poll_id = ?
+              ORDER BY ds.suggested_date ASC, u.name ASC
+            `)
+            .bind(activePoll.id)
+            .all()
+        : Promise.resolve({ results: [] }),
+      activePoll ? getRestaurantsForPoll(db, activePoll.id, user.id) : Promise.resolve([]),
+      Promise.all(
+        upcomingEventsRaw.map(async (event) => {
+          const [userRsvp, allRsvpsResult] = await Promise.all([
+            db
+              .prepare('SELECT * FROM rsvps WHERE event_id = ? AND user_id = ?')
+              .bind(event.id, user.id)
+              .first(),
+            db
+              .prepare(`
+                SELECT r.*, u.name, u.email, u.picture
+                FROM rsvps r
+                JOIN users u ON r.user_id = u.id
+                WHERE r.event_id = ?
+                ORDER BY r.created_at ASC
+              `)
+              .bind(event.id)
+              .all(),
+          ]);
+
+          const allRsvps = (allRsvpsResult.results || []) as unknown as RsvpWithUser[];
+          const rsvpdUserIds = new Set(allRsvps.map((rsvp) => rsvp.user_id));
+          const notResponded = allMembers.filter((member) => !rsvpdUserIds.has(member.id));
+
+          return {
+            ...event,
+            userRsvp: userRsvp as EventCard['userRsvp'],
+            allRsvps,
+            notResponded,
+          };
+        })
+      ),
+    ]);
 
   const dateSuggestions = (dateSuggestionsResult.results || []) as unknown as PollDateSuggestion[];
   const dateVotes = (dateVotesResult.results || []) as unknown as PollDateVote[];
@@ -248,7 +318,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     user_has_voted:
       typeof r.user_has_voted === 'number' ? r.user_has_voted : r.user_has_voted ? 1 : 0,
   }));
-  const userRsvp = userRsvpRow;
 
   // Derive restaurant leader(s) from already-loaded poll data — no extra query.
   // restaurantSuggestions arrives sorted by vote_count DESC, name ASC.
@@ -269,8 +338,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     dateVotes,
     restaurantSuggestions,
     previousPolls,
-    nextEvent,
-    userRsvp,
+    upcomingEvents: upcomingEvents as EventCard[],
+    pastEvents,
     content: (contentResult.results || []) as unknown as SiteContentItem[],
     restaurants,
   };
@@ -284,6 +353,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const intent = formData.get('_action');
+
+  if (intent === 'event_create' || intent === 'event_update' || intent === 'event_rsvp') {
+    const ctx = {
+      db,
+      queue: context.cloudflare.env.EMAIL_DELIVERY_QUEUE,
+      user,
+      formData,
+      request,
+      route: '/dashboard',
+    };
+
+    if (intent === 'event_create') return runCreateEventAction(ctx);
+    if (intent === 'event_update') return runUpdateEventAction(ctx);
+    return runRsvpEventAction(ctx);
+  }
 
   // Poll-scoped actions need an active poll. Look it up once.
   const pollIntents = new Set([
@@ -550,7 +634,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
-export default function Dashboard({ loaderData }: Route.ComponentProps) {
+export default function Dashboard({ loaderData, actionData }: Route.ComponentProps) {
   const {
     user,
     isAdmin,
@@ -560,8 +644,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     dateVotes,
     restaurantSuggestions,
     previousPolls,
-    nextEvent,
-    userRsvp,
+    upcomingEvents,
+    pastEvents,
     content,
     restaurants,
   } = loaderData;
@@ -570,12 +654,51 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
   const [showAddRestaurant, setShowAddRestaurant] = useState(false);
   const [showPastPolls, setShowPastPolls] = useState(false);
+  const [showPastEvents, setShowPastEvents] = useState(false);
+  const [showCreateEventForm, setShowCreateEventForm] = useState(false);
+  const [createEventData, setCreateEventData] = useState<EventFormState>(EMPTY_EVENT_FORM);
+  const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [expandedEventId, setExpandedEventId] = useState<number | null>(
+    upcomingEvents.length === 1 ? upcomingEvents[0].id : null
+  );
+  const [editEventData, setEditEventData] = useState<{ id: number } & EventFormState>({
+    id: 0,
+    ...EMPTY_EVENT_FORM,
+  });
   const [selectedRestaurant, setSelectedRestaurant] = useState<RestaurantDetail | null>(null);
   const restaurantFetcher = useFetcher<typeof action>();
   const pollFetcher = useFetcher<typeof action>();
   const restaurantError = restaurantFetcher.data && 'error' in restaurantFetcher.data ? restaurantFetcher.data.error : null;
   const pollError = pollFetcher.data && 'error' in pollFetcher.data ? pollFetcher.data.error : null;
+  const eventError = actionData && 'error' in actionData ? actionData.error : null;
+  const navigation = useNavigation();
+  const submittedEventActionRef = useRef<string | null>(null);
   const quickActionsGridClass = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+
+  function isUpcomingEvent(eventId: number) {
+    return upcomingEvents.some((event) => event.id === eventId);
+  }
+
+  function startEditingEvent(event: EventCard) {
+    setEditingEventId(event.id);
+    setEditEventData(toEditableState(event));
+    if (isUpcomingEvent(event.id)) {
+      setExpandedEventId(event.id);
+    }
+  }
+
+  function cancelEditingEvent() {
+    setEditingEventId(null);
+    setEditEventData({ id: 0, ...EMPTY_EVENT_FORM });
+  }
+
+  function toggleUpcomingEvent(eventId: number) {
+    setExpandedEventId((current) => (current === eventId ? null : eventId));
+  }
+
+  function handleEditEventFieldChange(field: keyof EventFormState, value: string) {
+    setEditEventData((current) => ({ ...current, [field]: value }));
+  }
 
   function handleDateClick(dateStr: string) {
     if (!activePoll) return;
@@ -683,6 +806,47 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       setShowSmsPrompt(true);
     }
   }, [user.phone_number]);
+
+  useEffect(() => {
+    if (navigation.state !== 'submitting' || !navigation.formData) {
+      return;
+    }
+    const submittedAction = navigation.formData.get('_action');
+    if (submittedAction === 'event_create' || submittedAction === 'event_update') {
+      submittedEventActionRef.current = String(submittedAction);
+    }
+  }, [navigation.formData, navigation.state]);
+
+  useEffect(() => {
+    if (navigation.state !== 'idle' || !submittedEventActionRef.current) {
+      return;
+    }
+    if (actionData && 'error' in actionData && actionData.error) {
+      submittedEventActionRef.current = null;
+      return;
+    }
+    if (submittedEventActionRef.current === 'event_create') {
+      setShowCreateEventForm(false);
+      setCreateEventData(EMPTY_EVENT_FORM);
+    }
+    if (submittedEventActionRef.current === 'event_update') {
+      cancelEditingEvent();
+    }
+    submittedEventActionRef.current = null;
+  }, [actionData, navigation.state]);
+
+  useEffect(() => {
+    setExpandedEventId((current) => {
+      if (editingEventId && isUpcomingEvent(editingEventId)) {
+        return editingEventId;
+      }
+      if (current && isUpcomingEvent(current)) {
+        return current;
+      }
+      return upcomingEvents.length === 1 ? upcomingEvents[0].id : null;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingEventId, upcomingEvents]);
 
   return (
     <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -796,6 +960,75 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
           )}
         </Card>
       )}
+
+      {/* Upcoming Events */}
+      <Card
+        className="mb-8 p-6 sm:p-8 dashboard-section"
+        style={{ '--section-delay': '150ms' } as CSSProperties}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <span className="icon-container-lg"><CalendarDaysIcon className="w-6 h-6" /></span>
+            <div>
+              <h2 className="text-xl font-display font-semibold text-foreground">Upcoming Events</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                RSVP and see who's in.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              if (showCreateEventForm) {
+                setShowCreateEventForm(false);
+                setCreateEventData(EMPTY_EVENT_FORM);
+                return;
+              }
+              setShowCreateEventForm(true);
+            }}
+          >
+            {showCreateEventForm ? 'Cancel' : '+ Create Ad Hoc Event'}
+          </Button>
+        </div>
+
+        {eventError ? (
+          <Alert variant="error" className="mb-4">
+            {eventError}
+          </Alert>
+        ) : null}
+
+        {showCreateEventForm ? (
+          <CreateEventForm formData={createEventData} onChange={setCreateEventData} />
+        ) : null}
+
+        {upcomingEvents.length === 0 ? (
+          <div className="mt-8 pt-6 border-t border-border/30 text-center">
+            <p className="text-base font-semibold text-foreground mb-1">No upcoming events</p>
+            <p className="text-sm text-muted-foreground">
+              Create an ad hoc event or check back after the next poll closes.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-5 xl:auto-rows-fr xl:grid-cols-2 mt-2">
+            {upcomingEvents.map((event) => {
+              const isExpanded = expandedEventId === event.id || editingEventId === event.id;
+              const isEditing = editingEventId === event.id;
+              return (
+                <UpcomingEventCard
+                  key={event.id}
+                  event={event}
+                  isExpanded={isExpanded}
+                  isEditing={isEditing}
+                  editFormData={editEventData}
+                  onStartEdit={() => startEditingEvent(event)}
+                  onCancelEdit={cancelEditingEvent}
+                  onToggleExpand={() => toggleUpcomingEvent(event.id)}
+                  onEditFieldChange={handleEditEventFieldChange}
+                />
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       {/* Active Poll */}
       {activePoll ? (
@@ -919,97 +1152,17 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </Card>
       )}
 
-      {/* Next Meetup */}
-      {nextEvent && (
-        <Card
-          className="mb-8 p-6 sm:p-8 dashboard-section"
-          style={{ '--section-delay': '160ms' } as CSSProperties}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <span className="icon-container-lg"><MapPinIcon className="w-6 h-6" /></span>
-            <h2 className="text-xl font-display font-semibold text-foreground">Next Meetup</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Restaurant</p>
-              <p className="text-lg font-semibold text-foreground">{nextEvent.restaurant_name}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Date & Time</p>
-              <p className="text-lg font-semibold text-foreground">
-                {formatDateForDisplay(nextEvent.event_date, {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })}{' '}
-                <span className="text-muted-foreground font-normal">at</span>{' '}
-                {formatTimeForDisplay(nextEvent.event_time || '18:00')}
-              </p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Your RSVP</p>
-              <div className="flex items-center gap-2">
-                {userRsvp ? (
-                  <>
-                    {userRsvp.status === 'yes' && (
-                      <Badge variant="success">Going</Badge>
-                    )}
-                    {userRsvp.status === 'no' && (
-                      <Badge variant="danger">Not Going</Badge>
-                    )}
-                    {userRsvp.status === 'maybe' && (
-                      <Badge variant="warning">Maybe</Badge>
-                    )}
-                  </>
-                ) : (
-                  <Link to="/dashboard/events" className="text-accent hover:text-accent-strong font-semibold transition-colors">
-                    Set RSVP →
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-
       {/* Quick Actions */}
-      <div
-        className="mb-12 dashboard-section"
-        style={{ '--section-delay': '200ms' } as CSSProperties}
-      >
-        <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-          <h2 className="text-xl font-display font-semibold text-foreground">Quick Actions</h2>
-          <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
-        </div>
-        <div className={quickActionsGridClass}>
-          {nextEvent && (
-            <Link to="/dashboard/events">
-              <Card hover className="card-glow p-6 h-full">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="icon-container"><HandRaisedIcon className="w-5 h-5" /></span>
-                  {!userRsvp && (
-                    <Badge variant="warning">Action Needed</Badge>
-                  )}
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">RSVP</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {userRsvp ? 'Update your response' : 'Let us know if you can make it'}
-                </p>
-              </Card>
-            </Link>
-          )}
-
-          <Link to="/dashboard/events">
-            <Card hover className="card-glow p-6 h-full">
-              <div className="flex items-center justify-between mb-4">
-                <span className="icon-container"><TicketIcon className="w-5 h-5" /></span>
-              </div>
-              <h3 className="text-lg font-semibold text-foreground">Events</h3>
-              <p className="mt-2 text-sm text-muted-foreground">View past and upcoming meetups</p>
-            </Card>
-          </Link>
-
-          {isAdmin && (
+      {isAdmin && (
+        <div
+          className="mb-12 dashboard-section"
+          style={{ '--section-delay': '200ms' } as CSSProperties}
+        >
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
+            <h2 className="text-xl font-display font-semibold text-foreground">Quick Actions</h2>
+            <p className="text-sm text-muted-foreground">Jump into the workflows you use most.</p>
+          </div>
+          <div className={quickActionsGridClass}>
             <Link to="/dashboard/admin">
               <Card hover className="card-glow p-6 h-full">
                 <div className="flex items-center justify-between mb-4">
@@ -1020,9 +1173,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                 <p className="mt-2 text-sm text-muted-foreground">Manage polls, events, and members</p>
               </Card>
             </Link>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Restaurants Section */}
       <div
@@ -1136,6 +1289,58 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         onClose={() => setSelectedRestaurant(null)}
         onDelete={handleDeleteRestaurant}
       />
+
+      {/* Past Events */}
+      {pastEvents.length > 0 && (
+        <div
+          className="mb-12 dashboard-section"
+          style={{ '--section-delay': '225ms' } as CSSProperties}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-xl font-display font-semibold text-foreground">Past Events</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Where the club has been.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPastEvents((value) => !value)}
+              className="btn-ghost"
+            >
+              {showPastEvents ? 'Hide' : 'Show'} ({pastEvents.length})
+            </button>
+          </div>
+
+          {showPastEvents && (
+            <Card className="overflow-hidden">
+              <ul className="divide-y divide-border/30 text-sm">
+                {pastEvents.map((event) => (
+                  <li
+                    key={event.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <span className="font-medium text-foreground">{event.restaurant_name}</span>
+                    <span className="flex items-center gap-3 text-muted-foreground">
+                      <span>
+                        {formatDateForDisplay(event.event_date, {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                      {event.displayStatus === 'cancelled' ? (
+                        <Badge variant="danger">cancelled</Badge>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Past Polls */}
       {previousPolls.length > 0 && (

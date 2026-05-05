@@ -331,7 +331,7 @@ describe("dashboard.events route", () => {
   it("creates an ad hoc event through D1 batch statements when raw SQL transactions would fail", async () => {
     const db = createMockDb({ failOnRawTransactions: true });
     const request = createRequest({
-      _action: "create",
+      _action: "event_create",
       restaurant_name: "Prime Steakhouse",
       restaurant_address: "123 Main St",
       event_date: "2099-04-20",
@@ -411,7 +411,7 @@ describe("dashboard.events route", () => {
       },
     });
     const request = createRequest({
-      _action: "update",
+      _action: "event_update",
       id: "7",
       restaurant_name: "Locked Event",
       restaurant_address: "789 Pine",
@@ -451,7 +451,7 @@ describe("dashboard.events route", () => {
       },
     });
     const request = createRequest({
-      _action: "update",
+      _action: "event_update",
       id: "7",
       restaurant_name: "Updated Legacy Event",
       restaurant_address: "1010 Maple",
@@ -523,7 +523,7 @@ describe("dashboard.events route", () => {
   it("keeps RSVP submissions working through the route action", async () => {
     const db = createMockDb();
     const request = createRequest({
-      _action: "rsvp",
+      _action: "event_rsvp",
       event_id: "9",
       status: "yes",
       comments: "See you there",
