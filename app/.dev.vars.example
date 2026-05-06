@@ -1,0 +1,6 @@
+# Optional local-only auth bypass. Copy this file to `.dev.vars` and set the
+# email to a user that exists in your local D1 database.
+#
+# This is intentionally for `npm run dev` on localhost only. Do not configure
+# this variable in Cloudflare, Terraform, GitHub Actions, or production secrets.
+# DEV_AUTH_BYPASS_EMAIL=dev@localhost

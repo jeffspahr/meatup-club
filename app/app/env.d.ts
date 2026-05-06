@@ -17,6 +17,7 @@ export interface CloudflareEnv {
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_FROM_NUMBER?: string;
   APP_TIMEZONE?: string;
+  DEV_AUTH_BYPASS_EMAIL?: string;
 }
 
 declare module "react-router" {
