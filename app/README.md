@@ -87,13 +87,9 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
 ### Optional local auth bypass
 
-To skip Google OAuth during local UI work, copy `.dev.vars.example` to
-`.dev.vars` and set `DEV_AUTH_BYPASS_EMAIL` to a user that exists in your local
-D1 database:
-
-```bash
-cp .dev.vars.example .dev.vars
-```
+To skip Google OAuth during local UI work, add `DEV_AUTH_BYPASS_EMAIL` to the
+same `.env` file used for `SESSION_SECRET` and the Google OAuth values. Set it
+to a user that exists in your local D1 database:
 
 ```env
 DEV_AUTH_BYPASS_EMAIL=dev@localhost
@@ -105,9 +101,10 @@ Seed a local user for that email if needed:
 npx wrangler d1 execute meatup-club-db --local --command "INSERT OR IGNORE INTO users (email, name, status, is_admin) VALUES ('dev@localhost', 'Local Dev', 'active', 1)"
 ```
 
-Restart `npm run dev` after changing `.dev.vars`. Do not configure
+Restart `npm run dev` after changing `.env`. Do not configure
 `DEV_AUTH_BYPASS_EMAIL` in Cloudflare, Terraform, GitHub Actions, or production
-secrets.
+secrets. Cloudflare local development should use either `.env` or `.dev.vars`,
+not both; this project documents `.env` for local setup.
 
 ## Database Schema
 
