@@ -23,6 +23,8 @@ vi.mock("./db.server", () => ({
   getUserByEmail: vi.fn(),
 }));
 
+const originalNodeEnv = process.env.NODE_ENV;
+
 type SessionValues = {
   userId?: number;
   email?: string;
@@ -56,6 +58,7 @@ const baseContext: {
       DB: {
         marker: string;
       };
+      DEV_AUTH_BYPASS_EMAIL?: string;
     };
   };
 } = {
@@ -98,6 +101,11 @@ describe("auth.server", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
     delete process.env.GOOGLE_CLIENT_ID;
     delete process.env.GOOGLE_CLIENT_SECRET;
   });
@@ -131,6 +139,118 @@ describe("auth.server", () => {
       "member@example.com"
     );
     expect(user).toEqual(baseUser);
+  });
+
+  it("does not use the local auth bypass when the bypass email is unset", async () => {
+    process.env.NODE_ENV = "development";
+    vi.mocked(getSession).mockResolvedValue(createMockSession() as never);
+
+    const user = await getUser(
+      createCookieRequest("http://localhost/dashboard"),
+      baseContext as never
+    );
+
+    expect(user).toBeNull();
+    expect(getUserByEmail).not.toHaveBeenCalled();
+    expect(getSession).toHaveBeenCalledWith("__session=abc");
+  });
+
+  it("does not use the local auth bypass in tests", async () => {
+    process.env.NODE_ENV = "test";
+    vi.mocked(getSession).mockResolvedValue(createMockSession() as never);
+
+    const user = await getUser(
+      createCookieRequest("http://localhost/dashboard"),
+      {
+        cloudflare: {
+          env: {
+            ...baseContext.cloudflare.env,
+            DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
+          },
+        },
+      } as never
+    );
+
+    expect(user).toBeNull();
+    expect(getUserByEmail).not.toHaveBeenCalled();
+    expect(getSession).toHaveBeenCalledWith("__session=abc");
+  });
+
+  it("loads a local auth bypass user from the database on localhost", async () => {
+    process.env.NODE_ENV = "development";
+    const devUser = {
+      ...baseUser,
+      id: 1,
+      email: "dev@localhost",
+      name: "Local Dev",
+      is_admin: 1,
+    };
+    vi.mocked(getUserByEmail).mockResolvedValue(devUser as never);
+
+    const user = await getUser(
+      createCookieRequest("http://localhost/dashboard"),
+      {
+        cloudflare: {
+          env: {
+            ...baseContext.cloudflare.env,
+            DEV_AUTH_BYPASS_EMAIL: " dev@localhost ",
+          },
+        },
+      } as never
+    );
+
+    expect(user).toEqual(devUser);
+    expect(getUserByEmail).toHaveBeenCalledWith(
+      baseContext.cloudflare.env.DB,
+      "dev@localhost"
+    );
+    expect(getSession).not.toHaveBeenCalled();
+  });
+
+  it("falls through to normal auth when the local auth bypass user is missing", async () => {
+    process.env.NODE_ENV = "development";
+    vi.mocked(getUserByEmail).mockResolvedValue(null as never);
+    vi.mocked(getSession).mockResolvedValue(createMockSession() as never);
+
+    const user = await getUser(
+      createCookieRequest("http://localhost/dashboard"),
+      {
+        cloudflare: {
+          env: {
+            ...baseContext.cloudflare.env,
+            DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
+          },
+        },
+      } as never
+    );
+
+    expect(user).toBeNull();
+    expect(getUserByEmail).toHaveBeenCalledWith(
+      baseContext.cloudflare.env.DB,
+      "dev@localhost"
+    );
+    expect(getSession).toHaveBeenCalledWith("__session=abc");
+  });
+
+  it("does not use the local auth bypass outside localhost", async () => {
+    process.env.NODE_ENV = "development";
+    vi.mocked(getSession).mockResolvedValue(createMockSession() as never);
+
+    const user = await getUser(
+      createCookieRequest("https://meatup.club/dashboard"),
+      {
+        cloudflare: {
+          env: {
+            ...baseContext.cloudflare.env,
+            DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
+          },
+        },
+      } as never
+    );
+
+    expect(user).toBeNull();
+    expect(getUserByEmail).not.toHaveBeenCalled();
+    expect(getSession).toHaveBeenCalledWith("__session=abc");
   });
 
   it("redirects unauthenticated requests to login", async () => {

@@ -38,11 +38,32 @@ export type GoogleUserInfo = {
   locale?: string;
 };
 
+function getLocalDevAuthBypassEmail(context: AppLoadContext) {
+  if (!import.meta.env.DEV || process.env.NODE_ENV === "test") {
+    return null;
+  }
+
+  return context.cloudflare.env.DEV_AUTH_BYPASS_EMAIL?.trim() || null;
+}
+
+function isLocalhostRequest(request: Request) {
+  return new URL(request.url).hostname === "localhost";
+}
+
 // Get current user from session
 export async function getUser(
   request: Request,
   context: AppLoadContext
 ): Promise<AuthUser | null> {
+  const bypassEmail = getLocalDevAuthBypassEmail(context);
+
+  if (bypassEmail && isLocalhostRequest(request)) {
+    const user = await getUserByEmail(context.cloudflare.env.DB, bypassEmail);
+    if (user) {
+      return user as AuthUser;
+    }
+  }
+
   const session = await getSession(request.headers.get("Cookie"));
   const userId = session.get("userId");
   const email = session.get("email");
