@@ -144,11 +144,11 @@ export default function AdminPage() {
       <Alert variant="info" className="mt-6">
         <h3 className="font-semibold mb-2 flex items-center gap-2"><WrenchScrewdriverIcon className="w-5 h-5" /> Maintenance Tools</h3>
         <Link
-          to="/dashboard/admin/backfill-hours"
+          to="/dashboard/admin/refresh-restaurants"
           className="inline-flex items-center gap-2 text-accent hover:text-accent-strong font-medium"
         >
           <span>🔄</span>
-          <span>Backfill Opening Hours for Existing Restaurants</span>
+          <span>Refresh Restaurant Metadata from Google</span>
           <span>→</span>
         </Link>
       </Alert>
