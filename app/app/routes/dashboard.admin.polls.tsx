@@ -1,3 +1,4 @@
+import type { FormEvent } from "react";
 import { Form, Link } from "react-router";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/dashboard.admin.polls";
@@ -397,9 +398,70 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
+function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(':');
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time24;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
 export default function AdminPollsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { activePoll, topRestaurant, topDate, allRestaurants, allDates, closedPolls } = loaderData;
   const canCreateEventFromWinners = Boolean(topRestaurant && topDate);
+
+  const handleCloseSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!activePoll) return;
+    const formData = new FormData(event.currentTarget);
+    const lines: string[] = [];
+
+    if (canCreateEventFromWinners) {
+      const restaurantId = Number(formData.get('winning_restaurant_id'));
+      const dateId = Number(formData.get('winning_date_id'));
+      const restaurant = allRestaurants.find((r: any) => Number(r.id) === restaurantId);
+      const date = allDates.find((d: any) => Number(d.id) === dateId);
+      const createEvent = formData.get('create_event') === 'true';
+      const sendInvites = formData.get('send_invites') === 'true';
+      const eventTime = String(formData.get('event_time') || '18:00');
+
+      lines.push(`Close poll "${activePoll.title}"?`);
+      lines.push('');
+      lines.push(`Winning restaurant: ${restaurant?.name ?? 'Unknown'}`);
+      lines.push(
+        `Winning date: ${date
+          ? formatDateForDisplay(date.suggested_date as string, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : 'Unknown'}`
+      );
+      lines.push('');
+      lines.push(
+        createEvent
+          ? `An event will be created at ${formatTime12h(eventTime)}.`
+          : 'No event will be created.'
+      );
+      lines.push(
+        createEvent && sendInvites
+          ? 'All active members will be sent calendar invites.'
+          : 'Members will not be notified.'
+      );
+      lines.push('');
+      lines.push('This cannot be undone.');
+    } else {
+      lines.push(`Close poll "${activePoll.title}" with no winner?`);
+      lines.push('');
+      lines.push('This cannot be undone.');
+    }
+
+    if (!window.confirm(lines.join('\n'))) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <AdminLayout>
@@ -440,7 +502,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           </div>
 
           {/* Close Poll Form */}
-          <Form method="post" className="bg-muted border border-border rounded-lg p-6">
+          <Form method="post" onSubmit={handleCloseSubmit} className="bg-muted border border-border rounded-lg p-6">
             <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
             <input type="hidden" name="_action" value="close" />
             <input type="hidden" name="poll_id" value={activePoll.id} />
