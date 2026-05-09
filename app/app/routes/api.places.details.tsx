@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.places.details";
 import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
-import { fetchPlaceDetails } from "../lib/places.server";
+import { fetchPlaceDetails, isValidPlaceId } from "../lib/places.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -13,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     return Response.json({ error: "Place ID is required" }, { status: 400 });
   }
 
-  if (!/^[A-Za-z0-9._:-]{3,200}$/.test(placeId)) {
+  if (!isValidPlaceId(placeId)) {
     return Response.json({ error: "Invalid place ID format" }, { status: 400 });
   }
 

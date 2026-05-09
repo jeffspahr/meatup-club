@@ -136,6 +136,26 @@ describe("dashboard._index action — suggest_restaurant", () => {
     expect(createRestaurant).not.toHaveBeenCalled();
   });
 
+  it("rejects place_id that fails the format check before hitting Google", async () => {
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as never;
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({
+        _action: "suggest_restaurant",
+        place_id: "bad/value",
+      }),
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ error: "Invalid place ID format" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createRestaurant).not.toHaveBeenCalled();
+  });
+
   it("rejects duplicates by google_place_id", async () => {
     vi.mocked(findRestaurantByPlaceId).mockResolvedValue({ id: 7 } as never);
     const db = createMockDb();

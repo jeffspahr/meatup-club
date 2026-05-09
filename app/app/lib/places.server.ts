@@ -30,6 +30,12 @@ export interface PlaceDetails {
   openingHours: string | null;
 }
 
+const PLACE_ID_PATTERN = /^[A-Za-z0-9._:-]{3,200}$/;
+
+export function isValidPlaceId(placeId: unknown): placeId is string {
+  return typeof placeId === "string" && PLACE_ID_PATTERN.test(placeId);
+}
+
 const PLACE_DETAILS_FIELD_MASK = [
   "id",
   "displayName",
@@ -51,7 +57,7 @@ export async function fetchPlaceDetails(
   apiKey: string
 ): Promise<PlaceDetails> {
   const response = await fetch(
-    `https://places.googleapis.com/v1/places/${placeId}`,
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
     {
       headers: {
         "X-Goog-Api-Key": apiKey,

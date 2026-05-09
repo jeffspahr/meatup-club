@@ -26,7 +26,8 @@ import {
   removeVote,
   voteForRestaurant,
 } from "../lib/restaurants.server";
-import { fetchPlaceDetails, placeDetailsToRestaurantFields } from "../lib/places.server";
+import { fetchPlaceDetails, isValidPlaceId, placeDetailsToRestaurantFields } from "../lib/places.server";
+import { enforceRateLimit } from "../lib/rate-limit.server";
 import { canEditEvent } from "../lib/events.server";
 import {
   runCreateEventAction,
@@ -556,9 +557,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === 'suggest_restaurant') {
-    const placeId = formData.get('place_id');
-    if (!placeId || typeof placeId !== 'string') {
+    const rawPlaceId = formData.get('place_id');
+    const placeId = typeof rawPlaceId === 'string' ? rawPlaceId.trim() : '';
+    if (!placeId) {
       return { error: 'Place ID is required' };
+    }
+    if (!isValidPlaceId(placeId)) {
+      return { error: 'Invalid place ID format' };
     }
 
     const existing = await findRestaurantByPlaceId(db, placeId);
@@ -569,6 +574,19 @@ export async function action({ request, context }: Route.ActionArgs) {
     const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) {
       return { error: 'Places API is not configured' };
+    }
+
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rateLimit = await enforceRateLimit({
+      db,
+      scope: 'places.suggest',
+      identifier: `user:${user.id}:ip:${ip}`,
+      limit: 60,
+      windowSeconds: 60,
+      ctx: context.cloudflare.ctx,
+    });
+    if (!rateLimit.allowed) {
+      return { error: 'Rate limit exceeded. Please try again shortly.' };
     }
 
     let details;
