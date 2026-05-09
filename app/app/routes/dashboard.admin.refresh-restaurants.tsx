@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin.refresh-restaurants";
 import { requireAdmin } from "../lib/auth.server";
-import { fetchPlaceDetails, type PlaceDetails } from "../lib/places.server";
+import { fetchPlaceDetails, placeDetailsToRestaurantFields } from "../lib/places.server";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
 
@@ -56,15 +56,19 @@ export async function action({ request, context }: Route.ActionArgs) {
   for (const restaurant of restaurantRows) {
     try {
       const details = await fetchPlaceDetails(restaurant.google_place_id, apiKey);
-      const { sql, binds, fieldsUpdated } = buildUpdate(details);
+      const fields = placeDetailsToRestaurantFields(details);
+      const fieldsUpdated = Object.keys(fields);
 
       if (fieldsUpdated.length === 0) {
         results.unchanged++;
         continue;
       }
 
+      const setClause = fieldsUpdated.map((column) => `${column} = ?`).join(", ");
+      const binds = fieldsUpdated.map((column) => fields[column as keyof typeof fields]);
+
       await db
-        .prepare(`UPDATE restaurants SET ${sql} WHERE id = ?`)
+        .prepare(`UPDATE restaurants SET ${setClause} WHERE id = ?`)
         .bind(...binds, restaurant.id)
         .run();
 
@@ -78,34 +82,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { results };
 }
 
-function buildUpdate(details: PlaceDetails): {
-  sql: string;
-  binds: unknown[];
-  fieldsUpdated: string[];
-} {
-  const setClauses: string[] = [];
-  const binds: unknown[] = [];
-  const fieldsUpdated: string[] = [];
-
-  const push = (column: string, value: unknown) => {
-    setClauses.push(`${column} = ?`);
-    binds.push(value);
-    fieldsUpdated.push(column);
-  };
-
-  if (details.address) push("address", details.address);
-  if (details.rating > 0) push("google_rating", details.rating);
-  if (details.ratingCount > 0) push("rating_count", details.ratingCount);
-  if (details.priceLevel > 0) push("price_level", details.priceLevel);
-  if (details.cuisine && details.cuisine !== "Restaurant") push("cuisine", details.cuisine);
-  if (details.phone) push("phone_number", details.phone);
-  if (details.googleMapsUrl) push("google_maps_url", details.googleMapsUrl);
-  if (details.photoUrl) push("photo_url", details.photoUrl);
-  if (details.openingHours) push("opening_hours", details.openingHours);
-
-  return { sql: setClauses.join(", "), binds, fieldsUpdated };
-}
-
 export default function RefreshRestaurantsPage({ actionData }: Route.ComponentProps) {
   const [isRunning, setIsRunning] = useState(false);
 
@@ -117,10 +93,10 @@ export default function RefreshRestaurantsPage({ actionData }: Route.ComponentPr
 
           <Alert variant="info" className="mb-6">
             <p className="text-sm">
-              Re-fetches address, rating, price level, cuisine, phone number, photo, hours,
-              and Google Maps URL from Google Places for every restaurant with a Place ID.
-              Existing values are overwritten when Google returns one. Safe to run any time
-              metadata may have drifted (ratings, hours, etc.).
+              Re-fetches every Google-sourced field for each restaurant with a Place ID and
+              overwrites the stored values when Google returns one. Stays in sync with whatever
+              the add-restaurant flow collects, so it's safe to run any time metadata drifts
+              (ratings, hours, etc.).
             </p>
           </Alert>
 

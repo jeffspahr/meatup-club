@@ -120,6 +120,7 @@ describe("dashboard.admin.refresh-restaurants route", () => {
           {
             name: "Prime Steakhouse",
             fieldsUpdated: [
+              "name",
               "address",
               "google_rating",
               "rating_count",

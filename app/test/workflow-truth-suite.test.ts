@@ -216,7 +216,9 @@ describe("workflow truth suite", () => {
     );
 
     setCurrentUser(harness, memberId);
-    const memberContext = createContext(harness).context;
+    const memberContext = createContext(harness, {
+      GOOGLE_PLACES_API_KEY: "test-key",
+    }).context;
 
     await pollsAction({
       request: createFormRequest("http://localhost/dashboard/polls", {
@@ -227,17 +229,26 @@ describe("workflow truth suite", () => {
       params: {},
     } as never);
 
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "place-123",
+        displayName: { text: "Prime House" },
+        formattedAddress: "123 Main St",
+        types: ["steak_house"],
+      }),
+    } as never);
+
     await pollsAction({
       request: createFormRequest("http://localhost/dashboard/polls", {
         _action: "suggest_restaurant",
-        name: "Prime House",
-        address: "123 Main St",
-        google_place_id: "place-123",
-        cuisine: "Steakhouse",
+        place_id: "place-123",
       }),
       context: memberContext,
       params: {},
     } as never);
+
+    fetchSpy.mockRestore();
 
     const restaurant = harness.get<{ id: number }>(
       "SELECT id FROM restaurants WHERE google_place_id = ?",

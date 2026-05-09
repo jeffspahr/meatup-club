@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import {
@@ -56,7 +56,10 @@ function createRequest(formEntries: Record<string, string>) {
 }
 
 describe("dashboard._index action — suggest_restaurant", () => {
+  let originalFetch: typeof global.fetch;
+
   beforeEach(() => {
+    originalFetch = global.fetch;
     vi.clearAllMocks();
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 123,
@@ -69,16 +72,37 @@ describe("dashboard._index action — suggest_restaurant", () => {
     vi.mocked(createRestaurant).mockResolvedValue({} as never);
   });
 
-  it("creates a restaurant when name is provided", async () => {
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  function mockPlacesFetch(payload: Record<string, unknown>) {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => payload,
+    } as never);
+  }
+
+  it("creates a restaurant by re-fetching place details server-side", async () => {
+    mockPlacesFetch({
+      id: "place123",
+      displayName: { text: "Prime Cut" },
+      formattedAddress: "1 Main St, New York, NY 10001, USA",
+      rating: 4.6,
+      userRatingCount: 150,
+      priceLevel: "PRICE_LEVEL_EXPENSIVE",
+      types: ["steak_house"],
+    });
     const db = createMockDb();
+
     const result = await action({
       request: createRequest({
         _action: "suggest_restaurant",
-        name: "Prime Cut",
-        address: "1 Main St, New York, NY 10001, USA",
-        google_place_id: "place123",
+        place_id: "place123",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
       params: {},
     } as never);
 
@@ -88,20 +112,27 @@ describe("dashboard._index action — suggest_restaurant", () => {
       expect.objectContaining({
         name: "Prime Cut",
         address: "1 Main St, New York, NY 10001, USA",
+        google_place_id: "place123",
+        google_rating: 4.6,
+        rating_count: 150,
+        price_level: 3,
+        cuisine: "Steakhouse",
         created_by: 123,
       }),
     );
   });
 
-  it("rejects when name is missing", async () => {
+  it("rejects when place_id is missing", async () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "suggest_restaurant" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
       params: {},
     } as never);
 
-    expect(result).toEqual({ error: "Restaurant name is required" });
+    expect(result).toEqual({ error: "Place ID is required" });
     expect(createRestaurant).not.toHaveBeenCalled();
   });
 
@@ -112,14 +143,34 @@ describe("dashboard._index action — suggest_restaurant", () => {
     const result = await action({
       request: createRequest({
         _action: "suggest_restaurant",
-        name: "Dup",
-        google_place_id: "exists",
+        place_id: "exists",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
       params: {},
     } as never);
 
     expect(result).toEqual({ error: "This restaurant has already been added" });
+    expect(createRestaurant).not.toHaveBeenCalled();
+  });
+
+  it("rejects when Google does not return a name", async () => {
+    mockPlacesFetch({ id: "place123" });
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "suggest_restaurant",
+        place_id: "place123",
+      }),
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ error: "Google did not return a name for that place" });
     expect(createRestaurant).not.toHaveBeenCalled();
   });
 });

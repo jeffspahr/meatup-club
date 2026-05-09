@@ -92,6 +92,48 @@ export async function fetchPlaceDetails(
   };
 }
 
+/**
+ * Maps a PlaceDetails response to the subset of restaurant columns derived
+ * from Google. Single source of truth for "what we collect from Google" —
+ * both the add-restaurant action and the admin refresh use this. Add a
+ * source field once here and both paths pick it up automatically.
+ *
+ * Fields whose Google value is empty/zero are omitted so a partial response
+ * cannot wipe out existing data. The lookup key (google_place_id) and
+ * non-Google fields (reservation_url, menu_url) are intentionally excluded.
+ */
+export interface RestaurantFieldsFromPlace {
+  name?: string;
+  address?: string;
+  google_rating?: number;
+  rating_count?: number;
+  price_level?: number;
+  cuisine?: string;
+  phone_number?: string;
+  google_maps_url?: string;
+  photo_url?: string;
+  opening_hours?: string;
+}
+
+export function placeDetailsToRestaurantFields(
+  details: PlaceDetails
+): RestaurantFieldsFromPlace {
+  const fields: RestaurantFieldsFromPlace = {};
+  if (details.name) fields.name = details.name;
+  if (details.address) fields.address = details.address;
+  if (details.rating > 0) fields.google_rating = details.rating;
+  if (details.ratingCount > 0) fields.rating_count = details.ratingCount;
+  if (details.priceLevel > 0) fields.price_level = details.priceLevel;
+  if (details.cuisine && details.cuisine !== "Restaurant") {
+    fields.cuisine = details.cuisine;
+  }
+  if (details.phone) fields.phone_number = details.phone;
+  if (details.googleMapsUrl) fields.google_maps_url = details.googleMapsUrl;
+  if (details.photoUrl) fields.photo_url = details.photoUrl;
+  if (details.openingHours) fields.opening_hours = details.openingHours;
+  return fields;
+}
+
 function getPriceLevelNumber(priceLevel: string): number {
   const mapping: Record<string, number> = {
     PRICE_LEVEL_FREE: 0,
