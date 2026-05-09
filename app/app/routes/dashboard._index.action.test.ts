@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
+import { enforceRateLimit } from "../lib/rate-limit.server";
 import {
   createRestaurant,
   deleteRestaurant,
@@ -9,6 +10,10 @@ import {
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
+}));
+
+vi.mock("../lib/rate-limit.server", () => ({
+  enforceRateLimit: vi.fn(),
 }));
 
 vi.mock("../lib/restaurants.server", () => ({
@@ -70,6 +75,11 @@ describe("dashboard._index action — suggest_restaurant", () => {
     } as never);
     vi.mocked(findRestaurantByPlaceId).mockResolvedValue(null as never);
     vi.mocked(createRestaurant).mockResolvedValue({} as never);
+    vi.mocked(enforceRateLimit).mockResolvedValue({
+      allowed: true,
+      remaining: 59,
+      resetAt: Math.floor(Date.now() / 1000) + 60,
+    });
   });
 
   afterEach(() => {
@@ -191,6 +201,35 @@ describe("dashboard._index action — suggest_restaurant", () => {
     } as never);
 
     expect(result).toEqual({ error: "Google did not return a name for that place" });
+    expect(createRestaurant).not.toHaveBeenCalled();
+  });
+
+  it("rejects with a rate-limit error and skips Google when the limiter denies", async () => {
+    vi.mocked(enforceRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      remaining: 0,
+      resetAt: Math.floor(Date.now() / 1000) + 30,
+    });
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as never;
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "suggest_restaurant",
+        place_id: "place123",
+      }),
+      context: {
+        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ error: "Rate limit exceeded. Please try again shortly." });
+    expect(enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: "places.suggest" }),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(createRestaurant).not.toHaveBeenCalled();
   });
 });
