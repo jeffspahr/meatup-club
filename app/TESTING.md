@@ -104,7 +104,7 @@ Best-covered production files:
 - `app/routes/api.admin.setup-resend.tsx`: `87.80%` statements
 - `app/routes/api.webhooks.email-rsvp.tsx`: `92.50%` statements
 - `app/routes/api.webhooks.sms.tsx`: `100%` statements
-- `app/routes/dashboard.admin.backfill-hours.tsx`: `91.66%` statements
+- `app/routes/dashboard.admin.refresh-restaurants.tsx`: coverage to be re-measured (succeeds `dashboard.admin.backfill-hours.tsx`)
 - `app/routes/api.polls.tsx`: `89.23%` statements
 - `app/routes/dashboard._index.tsx`: `88.40%` statements
 - `app/routes/dashboard.polls.tsx`: `88.26%` statements
@@ -312,7 +312,7 @@ Target files:
 - `app/routes/dashboard.admin.setup.tsx`
 - `app/routes/dashboard.admin.analytics.tsx`
 - `app/routes/dashboard.admin.content.tsx`
-- `app/routes/dashboard.admin.backfill-hours.tsx`
+- `app/routes/dashboard.admin.refresh-restaurants.tsx`
 - `app/routes/dashboard.admin._index.tsx`
 
 Focus:
@@ -333,7 +333,7 @@ Current status:
 - Result:
   `dashboard.admin._index.tsx` moved to `100.00%` statements / `100.00%` branches.
   `dashboard.admin.analytics.tsx` moved to `93.75%` statements / `82.35%` branches.
-  `dashboard.admin.backfill-hours.tsx` moved to `91.66%` statements / `72.72%` branches.
+  `dashboard.admin.backfill-hours.tsx` moved to `91.66%` statements / `72.72%` branches. (later renamed to `dashboard.admin.refresh-restaurants.tsx`)
   `dashboard.admin.content.tsx` moved to `65.07%` statements / `64.28%` branches.
   `dashboard.admin.email-templates.tsx` moved to `72.28%` statements / `63.63%` branches.
   `dashboard.admin.setup.tsx` moved to `100.00%` statements / `100.00%` branches.
