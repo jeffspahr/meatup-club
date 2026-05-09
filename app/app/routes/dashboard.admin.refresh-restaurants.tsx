@@ -2,19 +2,44 @@ import { useState } from "react";
 import { Form, Link } from "react-router";
 import type { Route } from "./+types/dashboard.admin.refresh-restaurants";
 import { requireAdmin } from "../lib/auth.server";
-import { fetchPlaceDetails, placeDetailsToRestaurantFields } from "../lib/places.server";
+import {
+  fetchPlaceDetails,
+  placeDetailsToRestaurantFields,
+  type RestaurantFieldsFromPlace,
+} from "../lib/places.server";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
 
-interface RestaurantRow {
-  id: number;
-  name: string;
-  google_place_id: string;
-}
+type MapperColumn = keyof RestaurantFieldsFromPlace;
+
+const REFRESH_COLUMNS: readonly MapperColumn[] = [
+  "name",
+  "address",
+  "google_rating",
+  "rating_count",
+  "price_level",
+  "cuisine",
+  "phone_number",
+  "google_maps_url",
+  "photo_url",
+  "opening_hours",
+] as const;
+
+type RestaurantRow = { id: number; google_place_id: string } & {
+  [K in MapperColumn]: string | number | null;
+};
 
 interface RefreshDetail {
   name: string;
   fieldsUpdated: string[];
+}
+
+function valuesEqual(mapperValue: unknown, dbValue: unknown): boolean {
+  if (dbValue === null || dbValue === undefined) return false;
+  if (typeof mapperValue === "number") {
+    return typeof dbValue === "number" && mapperValue === dbValue;
+  }
+  return String(dbValue) === String(mapperValue);
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -29,7 +54,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const restaurants = await db
     .prepare(`
-      SELECT id, name, google_place_id
+      SELECT id, google_place_id, ${REFRESH_COLUMNS.join(", ")}
       FROM restaurants
       WHERE google_place_id IS NOT NULL AND google_place_id != ''
     `)
@@ -57,25 +82,35 @@ export async function action({ request, context }: Route.ActionArgs) {
     try {
       const details = await fetchPlaceDetails(restaurant.google_place_id, apiKey);
       const fields = placeDetailsToRestaurantFields(details);
-      const fieldsUpdated = Object.keys(fields);
+      const changedFields = (Object.keys(fields) as MapperColumn[]).filter(
+        (column) => !valuesEqual(fields[column], restaurant[column]),
+      );
 
-      if (fieldsUpdated.length === 0) {
+      if (changedFields.length === 0) {
         results.unchanged++;
         continue;
       }
 
-      const setClause = fieldsUpdated.map((column) => `${column} = ?`).join(", ");
-      const binds = fieldsUpdated.map((column) => fields[column as keyof typeof fields]);
+      const setClause = changedFields.map((column) => `${column} = ?`).join(", ");
+      const binds = changedFields.map((column) => fields[column]);
 
       await db
         .prepare(`UPDATE restaurants SET ${setClause} WHERE id = ?`)
         .bind(...binds, restaurant.id)
         .run();
 
+      const reportedName =
+        fields.name ??
+        (typeof restaurant.name === "string" && restaurant.name ? restaurant.name : "(unnamed)");
+
       results.updated++;
-      results.details.push({ name: restaurant.name, fieldsUpdated });
+      results.details.push({ name: reportedName, fieldsUpdated: changedFields });
     } catch (error) {
-      results.failed.push(restaurant.name);
+      const fallbackName =
+        typeof restaurant.name === "string" && restaurant.name
+          ? restaurant.name
+          : `place ${restaurant.id}`;
+      results.failed.push(fallbackName);
     }
   }
 
