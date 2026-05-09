@@ -5,25 +5,13 @@ import { requireAdmin } from "../lib/auth.server";
 import {
   fetchPlaceDetails,
   placeDetailsToRestaurantFields,
+  PLACE_MAPPER_COLUMNS,
   type RestaurantFieldsFromPlace,
 } from "../lib/places.server";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
 
 type MapperColumn = keyof RestaurantFieldsFromPlace;
-
-const REFRESH_COLUMNS: readonly MapperColumn[] = [
-  "name",
-  "address",
-  "google_rating",
-  "rating_count",
-  "price_level",
-  "cuisine",
-  "phone_number",
-  "google_maps_url",
-  "photo_url",
-  "opening_hours",
-] as const;
 
 type RestaurantRow = { id: number; google_place_id: string } & {
   [K in MapperColumn]: string | number | null;
@@ -54,7 +42,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const restaurants = await db
     .prepare(`
-      SELECT id, google_place_id, ${REFRESH_COLUMNS.join(", ")}
+      SELECT id, google_place_id, ${PLACE_MAPPER_COLUMNS.join(", ")}
       FROM restaurants
       WHERE google_place_id IS NOT NULL AND google_place_id != ''
     `)

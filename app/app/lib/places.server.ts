@@ -99,45 +99,53 @@ export async function fetchPlaceDetails(
 }
 
 /**
- * Maps a PlaceDetails response to the subset of restaurant columns derived
- * from Google. Single source of truth for "what we collect from Google" —
- * both the add-restaurant action and the admin refresh use this. Add a
- * source field once here and both paths pick it up automatically.
+ * Single source of truth for "what we collect from Google."
  *
- * Fields whose Google value is empty/zero are omitted so a partial response
- * cannot wipe out existing data. The lookup key (google_place_id) and
- * non-Google fields (reservation_url, menu_url) are intentionally excluded.
+ * Each entry maps a restaurants-table column name to a function that pulls
+ * the corresponding value from a PlaceDetails response, returning undefined
+ * for missing/empty data. The mapper, the typed result shape, and the
+ * column list exported for the admin refresh all derive from this object —
+ * adding a new field is a single edit here.
+ *
+ * The lookup key (google_place_id) and non-Google fields (reservation_url,
+ * menu_url) are intentionally excluded.
  */
-export interface RestaurantFieldsFromPlace {
-  name?: string;
-  address?: string;
-  google_rating?: number;
-  rating_count?: number;
-  price_level?: number;
-  cuisine?: string;
-  phone_number?: string;
-  google_maps_url?: string;
-  photo_url?: string;
-  opening_hours?: string;
-}
+type FieldExtractor<T extends string | number> = (details: PlaceDetails) => T | undefined;
+
+const PLACE_FIELD_EXTRACTORS = {
+  name: (d) => d.name || undefined,
+  address: (d) => d.address || undefined,
+  google_rating: (d) => (d.rating > 0 ? d.rating : undefined),
+  rating_count: (d) => (d.ratingCount > 0 ? d.ratingCount : undefined),
+  price_level: (d) => (d.priceLevel > 0 ? d.priceLevel : undefined),
+  cuisine: (d) => (d.cuisine && d.cuisine !== "Restaurant" ? d.cuisine : undefined),
+  phone_number: (d) => d.phone || undefined,
+  google_maps_url: (d) => d.googleMapsUrl || undefined,
+  photo_url: (d) => d.photoUrl || undefined,
+  opening_hours: (d) => d.openingHours || undefined,
+} satisfies Record<string, FieldExtractor<string | number>>;
+
+export type RestaurantFieldsFromPlace = Partial<{
+  [K in keyof typeof PLACE_FIELD_EXTRACTORS]: NonNullable<
+    ReturnType<typeof PLACE_FIELD_EXTRACTORS[K]>
+  >;
+}>;
+
+export const PLACE_MAPPER_COLUMNS = Object.keys(
+  PLACE_FIELD_EXTRACTORS,
+) as Array<keyof RestaurantFieldsFromPlace>;
 
 export function placeDetailsToRestaurantFields(
-  details: PlaceDetails
+  details: PlaceDetails,
 ): RestaurantFieldsFromPlace {
-  const fields: RestaurantFieldsFromPlace = {};
-  if (details.name) fields.name = details.name;
-  if (details.address) fields.address = details.address;
-  if (details.rating > 0) fields.google_rating = details.rating;
-  if (details.ratingCount > 0) fields.rating_count = details.ratingCount;
-  if (details.priceLevel > 0) fields.price_level = details.priceLevel;
-  if (details.cuisine && details.cuisine !== "Restaurant") {
-    fields.cuisine = details.cuisine;
+  const fields = {} as Record<string, string | number>;
+  for (const column of PLACE_MAPPER_COLUMNS) {
+    const value = PLACE_FIELD_EXTRACTORS[column](details);
+    if (value !== undefined) {
+      fields[column] = value;
+    }
   }
-  if (details.phone) fields.phone_number = details.phone;
-  if (details.googleMapsUrl) fields.google_maps_url = details.googleMapsUrl;
-  if (details.photoUrl) fields.photo_url = details.photoUrl;
-  if (details.openingHours) fields.opening_hours = details.openingHours;
-  return fields;
+  return fields as RestaurantFieldsFromPlace;
 }
 
 function getPriceLevelNumber(priceLevel: string): number {
