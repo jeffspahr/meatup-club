@@ -816,12 +816,12 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   }, [editingEventId, upcomingEvents]);
 
   return (
-    <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="dashboard-preview page-main">
       <header
         className="mb-8 dashboard-section"
         style={{ '--section-delay': '20ms' } as CSSProperties}
       >
-        <h1 className="text-3xl sm:text-4xl font-display font-semibold text-foreground">
+        <h1 className="page-heading">
           Meatup Club
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
@@ -874,7 +874,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
           <div className="flex items-center gap-4">
             <span className="icon-container-lg"><CalendarDaysIcon className="w-6 h-6" /></span>
             <div>
-              <h2 className="text-xl font-display font-semibold text-foreground">Upcoming Events</h2>
+              <h2 className="section-heading">Upcoming Events</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 RSVP and see who's in.
               </p>
@@ -944,7 +944,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             <div className="flex items-center gap-4">
               <span className="icon-container-lg"><ClipboardDocumentCheckIcon className="w-6 h-6" /></span>
               <div>
-                <h2 className="text-xl font-display font-semibold text-foreground">
+                <h2 className="section-heading">
                   {activePoll.title}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -1037,7 +1037,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             <div className="flex items-center gap-4">
               <span className="icon-container-lg bg-muted"><ClipboardDocumentListIcon className="w-6 h-6" /></span>
               <div>
-                <h2 className="text-xl font-display font-semibold text-foreground">No Active Poll</h2>
+                <h2 className="section-heading">No Active Poll</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isAdmin
                     ? "Start a new poll to begin voting on the next meetup location and date."
@@ -1065,7 +1065,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
           <div className="flex items-center gap-4">
             <span className="icon-container-lg"><BuildingStorefrontIcon className="w-6 h-6" /></span>
             <div>
-              <h2 className="text-xl font-display font-semibold text-foreground">Restaurants</h2>
+              <h2 className="section-heading">Restaurants</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 The collection — select a row for details.
               </p>
@@ -1177,7 +1177,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-xl font-display font-semibold text-foreground">Past Events</h2>
+              <h2 className="section-heading">Past Events</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Where the club has been.
               </p>
@@ -1229,7 +1229,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-xl font-display font-semibold text-foreground">Past Polls</h2>
+              <h2 className="section-heading">Past Polls</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Recently closed polls and their winners.
               </p>
@@ -1276,7 +1276,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       >
         <div className="divider-accent mb-10" />
         <Card className="p-6 text-center">
-          <h3 className="text-xl font-display font-semibold text-foreground mb-4">
+          <h3 className="section-heading mb-4">
             Have feedback or found a bug?
           </h3>
           <div className="flex flex-wrap gap-3 justify-center">
@@ -1313,7 +1313,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
 export function HydrateFallback() {
   return (
-    <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="dashboard-preview page-main">
       <div className="mb-8 card-shell p-8 animate-pulse">
         <div className="h-4 w-40 bg-muted rounded mb-4" />
         <div className="h-10 w-64 bg-muted rounded mb-3" />

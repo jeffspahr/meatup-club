@@ -24,13 +24,12 @@ function PublicLink({ href }: { href: string }) {
 
 export default function VerificationPage() {
   return (
-    <main className="min-h-screen bg-background px-6 py-12 sm:px-10 lg:px-16">
-      <div className="mx-auto max-w-5xl">
+    <main className="page-main">
         <div className="rounded-[2rem] border border-accent/20 bg-accent/[0.04] px-6 py-8 shadow-sm sm:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
             Meatup.Club
           </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          <h1 className="mt-4 page-heading">
             Business Verification & SMS Compliance
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
@@ -52,7 +51,7 @@ export default function VerificationPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_1fr]">
           <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
-            <h2 className="text-2xl font-semibold text-foreground">Business identity</h2>
+            <h2 className="section-heading">Business identity</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Meatup.Club is an invite-only dining club application used to coordinate member
               voting, RSVPs, and event reminders. The service is operated by Jeffrey A Spahr,
@@ -69,7 +68,7 @@ export default function VerificationPage() {
           </section>
 
           <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
-            <h2 className="text-2xl font-semibold text-foreground">Public review links</h2>
+            <h2 className="section-heading">Public review links</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               All of the following pages are public and available without authentication.
             </p>
@@ -84,7 +83,7 @@ export default function VerificationPage() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
-            <h2 className="text-2xl font-semibold text-foreground">SMS program details</h2>
+            <h2 className="section-heading">SMS program details</h2>
             <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
               <li>
                 <span className="font-semibold text-foreground">Program name:</span> Meatup.Club
@@ -122,7 +121,7 @@ export default function VerificationPage() {
           </section>
 
           <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
-            <h2 className="text-2xl font-semibold text-foreground">Authentication boundary</h2>
+            <h2 className="section-heading">Authentication boundary</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Meatup.Club is invite-only, so the member dashboard and profile settings require
               login. That authentication gate exists to protect member data, not to hide business
@@ -140,7 +139,7 @@ export default function VerificationPage() {
         </div>
 
         <section className="mt-8 rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
-          <h2 className="text-2xl font-semibold text-foreground">How consent is collected</h2>
+          <h2 className="section-heading">How consent is collected</h2>
           <ol className="mt-5 list-decimal space-y-3 pl-6 text-sm leading-6 text-muted-foreground">
             <li>Members sign in to their invite-only Meatup.Club account.</li>
             <li>Members open profile settings and enter a valid US mobile number.</li>
@@ -220,7 +219,6 @@ export default function VerificationPage() {
           <Link to="/sms-consent" className="font-medium text-accent hover:text-accent-strong">
             SMS Consent
           </Link>
-        </div>
       </div>
     </main>
   );

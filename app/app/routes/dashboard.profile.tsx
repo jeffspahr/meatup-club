@@ -81,7 +81,7 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
   const { user } = loaderData;
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <PageHeader title="Profile & Settings" />
 
       {actionData?.success && (
@@ -97,8 +97,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
       )}
 
       {/* User Info */}
+      <h2 className="section-heading mb-3">Account Information</h2>
       <Card className="mb-8">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Account Information</h2>
         <div className="flex items-center gap-4 mb-4">
           {user.picture && (
             <UserAvatar
@@ -122,8 +122,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
       </Card>
 
       {/* Notification Preferences */}
+      <h2 className="section-heading mb-3">Email Notifications</h2>
       <Card>
-        <h2 className="text-xl font-semibold text-foreground mb-4">Email Notifications</h2>
         <p className="text-sm text-muted-foreground mb-6">
           Choose which email notifications you'd like to receive from Meatup.Club
         </p>
@@ -174,8 +174,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
       </Card>
 
       {/* SMS Preferences */}
-      <Card className="mt-8">
-        <h2 className="text-xl font-semibold text-foreground mb-4">SMS Reminders</h2>
+      <h2 className="section-heading mb-3 mt-8">SMS Reminders</h2>
+      <Card>
         <p className="text-sm text-muted-foreground mb-6">
           Get text reminders before each meetup. SMS is optional and not required to use
           Meatup.Club.

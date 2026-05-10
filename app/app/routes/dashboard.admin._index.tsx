@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Link, isRouteErrorResponse } from "react-router";
 import type { Route } from "./+types/dashboard.admin._index";
 import { requireAdmin } from "../lib/auth.server";
@@ -13,13 +14,19 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function AdminPage() {
   return (
     <AdminLayout>
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Admin Panel</h1>
+    <main className="page-main">
+      <div
+        className="mb-8 dashboard-section"
+        style={{ '--section-delay': '20ms' } as CSSProperties}
+      >
+        <h1 className="page-heading">Admin Panel</h1>
         <p className="text-muted-foreground mt-1">Manage events, polls, and members</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 gap-6 dashboard-section"
+        style={{ '--section-delay': '40ms' } as CSSProperties}
+      >
         <Link to="/dashboard/admin/polls">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
@@ -27,7 +34,7 @@ export default function AdminPage() {
                 <ClipboardDocumentCheckIcon className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Polls</h2>
+                <h2 className="section-heading">Polls</h2>
                 <p className="text-muted-foreground">Manage voting polls</p>
               </div>
             </div>
@@ -47,7 +54,7 @@ export default function AdminPage() {
                 <CalendarDaysIcon className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Events</h2>
+                <h2 className="section-heading">Events</h2>
                 <p className="text-muted-foreground">Manage meetup events</p>
               </div>
             </div>
@@ -67,7 +74,7 @@ export default function AdminPage() {
                 <UserGroupIcon className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Members</h2>
+                <h2 className="section-heading">Members</h2>
                 <p className="text-muted-foreground">Manage club members</p>
               </div>
             </div>
@@ -87,7 +94,7 @@ export default function AdminPage() {
                 📝
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Content</h2>
+                <h2 className="section-heading">Content</h2>
                 <p className="text-muted-foreground">Edit site content</p>
               </div>
             </div>
@@ -107,7 +114,7 @@ export default function AdminPage() {
                 <EnvelopeIcon className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Email Templates</h2>
+                <h2 className="section-heading">Email Templates</h2>
                 <p className="text-muted-foreground">Manage invitation emails</p>
               </div>
             </div>
@@ -127,7 +134,7 @@ export default function AdminPage() {
                 📊
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">Analytics</h2>
+                <h2 className="section-heading">Analytics</h2>
                 <p className="text-muted-foreground">Track user activity</p>
               </div>
             </div>
@@ -141,6 +148,10 @@ export default function AdminPage() {
         </Link>
       </div>
 
+      <div
+        className="dashboard-section"
+        style={{ '--section-delay': '150ms' } as CSSProperties}
+      >
       <Alert variant="info" className="mt-6">
         <h3 className="font-semibold mb-2 flex items-center gap-2"><WrenchScrewdriverIcon className="w-5 h-5" /> Maintenance Tools</h3>
         <Link
@@ -152,6 +163,7 @@ export default function AdminPage() {
           <span>→</span>
         </Link>
       </Alert>
+      </div>
     </main>
     </AdminLayout>
   );
@@ -170,7 +182,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <AdminLayout>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="page-main">
         <Alert variant="error">
           <div className="space-y-3">
             <p className="font-semibold">{message}</p>
