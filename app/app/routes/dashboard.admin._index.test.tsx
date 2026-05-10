@@ -40,6 +40,6 @@ describe("dashboard.admin._index route", () => {
     expect(screen.getByText("Manage voting polls").closest("a")).toHaveAttribute("href", "/dashboard/admin/polls");
     expect(screen.getByText("Manage meetup events").closest("a")).toHaveAttribute("href", "/dashboard/admin/events");
     expect(screen.getByText("Manage invitation emails").closest("a")).toHaveAttribute("href", "/dashboard/admin/email-templates");
-    expect(screen.getByRole("link", { name: /Backfill Opening Hours for Existing Restaurants/i })).toHaveAttribute("href", "/dashboard/admin/backfill-hours");
+    expect(screen.getByRole("link", { name: /Refresh Restaurant Metadata from Google/i })).toHaveAttribute("href", "/dashboard/admin/refresh-restaurants");
   });
 });

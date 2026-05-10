@@ -26,6 +26,8 @@ import {
   removeVote,
   voteForRestaurant,
 } from "../lib/restaurants.server";
+import { fetchPlaceDetails, isValidPlaceId, placeDetailsToRestaurantFields } from "../lib/places.server";
+import { enforceRateLimit } from "../lib/rate-limit.server";
 import { canEditEvent } from "../lib/events.server";
 import {
   runCreateEventAction,
@@ -555,37 +557,54 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === 'suggest_restaurant') {
-    const name = formData.get('name');
-    if (!name) {
-      return { error: 'Restaurant name is required' };
+    const rawPlaceId = formData.get('place_id');
+    const placeId = typeof rawPlaceId === 'string' ? rawPlaceId.trim() : '';
+    if (!placeId) {
+      return { error: 'Place ID is required' };
+    }
+    if (!isValidPlaceId(placeId)) {
+      return { error: 'Invalid place ID format' };
     }
 
-    const googlePlaceId = formData.get('google_place_id');
-    if (googlePlaceId) {
-      const existing = await findRestaurantByPlaceId(db, googlePlaceId as string);
-      if (existing) {
-        return { error: 'This restaurant has already been added' };
-      }
+    const existing = await findRestaurantByPlaceId(db, placeId);
+    if (existing) {
+      return { error: 'This restaurant has already been added' };
     }
 
-    const googleRating = formData.get('google_rating');
-    const ratingCount = formData.get('rating_count');
-    const priceLevel = formData.get('price_level');
+    const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) {
+      return { error: 'Places API is not configured' };
+    }
+
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rateLimit = await enforceRateLimit({
+      db,
+      scope: 'places.suggest',
+      identifier: `user:${user.id}:ip:${ip}`,
+      limit: 60,
+      windowSeconds: 60,
+      ctx: context.cloudflare.ctx,
+    });
+    if (!rateLimit.allowed) {
+      return { error: 'Rate limit exceeded. Please try again shortly.' };
+    }
+
+    let details;
+    try {
+      details = await fetchPlaceDetails(placeId, apiKey);
+    } catch (error) {
+      return { error: 'Failed to look up restaurant details from Google' };
+    }
+
+    const fields = placeDetailsToRestaurantFields(details);
+    if (!fields.name) {
+      return { error: 'Google did not return a name for that place' };
+    }
 
     await createRestaurant(db, {
-      name: name as string,
-      address: (formData.get('address') as string | null) || undefined,
-      google_place_id: (googlePlaceId as string | null) || undefined,
-      google_rating: googleRating ? parseFloat(googleRating as string) : undefined,
-      rating_count: ratingCount ? parseInt(ratingCount as string) : undefined,
-      price_level: priceLevel ? parseInt(priceLevel as string) : undefined,
-      cuisine: (formData.get('cuisine') as string | null) || undefined,
-      phone_number: (formData.get('phone_number') as string | null) || undefined,
-      reservation_url: (formData.get('reservation_url') as string | null) || undefined,
-      menu_url: (formData.get('menu_url') as string | null) || undefined,
-      photo_url: (formData.get('photo_url') as string | null) || undefined,
-      google_maps_url: (formData.get('google_maps_url') as string | null) || undefined,
-      opening_hours: (formData.get('opening_hours') as string | null) || undefined,
+      ...fields,
+      name: fields.name,
+      google_place_id: placeId,
       created_by: user.id,
     });
 
@@ -727,33 +746,10 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
     pollFetcher.submit(formData, { method: 'post' });
   }
 
-  function handleRestaurantSubmit(placeDetails: {
-    placeId: string;
-    name: string;
-    address: string;
-    phone: string;
-    website: string;
-    googleMapsUrl: string;
-    rating: number;
-    ratingCount: number;
-    priceLevel: number;
-    photoUrl: string;
-    cuisine: string;
-    openingHours?: string;
-  }) {
+  function handleRestaurantSubmit(placeDetails: { placeId: string }) {
     const formData = new FormData();
     formData.append('_action', 'suggest_restaurant');
-    formData.append('name', placeDetails.name);
-    formData.append('address', placeDetails.address || '');
-    formData.append('cuisine', placeDetails.cuisine || '');
-    formData.append('google_place_id', placeDetails.placeId || '');
-    formData.append('google_rating', placeDetails.rating?.toString() || '');
-    formData.append('rating_count', placeDetails.ratingCount?.toString() || '');
-    formData.append('price_level', placeDetails.priceLevel?.toString() || '');
-    formData.append('phone_number', placeDetails.phone || '');
-    formData.append('photo_url', placeDetails.photoUrl || '');
-    formData.append('google_maps_url', placeDetails.googleMapsUrl || '');
-    formData.append('opening_hours', placeDetails.openingHours || '');
+    formData.append('place_id', placeDetails.placeId);
     restaurantFetcher.submit(formData, { method: 'post' });
   }
 

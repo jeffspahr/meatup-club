@@ -37,6 +37,6 @@ export default [
     route("admin/content", "routes/dashboard.admin.content.tsx"),
     route("admin/email-templates", "routes/dashboard.admin.email-templates.tsx"),
     route("admin/analytics", "routes/dashboard.admin.analytics.tsx"),
-    route("admin/backfill-hours", "routes/dashboard.admin.backfill-hours.tsx"),
+    route("admin/refresh-restaurants", "routes/dashboard.admin.refresh-restaurants.tsx"),
   ]),
 ] satisfies RouteConfig;

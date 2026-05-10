@@ -124,7 +124,7 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
       { path: '/dashboard/admin', file: '../app/routes/dashboard.admin._index' },
       { path: '/dashboard/admin/announcements', file: '../app/routes/dashboard.admin.announcements' },
       { path: '/dashboard/admin/analytics', file: '../app/routes/dashboard.admin.analytics' },
-      { path: '/dashboard/admin/backfill-hours', file: '../app/routes/dashboard.admin.backfill-hours' },
+      { path: '/dashboard/admin/refresh-restaurants', file: '../app/routes/dashboard.admin.refresh-restaurants' },
       { path: '/dashboard/admin/content', file: '../app/routes/dashboard.admin.content' },
       { path: '/dashboard/admin/email-templates', file: '../app/routes/dashboard.admin.email-templates' },
       { path: '/dashboard/admin/events', file: '../app/routes/dashboard.admin.events' },

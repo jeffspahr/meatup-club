@@ -135,7 +135,7 @@ Core tables:
 
 Role-based via `users.is_admin` column:
 - `requireAdmin()` guard on all `/dashboard/admin/*` routes
-- Admin pages: events, polls, members, analytics, email-templates, content, backfill-hours
+- Admin pages: events, polls, members, analytics, email-templates, content, refresh-restaurants
 
 ### Shared Libraries
 
@@ -198,7 +198,7 @@ Restaurants are global entities. In each poll, users can vote on any restaurant 
 
 **Public:** `/` (landing), `/login`, `/pending`, `/accept-invite`
 **Dashboard:** `/dashboard` (layout) → `_index`, `about`, `polls`, `events`, `restaurants`, `dates`, `members`, `profile`
-**Admin:** `/dashboard/admin` → `_index`, `events`, `polls`, `members`, `analytics`, `email-templates`, `content`, `backfill-hours`
+**Admin:** `/dashboard/admin` → `_index`, `events`, `polls`, `members`, `analytics`, `email-templates`, `content`, `refresh-restaurants`
 **API:** `api.polls`, `api.places.{search,details,photo}`, `api.webhooks.{sms,email-rsvp}`, `api.admin.setup-resend`
 **Auth:** `login`, `logout`, `auth.google.callback`
 
