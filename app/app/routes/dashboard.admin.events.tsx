@@ -925,7 +925,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
 
       {/* Create Event Form */}
       {showCreateForm && (
-        <Card className="p-6 mb-8">
+        <Card className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Create New Event</h2>
           <p className="text-sm text-muted-foreground mb-4">
             Creating an event here does not close the active poll. Use Poll Management to finalize winners and close voting.
@@ -1007,7 +1007,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
       )}
 
       {/* Events List */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">All Events</h2>
         </div>

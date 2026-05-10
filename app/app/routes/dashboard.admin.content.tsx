@@ -104,7 +104,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
 
       <div className="space-y-6">
         {content.map((item: any) => (
-          <Card key={item.id} className="overflow-hidden">
+          <Card key={item.id} className="overflow-hidden p-0">
             {editingId === item.id ? (
               <div className="p-6">
                 <h2 className="text-xl font-semibold mb-4">{item.title}</h2>

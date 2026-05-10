@@ -54,7 +54,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
       </div>
 
       <section
-        className="mb-12 dashboard-section"
+        className="page-section dashboard-section"
         style={{ '--section-delay': '40ms' } as CSSProperties}
       >
         <h2 className="section-heading mb-4">

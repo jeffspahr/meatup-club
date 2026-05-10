@@ -818,7 +818,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   return (
     <main className="dashboard-preview page-main">
       <header
-        className="mb-8 dashboard-section"
+        className="page-section dashboard-section"
         style={{ '--section-delay': '20ms' } as CSSProperties}
       >
         <h1 className="page-heading">
@@ -832,7 +832,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       {/* SMS Prompt */}
       {showSmsPrompt && (
         <Card
-          className="card-glow mb-8 p-6 dashboard-section border-accent/20"
+          className="card-glow page-section dashboard-section border-accent/20"
           style={{ '--section-delay': '40ms' } as CSSProperties}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -867,7 +867,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
       {/* Upcoming Events */}
       <Card
-        className="mb-8 p-6 sm:p-8 dashboard-section"
+        className="page-section sm:p-8 dashboard-section"
         style={{ '--section-delay': '150ms' } as CSSProperties}
       >
         <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -937,7 +937,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       {/* Active Poll */}
       {activePoll ? (
         <Card
-          className="card-glow mb-8 p-6 sm:p-8 dashboard-section"
+          className="card-glow page-section sm:p-8 dashboard-section"
           style={{ '--section-delay': '120ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -1030,7 +1030,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         </Card>
       ) : (
         <Card
-          className="mb-8 p-6 sm:p-8 dashboard-section border-border/30"
+          className="page-section sm:p-8 dashboard-section border-border/30"
           style={{ '--section-delay': '120ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1058,7 +1058,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
       {/* Restaurants Section */}
       <div
-        className="mb-12 dashboard-section"
+        className="page-section dashboard-section"
         style={{ '--section-delay': '220ms' } as CSSProperties}
       >
         <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
@@ -1086,7 +1086,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             description="Add the first steakhouse to start the collection."
           />
         ) : (
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1172,7 +1172,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       {/* Past Events */}
       {pastEvents.length > 0 && (
         <div
-          className="mb-12 dashboard-section"
+          className="page-section dashboard-section"
           style={{ '--section-delay': '225ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -1192,7 +1192,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
           </div>
 
           {showPastEvents && (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden p-0">
               <ul className="divide-y divide-border/30 text-sm">
                 {pastEvents.map((event) => (
                   <li
@@ -1224,7 +1224,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       {/* Past Polls */}
       {previousPolls.length > 0 && (
         <div
-          className="mb-12 dashboard-section"
+          className="page-section dashboard-section"
           style={{ '--section-delay': '230ms' } as CSSProperties}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -1275,7 +1275,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
         style={{ '--section-delay': '240ms' } as CSSProperties}
       >
         <div className="divider-accent mb-10" />
-        <Card className="p-6 text-center">
+        <Card className="text-center">
           <h3 className="section-heading mb-4">
             Have feedback or found a bug?
           </h3>
@@ -1320,9 +1320,9 @@ export function HydrateFallback() {
         <div className="h-5 w-80 bg-muted rounded" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="card-shell p-6 h-36 animate-pulse bg-muted/40" />
-        <div className="card-shell p-6 h-36 animate-pulse bg-muted/40" />
-        <div className="card-shell p-6 h-36 animate-pulse bg-muted/40" />
+        <div className="card-shell h-36 animate-pulse bg-muted/40" />
+        <div className="card-shell h-36 animate-pulse bg-muted/40" />
+        <div className="card-shell h-36 animate-pulse bg-muted/40" />
       </div>
       <div className="card-shell p-8 h-56 animate-pulse bg-muted/30" />
     </main>

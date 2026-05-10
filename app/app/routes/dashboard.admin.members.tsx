@@ -309,7 +309,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
       {/* Invite User Form */}
       {showAddForm && (
-        <Card className="p-6 mb-8">
+        <Card className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Invite New User</h2>
           <Form method="post" className="space-y-4">
             <input type="hidden" name="_action" value="invite" />
@@ -382,7 +382,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       )}
 
       {/* Members List */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted">
             <tr>

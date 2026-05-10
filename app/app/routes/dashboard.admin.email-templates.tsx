@@ -210,7 +210,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
 
       {/* Template Form */}
       {showForm && (
-        <Card className="p-6 mb-8">
+        <Card className="mb-8">
           <h2 className="text-xl font-semibold mb-4">
             {editingTemplate ? 'Edit Template' : 'Create New Template'}
           </h2>
@@ -322,7 +322,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
       {/* Templates List */}
       <div className="space-y-4">
         {templates.map((template: any) => (
-          <Card key={template.id} className="p-6">
+          <Card key={template.id}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center gap-2">

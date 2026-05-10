@@ -480,7 +480,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
 
       {/* Active Poll Section */}
       {activePoll ? (
-        <Card className="p-6 mb-8">
+        <Card className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-foreground">
@@ -624,7 +624,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           </Form>
         </Card>
       ) : (
-        <Card className="p-6 mb-8">
+        <Card className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <span className="icon-container"><ClipboardDocumentCheckIcon className="w-5 h-5" /></span>
             <h2 className="text-xl font-semibold text-foreground">Start New Poll</h2>
@@ -658,7 +658,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
       )}
 
       {/* Closed Polls History */}
-      <Card className="overflow-hidden mt-8">
+      <Card className="overflow-hidden mt-8 p-0">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">Closed Polls History</h2>
         </div>
