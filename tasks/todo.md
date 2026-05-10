@@ -924,3 +924,41 @@ Move the post-merge testing commits off the already-merged `codex/testing-zero-r
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:run -- app/routes/dashboard.admin.polls.action-coverage.test.ts`
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run typecheck`
   - `cd /Users/jspahr/repo/meatup-club-pr89a/app && npm run test:coverage`
+
+## Agent Instructions Consolidation (2026-05-10)
+
+### Goal
+Make `AGENTS.md` the authoritative repository instruction file by merging the current `AGENTS.md` project conventions with the richer `CLAUDE.md` project and architecture guidance, then make `CLAUDE.md` a symlink to `AGENTS.md` to prevent drift.
+
+### Acceptance Criteria
+- [x] Preserve existing repository structure, command, coding-style, testing, commit, and security guidance from `AGENTS.md`.
+- [x] Preserve useful project overview, architecture, Cloudflare D1, auth, route, shared library, design-system, deployment, and caveat guidance from `CLAUDE.md`.
+- [x] Avoid conflicting duplicate sections and make `AGENTS.md` explicitly canonical for AI coding agents.
+- [x] Replace `CLAUDE.md` with a symlink to `AGENTS.md`.
+- [x] Verify the symlink and inspect the final instructions for consistency.
+
+### Active Tasks
+- [x] Compare the existing `AGENTS.md` and `CLAUDE.md`.
+- [x] Draft the merged authoritative `AGENTS.md`.
+- [x] Convert `CLAUDE.md` to a symlink.
+- [x] Run documentation verification checks.
+
+### Working Notes
+- `AGENTS.md` currently has concise repository conventions and testing standards.
+- `CLAUDE.md` currently has the more detailed domain, architecture, command, Cloudflare D1, and operational notes.
+- A canonical `AGENTS.md` plus `CLAUDE.md -> AGENTS.md` is appropriate here because the guidance is not tool-specific and avoids divergent agent instructions.
+- Post-merge impact check on 2026-05-10: `origin/main` advanced from `88b74e8` to `37f41d4` via PR `#176` (`style/issue-155-standardize-pages`), and that PR added page-layout conventions to `CLAUDE.md`.
+- PR update on 2026-05-10: `origin/main` advanced from `37f41d4` to `eaf51c2` via PR `#179` (`style/issue-177-tailwind-clusters`), and that PR expanded the `CLAUDE.md` layout conventions around `.page-section`, `.card-shell`, icon containers, and grid gaps.
+
+### Results
+- Rewrote `AGENTS.md` as the canonical AI-agent guide, preserving the existing repo conventions and merging in the richer architecture, auth, D1, route, UI, deployment, and operational notes from `CLAUDE.md`.
+- Corrected stale `CLAUDE.md` details while merging: React Router is now `7.15`, React is `19`, and old member routes for dates/events/restaurants/polls now resolve through `dashboard.legacy-redirect.tsx`.
+- Replaced `CLAUDE.md` with a relative symlink: `CLAUDE.md -> AGENTS.md`.
+- Folded the newly merged PR `#176` page-layout conventions into `AGENTS.md` so the symlink conversion preserves the latest `CLAUDE.md` guidance.
+- Folded the newly merged PR `#179` Tailwind/layout conventions into `AGENTS.md` during the PR branch rebase onto `origin/main`.
+- Verification performed:
+  - `test "$(readlink CLAUDE.md)" = "AGENTS.md" && cmp -s AGENTS.md CLAUDE.md` passed.
+  - `git diff --check -- AGENTS.md CLAUDE.md tasks/todo.md` passed.
+  - `LC_ALL=C grep -n '[^ -~]' AGENTS.md || true` produced no non-ASCII matches.
+  - Disposable apply-check against fresh `origin/main` showed `AGENTS.md` and `tasks/todo.md` apply cleanly, while `CLAUDE.md` needs manual resolution because PR `#176` modified the file that this work converts to a symlink.
+  - Final read-through of `AGENTS.md` completed for consistency.
