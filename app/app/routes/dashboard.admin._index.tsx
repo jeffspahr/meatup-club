@@ -30,7 +30,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/polls">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 <ClipboardDocumentCheckIcon className="w-8 h-8" />
               </div>
               <div>
@@ -50,7 +50,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/events">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 <CalendarDaysIcon className="w-8 h-8" />
               </div>
               <div>
@@ -70,7 +70,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/members">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 <UserGroupIcon className="w-8 h-8" />
               </div>
               <div>
@@ -90,7 +90,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/content">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 📝
               </div>
               <div>
@@ -110,7 +110,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/email-templates">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 <EnvelopeIcon className="w-8 h-8" />
               </div>
               <div>
@@ -130,7 +130,7 @@ export default function AdminPage() {
         <Link to="/dashboard/admin/analytics">
           <Card hover className="p-8">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center text-3xl">
+              <div className="icon-container-link">
                 📊
               </div>
               <div>

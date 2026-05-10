@@ -285,12 +285,17 @@ body {
   z-index: -2;
 }
 
-.card-shell {
-  border-radius: var(--card-radius);
-  border: 1px solid rgb(var(--card-border) / var(--card-border-alpha));
-  background: rgb(var(--card-surface) / var(--card-surface-alpha));
-  box-shadow: var(--card-shadow);
-  position: relative;
+/* .card-shell is wrapped in @layer components so Tailwind utilities
+   (e.g. p-0, p-4, p-8) can override the default padding when needed. */
+@layer components {
+  .card-shell {
+    border-radius: var(--card-radius);
+    border: 1px solid rgb(var(--card-border) / var(--card-border-alpha));
+    background: rgb(var(--card-surface) / var(--card-surface-alpha));
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    position: relative;
+  }
 }
 
 .card-hover {
@@ -672,6 +677,22 @@ body {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 0.875rem;
+}
+
+/* Solid-fill circular icon container — used for clickable nav-card icons
+   (e.g. Admin home cards). Distinct from .icon-container's rounded-square
+   soft-fill treatment. */
+.icon-container-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background: rgb(var(--accent));
+  color: white;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
 }
 
 /* Status badges */

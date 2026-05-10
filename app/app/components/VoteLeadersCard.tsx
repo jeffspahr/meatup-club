@@ -34,7 +34,7 @@ export default function VoteLeadersCard({
   }
 
   return (
-    <div className="card-shell p-6 mb-8 border-accent/20">
+    <div className="card-shell mb-8 border-accent/20">
       <h2 className="text-lg font-semibold text-foreground mb-4">
         {variant === 'blue' ? 'Current Vote Leaders' : 'Leading Restaurant'}
       </h2>

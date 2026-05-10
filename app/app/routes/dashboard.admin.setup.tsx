@@ -55,7 +55,7 @@ export default function AdminSetupPage({ actionData }: { actionData: SetupAction
       />
 
       {/* Resend Email Setup */}
-      <Card className="p-6 mb-6">
+      <Card className="mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><EnvelopeIcon className="w-5 h-5 inline" /> Resend Email</h2>
@@ -127,7 +127,7 @@ export default function AdminSetupPage({ actionData }: { actionData: SetupAction
       </Card>
 
       {/* Future Setup Options */}
-      <Card className="p-6 bg-muted">
+      <Card className="bg-muted">
         <h2 className="text-xl font-semibold mb-2 text-muted-foreground">Coming Soon</h2>
         <p className="text-muted-foreground text-sm">
           Additional integrations and setup options will appear here

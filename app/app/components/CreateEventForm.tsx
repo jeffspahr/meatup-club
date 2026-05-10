@@ -10,7 +10,7 @@ interface CreateEventFormProps {
 
 export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
   return (
-    <Card className="mb-8 p-6">
+    <Card className="mb-8">
       <h2 className="text-xl font-semibold text-foreground">Create Ad Hoc Event</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Pick a restaurant from Google Places, choose the date, and skip the voting flow entirely.

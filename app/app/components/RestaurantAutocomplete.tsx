@@ -140,7 +140,7 @@ export function RestaurantAutocomplete({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Start typing restaurant name..."
-        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 bg-card text-foreground"
         autoComplete="off"
       />
 
@@ -157,8 +157,8 @@ export function RestaurantAutocomplete({
               key={place.id}
               type="button"
               onClick={() => handleSelect(place)}
-              className={`w-full text-left px-4 py-3 hover:bg-amber-50 border-b border-border last:border-b-0 transition-colors ${
-                index === selectedIndex ? "bg-amber-50" : ""
+              className={`w-full text-left px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/30 border-b border-border last:border-b-0 transition-colors ${
+                index === selectedIndex ? "bg-amber-50 dark:bg-amber-900/30" : ""
               }`}
               onMouseEnter={() => setSelectedIndex(index)}
             >

@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Total Activities</div>
           <div className="text-3xl font-bold text-foreground">{stats.total}</div>
@@ -90,7 +90,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       </div>
 
       {/* Activity Breakdown */}
-      <Card className="p-6 mb-6">
+      <Card className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Activity Breakdown</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* All Activities Card */}
@@ -131,7 +131,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       </Card>
 
       {/* Most Active Users */}
-      <Card className="p-6 mb-6">
+      <Card className="mb-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Most Active Users (Last 30 Days)</h2>
         <div className="space-y-2">
           {stats.mostActiveUsers.map((user: any) => (
@@ -147,7 +147,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       </Card>
 
       {/* Recent Activity Log */}
-      <Card className="p-6">
+      <Card>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>

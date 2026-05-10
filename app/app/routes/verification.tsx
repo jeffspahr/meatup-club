@@ -57,7 +57,7 @@ export default function VerificationPage() {
               voting, RSVPs, and event reminders. The service is operated by Jeffrey A Spahr,
               doing business as Meatup.Club, as a sole proprietor.
             </p>
-            <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+            <dl className="mt-6 grid gap-4 sm:grid-cols-2">
               <DetailRow label="Legal entity" value="Jeffrey A Spahr" />
               <DetailRow label="DBA / brand" value="Meatup.Club" />
               <DetailRow label="Business type" value="Sole proprietor" />

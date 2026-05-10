@@ -240,14 +240,14 @@ export default function AdminAnnouncementsPage({
           </Alert>
         )}
 
-        <Card className="p-6 mb-6">
+        <Card className="mb-6">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="muted">{members.length} active members</Badge>
             <Badge variant="muted">{recipientCount} selected to receive</Badge>
           </div>
         </Card>
 
-        <Card className="p-6 mb-6 space-y-4">
+        <Card className="mb-6 space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Drafts</h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -275,7 +275,7 @@ export default function AdminAnnouncementsPage({
         <Form method="post" className="space-y-6" onSubmit={handleSubmit}>
           <input type="hidden" name="_action" value="send_announcement" />
 
-          <Card className="p-6 space-y-4">
+          <Card className="space-y-4">
             <div>
               <label
                 htmlFor="subject"
@@ -344,7 +344,7 @@ export default function AdminAnnouncementsPage({
             </div>
           </Card>
 
-          <Card className="p-6 space-y-4">
+          <Card className="space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-foreground">Recipients</h2>
               <p className="text-sm text-muted-foreground mt-1">
@@ -406,7 +406,7 @@ export default function AdminAnnouncementsPage({
             </div>
 
             {recipientMode === "selected" && (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {members.map((member) => (
                   <label
                     key={member.id}
