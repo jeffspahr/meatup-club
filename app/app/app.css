@@ -87,6 +87,56 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PAGE LAYOUT — single source of truth for page width, padding, headings,
+   and section rhythm. Every <main> uses .page-main; section h2s use
+   .section-heading; major content blocks use .page-section.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.page-main {
+  max-width: 72rem; /* matches Tailwind max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-main {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-main {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.page-heading {
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: rgb(var(--foreground));
+}
+
+.section-heading {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+  color: rgb(var(--foreground));
+}
+
+.page-section {
+  margin-bottom: 2rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    STEAK LANDING PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
 

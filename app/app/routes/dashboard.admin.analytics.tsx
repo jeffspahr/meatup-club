@@ -65,7 +65,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
 
   return (
     <AdminLayout>
-    <div className="max-w-7xl mx-auto">
+    <main className="page-main">
       <PageHeader
         title="User Analytics"
         description="Track user activity and engagement"
@@ -268,7 +268,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
           </div>
         </div>
       </Card>
-    </div>
+    </main>
     </AdminLayout>
   );
 }

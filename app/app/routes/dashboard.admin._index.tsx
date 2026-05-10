@@ -13,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function AdminPage() {
   return (
     <AdminLayout>
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
         <p className="text-muted-foreground mt-1">Manage events, polls, and members</p>
@@ -170,7 +170,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <AdminLayout>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="page-main">
         <Alert variant="error">
           <div className="space-y-3">
             <p className="font-semibold">{message}</p>

@@ -816,7 +816,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   }, [editingEventId, upcomingEvents]);
 
   return (
-    <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="dashboard-preview page-main">
       <header
         className="mb-8 dashboard-section"
         style={{ '--section-delay': '20ms' } as CSSProperties}
@@ -1313,7 +1313,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
 
 export function HydrateFallback() {
   return (
-    <main className="dashboard-preview max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <main className="dashboard-preview page-main">
       <div className="mb-8 card-shell p-8 animate-pulse">
         <div className="h-4 w-40 bg-muted rounded mb-4" />
         <div className="h-10 w-64 bg-muted rounded mb-3" />

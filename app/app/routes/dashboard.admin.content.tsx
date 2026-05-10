@@ -90,7 +90,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
 
   return (
     <AdminLayout>
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <PageHeader
         title="Site Content Management"
         description="Edit the club's description, goals, guidelines, and other information"

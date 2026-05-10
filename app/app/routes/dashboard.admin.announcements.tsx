@@ -222,7 +222,7 @@ export default function AdminAnnouncementsPage({
 
   return (
     <AdminLayout>
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="page-main">
         <PageHeader
           title="Member Announcements"
           description="Send a one-off email to all active members or a selected subset. Markdown is supported for both the preview and the outgoing email."

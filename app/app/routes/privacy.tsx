@@ -2,8 +2,7 @@ import { Link } from "react-router";
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-background px-6 py-12 sm:px-10 lg:px-16">
-      <div className="mx-auto max-w-3xl">
+    <main className="page-main">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           Meatup.Club
         </p>
@@ -148,7 +147,6 @@ export default function PrivacyPage() {
           <Link to="/verification" className="text-sm font-medium text-accent hover:text-accent-strong">
             Verification
           </Link>
-        </div>
       </div>
     </main>
   );

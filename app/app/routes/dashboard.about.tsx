@@ -41,7 +41,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
   const { content, members } = loaderData;
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <PageHeader
         title="About Meatup.Club"
         description="Everything you need to know about our quarterly steakhouse adventures"

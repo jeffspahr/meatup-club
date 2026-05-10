@@ -191,7 +191,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
 
   return (
     <AdminLayout>
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <PageHeader
         title="Email Templates"
         description={`Manage invitation email templates. Use ${'{{inviteeName}}'}, ${'{{inviterName}}'}, and ${'{{acceptLink}}'} as variables.`}

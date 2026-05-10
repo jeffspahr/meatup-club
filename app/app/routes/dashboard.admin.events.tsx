@@ -865,7 +865,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
 
   return (
     <AdminLayout>
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="page-main">
       <PageHeader
         title="Event Management"
         description="Create and manage meetup events"

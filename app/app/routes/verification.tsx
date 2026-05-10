@@ -24,8 +24,7 @@ function PublicLink({ href }: { href: string }) {
 
 export default function VerificationPage() {
   return (
-    <main className="min-h-screen bg-background px-6 py-12 sm:px-10 lg:px-16">
-      <div className="mx-auto max-w-5xl">
+    <main className="page-main">
         <div className="rounded-[2rem] border border-accent/20 bg-accent/[0.04] px-6 py-8 shadow-sm sm:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
             Meatup.Club
@@ -220,7 +219,6 @@ export default function VerificationPage() {
           <Link to="/sms-consent" className="font-medium text-accent hover:text-accent-strong">
             SMS Consent
           </Link>
-        </div>
       </div>
     </main>
   );
