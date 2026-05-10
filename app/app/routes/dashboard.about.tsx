@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Route } from "./+types/dashboard.about";
 import type { ContentItem, Member } from "~/lib/types";
 import { requireActiveUser } from "../lib/auth.server";
@@ -42,12 +43,20 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <main className="page-main">
-      <PageHeader
-        title="About Meatup.Club"
-        description="Everything you need to know about our quarterly steakhouse adventures"
-      />
+      <div
+        className="dashboard-section"
+        style={{ '--section-delay': '20ms' } as CSSProperties}
+      >
+        <PageHeader
+          title="About Meatup.Club"
+          description="Everything you need to know about our quarterly steakhouse adventures"
+        />
+      </div>
 
-      <section className="mb-12">
+      <section
+        className="mb-12 dashboard-section"
+        style={{ '--section-delay': '40ms' } as CSSProperties}
+      >
         <h2 className="section-heading mb-4">
           Members ({members.length})
         </h2>
@@ -77,7 +86,10 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
 
-      <div className="space-y-8">
+      <div
+        className="space-y-8 dashboard-section"
+        style={{ '--section-delay': '150ms' } as CSSProperties}
+      >
         {content.map((item: ContentItem) => (
           <Card key={item.id}>
             <h2 className="section-heading mb-4 flex items-center gap-2">
@@ -111,12 +123,17 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
         ))}
       </div>
 
-      <Alert variant="info" className="mt-8">
-        <h3 className="font-semibold mb-2">Questions or Suggestions?</h3>
-        <p className="text-sm">
-          Have ideas for improving Meatup.Club? Reach out to an admin or submit feedback through the dashboard.
-        </p>
-      </Alert>
+      <div
+        className="dashboard-section"
+        style={{ '--section-delay': '250ms' } as CSSProperties}
+      >
+        <Alert variant="info" className="mt-8">
+          <h3 className="font-semibold mb-2">Questions or Suggestions?</h3>
+          <p className="text-sm">
+            Have ideas for improving Meatup.Club? Reach out to an admin or submit feedback through the dashboard.
+          </p>
+        </Alert>
+      </div>
     </main>
   );
 }
