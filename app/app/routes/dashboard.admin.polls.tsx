@@ -18,6 +18,7 @@ import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateI
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
 import { AdminLayout } from "../components/AdminLayout";
+import { confirmAction } from "../lib/confirm.client";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -458,7 +459,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
       lines.push('This cannot be undone.');
     }
 
-    if (!window.confirm(lines.join('\n'))) {
+    if (!confirmAction(lines.join('\n'))) {
       event.preventDefault();
     }
   };
