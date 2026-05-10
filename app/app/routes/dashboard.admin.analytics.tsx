@@ -72,7 +72,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
       />
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="p-4">
           <div className="text-sm text-muted-foreground mb-1">Total Activities</div>
           <div className="text-3xl font-bold text-foreground">{stats.total}</div>

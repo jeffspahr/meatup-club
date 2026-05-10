@@ -912,7 +912,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 xl:auto-rows-fr xl:grid-cols-2 mt-2">
+          <div className="grid gap-6 xl:auto-rows-fr xl:grid-cols-2 mt-2">
             {upcomingEvents.map((event) => {
               const isExpanded = expandedEventId === event.id || editingEventId === event.id;
               const isEditing = editingEventId === event.id;
@@ -968,7 +968,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left column: vote on restaurants, then vote on dates (calendar) */}
             <div className="space-y-6">
               <div>
@@ -1319,7 +1319,7 @@ export function HydrateFallback() {
         <div className="h-10 w-64 bg-muted rounded mb-3" />
         <div className="h-5 w-80 bg-muted rounded" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card-shell h-36 animate-pulse bg-muted/40" />
         <div className="card-shell h-36 animate-pulse bg-muted/40" />
         <div className="card-shell h-36 animate-pulse bg-muted/40" />

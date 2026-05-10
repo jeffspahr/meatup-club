@@ -60,7 +60,7 @@ export function UpcomingEventCard({
       <div
         className={`flex flex-col bg-accent/[0.04] p-5 sm:p-6 ${isExpanded ? "" : "h-full"}`}
       >
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="min-w-24 rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-center shadow-sm">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
