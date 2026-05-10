@@ -1,3 +1,4 @@
+import type { FormEvent } from "react";
 import { Form, Link } from "react-router";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/dashboard.admin.polls";
@@ -17,6 +18,7 @@ import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateI
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
 import { AdminLayout } from "../components/AdminLayout";
+import { confirmAction } from "../lib/confirm.client";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -397,8 +399,70 @@ export async function action({ request, context }: Route.ActionArgs) {
   return { error: 'Invalid action' };
 }
 
+function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(':');
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time24;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
 export default function AdminPollsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { activePoll, topRestaurant, topDate, allRestaurants, allDates, closedPolls } = loaderData;
+  const canCreateEventFromWinners = Boolean(topRestaurant && topDate);
+
+  const handleCloseSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!activePoll) return;
+    const formData = new FormData(event.currentTarget);
+    const lines: string[] = [];
+
+    if (canCreateEventFromWinners) {
+      const restaurantId = Number(formData.get('winning_restaurant_id'));
+      const dateId = Number(formData.get('winning_date_id'));
+      const restaurant = allRestaurants.find((r: any) => Number(r.id) === restaurantId);
+      const date = allDates.find((d: any) => Number(d.id) === dateId);
+      const createEvent = formData.get('create_event') === 'true';
+      const sendInvites = formData.get('send_invites') === 'true';
+      const eventTime = String(formData.get('event_time') || '18:00');
+
+      lines.push(`Close poll "${activePoll.title}"?`);
+      lines.push('');
+      lines.push(`Winning restaurant: ${restaurant?.name ?? 'Unknown'}`);
+      lines.push(
+        `Winning date: ${date
+          ? formatDateForDisplay(date.suggested_date as string, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : 'Unknown'}`
+      );
+      lines.push('');
+      lines.push(
+        createEvent
+          ? `An event will be created at ${formatTime12h(eventTime)}.`
+          : 'No event will be created.'
+      );
+      lines.push(
+        createEvent && sendInvites
+          ? 'All active members will be sent calendar invites.'
+          : 'Members will not be notified.'
+      );
+      lines.push('');
+      lines.push('This cannot be undone.');
+    } else {
+      lines.push(`Close poll "${activePoll.title}" with no winner?`);
+      lines.push('');
+      lines.push('This cannot be undone.');
+    }
+
+    if (!confirmAction(lines.join('\n'))) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <AdminLayout>
@@ -439,119 +503,125 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           </div>
 
           {/* Close Poll Form */}
-          {topRestaurant && topDate && (
-            <Form method="post" className="bg-muted border border-border rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
-              <input type="hidden" name="_action" value="close" />
-              <input type="hidden" name="poll_id" value={activePoll.id} />
+          <Form method="post" onSubmit={handleCloseSubmit} className="bg-muted border border-border rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4">Close Poll</h3>
+            <input type="hidden" name="_action" value="close" />
+            <input type="hidden" name="poll_id" value={activePoll.id} />
 
-              {/* Restaurant & Date Override Selects */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Restaurant
+            {canCreateEventFromWinners ? (
+              <>
+                {/* Restaurant & Date Override Selects */}
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Restaurant
+                    </label>
+                    <select
+                      name="winning_restaurant_id"
+                      defaultValue={topRestaurant!.id}
+                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                      required
+                    >
+                      {allRestaurants.map((restaurant: any) => (
+                        <option key={restaurant.id} value={restaurant.id}>
+                          {restaurant.name} - {restaurant.vote_count} vote{restaurant.vote_count !== 1 ? 's' : ''}
+                          {restaurant.id === topRestaurant!.id ? ' (Leader)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Defaulted to vote leader, but you can override
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Date
+                    </label>
+                    <select
+                      name="winning_date_id"
+                      defaultValue={topDate!.id}
+                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                      required
+                    >
+                      {allDates.map((date: any) => (
+                        <option key={date.id} value={date.id}>
+                          {formatDateForDisplay(date.suggested_date, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })} - {date.vote_count} vote{date.vote_count !== 1 ? 's' : ''}
+                          {date.id === topDate!.id ? ' (Leader)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Defaulted to vote leader, but you can override
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="create_event"
+                      value="true"
+                      defaultChecked
+                      className="w-4 h-4 text-accent rounded focus:ring-accent"
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      Create event from winners
+                    </span>
                   </label>
-                  <select
-                    name="winning_restaurant_id"
-                    defaultValue={topRestaurant.id}
-                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
-                    required
-                  >
-                    {allRestaurants.map((restaurant: any) => (
-                      <option key={restaurant.id} value={restaurant.id}>
-                        {restaurant.name} - {restaurant.vote_count} vote{restaurant.vote_count !== 1 ? 's' : ''}
-                        {restaurant.id === topRestaurant.id ? ' (Leader)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Defaulted to vote leader, but you can override
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">
+                    This will create an upcoming event with the winning restaurant and date
+                  </p>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="send_invites"
+                      value="true"
+                      defaultChecked
+                      className="w-4 h-4 text-accent rounded focus:ring-accent"
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      Send calendar invites to all members
+                    </span>
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-1 ml-6">
+                    Sends personalized calendar invites to all active members
                   </p>
                 </div>
 
-                <div>
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Date
+                    Event Time
                   </label>
-                  <select
-                    name="winning_date_id"
-                    defaultValue={topDate.id}
-                    className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                  <input
+                    type="time"
+                    name="event_time"
+                    defaultValue="18:00"
+                    className="w-full px-4 py-2 border border-border rounded-md focus:ring-accent focus:border-accent"
                     required
-                  >
-                    {allDates.map((date: any) => (
-                      <option key={date.id} value={date.id}>
-                        {formatDateForDisplay(date.suggested_date, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })} - {date.vote_count} vote{date.vote_count !== 1 ? 's' : ''}
-                        {date.id === topDate.id ? ' (Leader)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Defaulted to vote leader, but you can override
+                    Time for the event (defaults to 6:00 PM)
                   </p>
                 </div>
-              </div>
+              </>
+            ) : (
+              <Alert variant="info" className="mb-4">
+                No winners yet. Closing this poll will not create an event.
+              </Alert>
+            )}
 
-              <div className="space-y-4 mb-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="create_event"
-                    value="true"
-                    defaultChecked
-                    className="w-4 h-4 text-accent rounded focus:ring-accent"
-                  />
-                  <span className="text-sm font-medium text-foreground">
-                    Create event from winners
-                  </span>
-                </label>
-                <p className="text-xs text-muted-foreground mt-1 ml-6">
-                  This will create an upcoming event with the winning restaurant and date
-                </p>
-
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="send_invites"
-                    value="true"
-                    defaultChecked
-                    className="w-4 h-4 text-accent rounded focus:ring-accent"
-                  />
-                  <span className="text-sm font-medium text-foreground">
-                    Send calendar invites to all members
-                  </span>
-                </label>
-                <p className="text-xs text-muted-foreground mt-1 ml-6">
-                  Sends personalized calendar invites to all active members
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Event Time
-                </label>
-                <input
-                  type="time"
-                  name="event_time"
-                  defaultValue="18:00"
-                  className="w-full px-4 py-2 border border-border rounded-md focus:ring-accent focus:border-accent"
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Time for the event (defaults to 6:00 PM)
-                </p>
-              </div>
-
-              <Button type="submit" className="w-full">
-                Close Poll & Finalize Winners
-              </Button>
-            </Form>
-          )}
+            <Button type="submit" className="w-full">
+              {canCreateEventFromWinners ? 'Close Poll & Finalize Winners' : 'Close Poll Without Winners'}
+            </Button>
+          </Form>
         </Card>
       ) : (
         <Card className="p-6 mb-8">

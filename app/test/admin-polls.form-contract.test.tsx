@@ -330,7 +330,7 @@ describe('Admin Polls Close Form Contract', () => {
       expect(select.options[0].text).toBe('Only Restaurant');
     });
 
-    it('should not render form when no votes exist (topRestaurant is null)', async () => {
+    it('should render a close-only form when no votes exist', async () => {
       const mockLoaderData = {
         activePoll: { id: 1, title: 'Weekly Poll', status: 'active' },
         topRestaurant: null,
@@ -341,10 +341,16 @@ describe('Admin Polls Close Form Contract', () => {
       };
 
       const TestComponent = () => {
-        const { topRestaurant, topDate } = mockLoaderData;
+        const { activePoll, topRestaurant, topDate } = mockLoaderData;
 
         if (!topRestaurant || !topDate) {
-          return <div data-testid="no-votes">No votes yet - cannot close poll</div>;
+          return (
+            <form>
+              <input type="hidden" name="_action" value="close" />
+              <input type="hidden" name="poll_id" value={activePoll.id} />
+              <button type="submit">Close Poll Without Winners</button>
+            </form>
+          );
         }
 
         return <div data-testid="close-form">Close Poll Form</div>;
@@ -352,7 +358,9 @@ describe('Admin Polls Close Form Contract', () => {
 
       render(<TestComponent />);
 
-      expect(screen.getByTestId('no-votes')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Close Poll Without Winners' })).toBeInTheDocument();
+      expect(document.querySelector('input[name="_action"]')).toHaveValue('close');
+      expect(document.querySelector('input[name="poll_id"]')).toHaveValue('1');
       expect(screen.queryByTestId('close-form')).not.toBeInTheDocument();
     });
   });

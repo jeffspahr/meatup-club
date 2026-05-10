@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminPollsPage, { loader } from "./dashboard.admin.polls";
 import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
@@ -269,6 +269,187 @@ describe("dashboard.admin.polls loader and UI", () => {
       "href",
       "/dashboard/admin/events"
     );
+  });
+
+  it("renders a close-only form when an active poll has no winners", () => {
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/polls"]}>
+        <AdminPollsPage
+          {...(({
+            loaderData: {
+              activePoll: {
+                id: 10,
+                title: "June Poll",
+                created_at: "2026-05-01T00:00:00.000Z",
+              },
+              topRestaurant: null,
+              topDate: null,
+              allRestaurants: [],
+              allDates: [],
+              closedPolls: [],
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("June Poll")).toBeInTheDocument();
+    expect(screen.getByTestId("vote-leaders-card")).toHaveTextContent("no-restaurant");
+    expect(screen.getByText("No winners yet. Closing this poll will not create an event.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Poll Without Winners" })).toBeInTheDocument();
+    expect(document.querySelector('input[name="_action"]')).toHaveValue("close");
+    expect(document.querySelector('input[name="poll_id"]')).toHaveValue("10");
+    expect(document.querySelector('select[name="winning_restaurant_id"]')).toBeNull();
+    expect(document.querySelector('select[name="winning_date_id"]')).toBeNull();
+    expect(screen.queryByLabelText("Create event from winners")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Send calendar invites to all members")).not.toBeInTheDocument();
+    expect(document.querySelector('input[name="event_time"]')).toBeNull();
+  });
+
+  describe("close poll confirmation dialog", () => {
+    let confirmMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      confirmMock = vi.fn().mockReturnValue(true);
+      vi.stubGlobal("confirm", confirmMock);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function getCloseForm(): HTMLFormElement {
+      const closeAction = document.querySelector(
+        'input[name="_action"][value="close"]'
+      );
+      const form = closeAction?.closest("form");
+      if (!(form instanceof HTMLFormElement)) {
+        throw new Error("close form not found");
+      }
+      return form;
+    }
+
+    function renderWithLeaders() {
+      return render(
+        <MemoryRouter initialEntries={["/dashboard/admin/polls"]}>
+          <AdminPollsPage
+            {...(({
+              loaderData: {
+                activePoll: {
+                  id: 10,
+                  title: "June Poll",
+                  created_at: "2026-05-01T00:00:00.000Z",
+                },
+                topRestaurant: {
+                  id: 100,
+                  name: "Prime Steakhouse",
+                  address: "123 Main St",
+                  vote_count: 4,
+                },
+                topDate: {
+                  id: 200,
+                  suggested_date: "2026-06-20",
+                  vote_count: 5,
+                },
+                allRestaurants: [
+                  { id: 100, name: "Prime Steakhouse", address: "123 Main St", vote_count: 4 },
+                  { id: 101, name: "Ocean Grill", address: "9 Dock St", vote_count: 2 },
+                ],
+                allDates: [
+                  { id: 200, suggested_date: "2026-06-20", vote_count: 5 },
+                  { id: 201, suggested_date: "2026-06-27", vote_count: 3 },
+                ],
+                closedPolls: [],
+              },
+              actionData: undefined,
+            } as unknown) as Route.ComponentProps)}
+          />
+        </MemoryRouter>
+      );
+    }
+
+    function renderWithoutLeaders() {
+      return render(
+        <MemoryRouter initialEntries={["/dashboard/admin/polls"]}>
+          <AdminPollsPage
+            {...(({
+              loaderData: {
+                activePoll: {
+                  id: 10,
+                  title: "June Poll",
+                  created_at: "2026-05-01T00:00:00.000Z",
+                },
+                topRestaurant: null,
+                topDate: null,
+                allRestaurants: [],
+                allDates: [],
+                closedPolls: [],
+              },
+              actionData: undefined,
+            } as unknown) as Route.ComponentProps)}
+          />
+        </MemoryRouter>
+      );
+    }
+
+    it("confirms with a no-winner message when closing a poll without leaders", () => {
+      renderWithoutLeaders();
+
+      fireEvent.submit(getCloseForm());
+
+      expect(confirmMock).toHaveBeenCalledTimes(1);
+      const message = confirmMock.mock.calls[0][0];
+      expect(message).toContain('Close poll "June Poll" with no winner?');
+      expect(message).toContain("This cannot be undone.");
+      expect(message).not.toContain("Winning restaurant");
+      expect(message).not.toContain("event will be created");
+    });
+
+    it("confirms with winner details when closing a poll with leaders and default options", () => {
+      renderWithLeaders();
+
+      fireEvent.submit(getCloseForm());
+
+      expect(confirmMock).toHaveBeenCalledTimes(1);
+      const message = confirmMock.mock.calls[0][0];
+      expect(message).toContain('Close poll "June Poll"?');
+      expect(message).toContain("Winning restaurant: Prime Steakhouse");
+      expect(message).toContain("Winning date: formatted:2026-06-20");
+      expect(message).toContain("An event will be created at 6:00 PM.");
+      expect(message).toContain("All active members will be sent calendar invites.");
+      expect(message).toContain("This cannot be undone.");
+    });
+
+    it("reflects unchecked event creation and invite options in the confirmation", () => {
+      renderWithLeaders();
+
+      const createEventCheckbox = screen.getByLabelText("Create event from winners") as HTMLInputElement;
+      const sendInvitesCheckbox = screen.getByLabelText(
+        "Send calendar invites to all members"
+      ) as HTMLInputElement;
+      fireEvent.click(createEventCheckbox);
+      fireEvent.click(sendInvitesCheckbox);
+
+      fireEvent.submit(getCloseForm());
+
+      const message = confirmMock.mock.calls[0][0];
+      expect(message).toContain("No event will be created.");
+      expect(message).toContain("Members will not be notified.");
+      expect(message).not.toContain("An event will be created at");
+      expect(message).not.toContain("All active members will be sent");
+    });
+
+    it("prevents form submission when the admin cancels the confirmation", () => {
+      confirmMock.mockReturnValue(false);
+      renderWithoutLeaders();
+
+      const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+      getCloseForm().dispatchEvent(submitEvent);
+
+      expect(confirmMock).toHaveBeenCalledTimes(1);
+      expect(submitEvent.defaultPrevented).toBe(true);
+    });
   });
 
   it("renders the create-poll form and empty history state when no poll is active", () => {

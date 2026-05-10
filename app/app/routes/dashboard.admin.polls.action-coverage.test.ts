@@ -234,6 +234,26 @@ describe("dashboard.admin.polls action coverage", () => {
     expect(result).toEqual({ error: "Poll is not active or does not exist" });
   });
 
+  it("closes an active poll without winners or event creation", async () => {
+    const db = createMockDb();
+
+    const response = await action({
+      request: createRequest({ _action: "close", poll_id: "1" }),
+      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      params: {},
+    } as never);
+
+    expect((response as Response).status).toBe(302);
+    expect((response as Response).headers.get("Location")).toBe("/dashboard/admin/polls");
+    expect(db.batch).not.toHaveBeenCalled();
+    expect(db.runCalls).toContainEqual(
+      expect.objectContaining({
+        sql: "UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP, winning_restaurant_id = ?, winning_date_id = ?, created_event_id = ? WHERE id = ? AND status = 'active'",
+        bindArgs: [1, null, null, null, 1],
+      })
+    );
+  });
+
   it("requires winning selections when creating an event", async () => {
     const result = await action({
       request: createRequest({
