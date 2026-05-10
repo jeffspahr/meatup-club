@@ -194,11 +194,14 @@ Every page-level structural decision is centralized in CSS classes in `app.css`.
 - **`.page-main`** — Every `<main>` uses this. Width = `max-w-6xl` (1152px), centered, with `px-4 sm:px-6 lg:px-8 py-12`. Use it raw (`<main className="page-main">`); modifier classes like `dashboard-preview` compose alongside it (`<main className="dashboard-preview page-main">`).
 - **`.page-heading`** — Page-level h1. Used by `PageHeader`'s h1 internally; apply directly when a page can't use `PageHeader` (e.g., needs custom header layout, kicker, or fade-in wrapper).
 - **`.section-heading`** — Page-level h2 for major content sections (`text-2xl font-bold`). Margin utilities (`mb-3`, `mb-4`) compose alongside.
-- **`.page-section`** — Standard bottom margin between major page sections (`mb-8`).
+- **`.page-section`** — Standard bottom margin between major page sections (`mb-8`). Compose with `dashboard-section` on the same element for fade-in. Don't reintroduce inline `mb-12` for major-section breaks.
+- **`.card-shell`** — Carries default `padding: 1.5rem` (= `p-6`). Wrapped in `@layer components` so Tailwind utilities can override (`p-0` for tables/lists with edge-to-edge content, `p-4`/`p-5` for tight tiles, `p-8` or `sm:p-8` for hero/login cards). Don't pass `p-6` explicitly — it's the default.
+- **`.icon-container`** family — `.icon-container` (2.75rem, soft fill, rounded-square), `.icon-container-lg` (3.5rem variant), `.icon-container-link` (4rem solid-fill circle for clickable nav-card icons, e.g. Admin home). Pick by visual treatment, not by use site.
+- **Grid gaps** — Settle on `gap-6` for top-level grids (e.g. `grid-cols-1 md:grid-cols-2 gap-6`) and `gap-4` for inner card content. `gap-3` is OK for inline button rows.
 - **Section pattern** — For plain sections (no icon, no toolbar), put the h2 above the card with `mb-3`. For sections with an icon + title + description + action toolbar (Dashboard home, About content cards), keep the header strip inside the card — it's a coherent unit on its own.
 - **Page-load fade-in** — Wrap each major section with `className="dashboard-section"` and an inline `style={{ '--section-delay': 'Xms' } as CSSProperties}`. Cadence used on Dashboard, About, Admin home: header 20ms, first section 40ms, follow-on sections 150ms / 250ms / 350ms. Imports `CSSProperties` from `react`.
 
-Page widths used to drift between `max-w-7xl`, `6xl`, and `4xl`. Don't reintroduce inline width/padding overrides on `<main>` — change `.page-main` if a new width is needed everywhere.
+Page widths used to drift between `max-w-7xl`, `6xl`, and `4xl`; card padding drifted between `p-4`/`p-5`/`p-6`/`p-8`. Don't reintroduce inline overrides for the defaults — change `.page-main` or `.card-shell` if the project-wide value needs to move.
 
 ### Voting System
 
