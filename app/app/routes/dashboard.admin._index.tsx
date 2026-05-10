@@ -15,7 +15,7 @@ export default function AdminPage() {
     <AdminLayout>
     <main className="page-main">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Admin Panel</h1>
+        <h1 className="page-heading">Admin Panel</h1>
         <p className="text-muted-foreground mt-1">Manage events, polls, and members</p>
       </div>
 

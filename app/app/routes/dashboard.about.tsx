@@ -48,7 +48,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
       />
 
       <section className="mb-12">
-        <h2 className="text-2xl font-bold text-foreground mb-4">
+        <h2 className="section-heading mb-4">
           Members ({members.length})
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-1">
@@ -80,7 +80,7 @@ export default function AboutPage({ loaderData }: Route.ComponentProps) {
       <div className="space-y-8">
         {content.map((item: ContentItem) => (
           <Card key={item.id}>
-            <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <h2 className="section-heading mb-4 flex items-center gap-2">
               <span className="w-6 h-6 text-accent">
                 {item.key === 'description' && <BookOpenIcon className="w-6 h-6" />}
                 {item.key === 'goals' && <RocketLaunchIcon className="w-6 h-6" />}

@@ -6,7 +6,7 @@ export default function SmsConsentPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           Meatup.Club
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-3 page-heading">
           SMS Consent & Opt-In
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">Last updated: February 25, 2026</p>
@@ -23,7 +23,7 @@ export default function SmsConsentPage() {
 
         <div className="mt-10 space-y-8 text-muted-foreground">
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Program operator</h2>
+            <h2 className="section-heading">Program operator</h2>
             <p className="mt-3">
               This SMS program is operated by Jeffrey A Spahr, doing business as Meatup.Club, as a
               sole proprietor.
@@ -31,7 +31,7 @@ export default function SmsConsentPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">How Users Opt In</h2>
+            <h2 className="section-heading">How Users Opt In</h2>
             <ol className="mt-3 list-decimal space-y-2 pl-6">
               <li>Sign in to Meatup.Club.</li>
               <li>Go to Profile settings.</li>
@@ -49,7 +49,7 @@ export default function SmsConsentPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Program Details</h2>
+            <h2 className="section-heading">Program Details</h2>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>Purpose: event reminders and RSVP status updates only.</li>
               <li>Frequency: varies by event, typically low volume.</li>
@@ -63,7 +63,7 @@ export default function SmsConsentPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Contact</h2>
+            <h2 className="section-heading">Contact</h2>
             <p className="mt-3">
               Questions about SMS consent can be sent to{" "}
               <a

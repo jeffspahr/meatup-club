@@ -6,7 +6,7 @@ export default function TermsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
           Meatup.Club
         </p>
-        <h1 className="mt-3 text-4xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-3 page-heading">
           Terms & Conditions
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">Last updated: February 25, 2026</p>
@@ -23,7 +23,7 @@ export default function TermsPage() {
 
         <div className="mt-10 space-y-8 text-muted-foreground">
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Service Overview</h2>
+            <h2 className="section-heading">Service Overview</h2>
             <p className="mt-3">
               Meatup.Club is an invite-only application used to coordinate dining events,
               member RSVPs, and operational reminders. The service is operated by Jeffrey A Spahr,
@@ -32,7 +32,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Eligibility & Accounts</h2>
+            <h2 className="section-heading">Eligibility & Accounts</h2>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>Access is limited to invited members.</li>
               <li>Members are responsible for account security and accurate contact details.</li>
@@ -41,7 +41,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">SMS Program Terms</h2>
+            <h2 className="section-heading">SMS Program Terms</h2>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>
                 Program: Meatup.Club event reminders and RSVP updates (no marketing/promotional
@@ -69,7 +69,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Privacy</h2>
+            <h2 className="section-heading">Privacy</h2>
             <p className="mt-3">
               Use of the service is also governed by the Privacy Policy at{" "}
               <Link
@@ -83,7 +83,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground">Contact</h2>
+            <h2 className="section-heading">Contact</h2>
             <p className="mt-3">
               Questions about these terms can be sent to{" "}
               <a
