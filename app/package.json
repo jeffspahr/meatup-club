@@ -18,13 +18,13 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@react-router/cloudflare": "7.15.1",
+    "@react-router/cloudflare": "7.16.0",
     "isbot": "^5.1.40",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
-    "react-router": "7.15.1",
-    "svix": "^1.94.0"
+    "react-router": "7.16.0",
+    "svix": "^1.95.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.39.0",
