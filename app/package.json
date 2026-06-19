@@ -24,7 +24,7 @@
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
     "react-router": "7.18.0",
-    "svix": "^1.95.2"
+    "svix": "^1.96.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.41.0",
