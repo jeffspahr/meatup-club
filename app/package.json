@@ -19,7 +19,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@react-router/cloudflare": "7.18.1",
-    "isbot": "^5.1.44",
+    "isbot": "^5.2.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
