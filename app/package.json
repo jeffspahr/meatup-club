@@ -27,7 +27,7 @@
     "svix": "^1.96.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.44.0",
+    "@cloudflare/vite-plugin": "^1.45.0",
     "@react-router/dev": "7.18.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -37,7 +37,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.0.16",
-    "autoprefixer": "^10.5.2",
+    "autoprefixer": "^10.5.3",
     "happy-dom": "^20.10.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
@@ -47,6 +47,6 @@
     "vite": "^7.3.6",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.16",
-    "wrangler": "^4.110.0"
+    "wrangler": "^4.111.0"
   }
 }
