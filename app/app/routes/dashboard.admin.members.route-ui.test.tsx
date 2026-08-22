@@ -157,6 +157,10 @@ describe("dashboard.admin.members loader and UI", () => {
             picture: null,
             is_admin: 1,
             status: "active",
+            phone_number: "+15551234567",
+            sms_opt_in: 1,
+            sms_opt_out_at: null,
+            sms_opt_out_source: null,
             created_at: "2026-03-01T00:00:00.000Z",
           },
           {
@@ -166,6 +170,10 @@ describe("dashboard.admin.members loader and UI", () => {
             picture: null,
             is_admin: 0,
             status: "invited",
+            phone_number: "+15557654321",
+            sms_opt_in: 0,
+            sms_opt_out_at: "2026-03-03T00:00:00.000Z",
+            sms_opt_out_source: "sms",
             created_at: "2026-03-02T00:00:00.000Z",
           },
         ],
@@ -235,5 +243,86 @@ describe("dashboard.admin.members loader and UI", () => {
     expect((submitSpy.mock.calls[0]?.[0] as FormData).get("user_id")).toBe("7");
     expect((submitSpy.mock.calls[1]?.[0] as FormData).get("_action")).toBe("delete");
     expect((submitSpy.mock.calls[1]?.[0] as FormData).get("user_id")).toBe("7");
+  });
+
+  it("shows each member's operational SMS eligibility without exposing phone numbers", () => {
+    const memberDefaults = {
+      picture: null,
+      is_admin: 0,
+      status: "active",
+      created_at: "2026-03-01T00:00:00.000Z",
+    };
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/members"]}>
+        <AdminMembersPage
+          {...(({
+            loaderData: {
+              members: [
+                {
+                  ...memberDefaults,
+                  id: 1,
+                  name: "Enabled Member",
+                  email: "enabled@example.com",
+                  phone_number: "+15550000001",
+                  sms_opt_in: 1,
+                  sms_opt_out_at: null,
+                  sms_opt_out_source: null,
+                },
+                {
+                  ...memberDefaults,
+                  id: 2,
+                  name: "Text Opt Out",
+                  email: "text-opt-out@example.com",
+                  phone_number: "+15550000002",
+                  sms_opt_in: 0,
+                  sms_opt_out_at: "2026-03-02T00:00:00.000Z",
+                  sms_opt_out_source: "sms",
+                },
+                {
+                  ...memberDefaults,
+                  id: 3,
+                  name: "Profile Opt Out",
+                  email: "profile-opt-out@example.com",
+                  phone_number: "+15550000003",
+                  sms_opt_in: 0,
+                  sms_opt_out_at: "2026-03-02T00:00:00.000Z",
+                  sms_opt_out_source: "profile",
+                },
+                {
+                  ...memberDefaults,
+                  id: 4,
+                  name: "No Consent",
+                  email: "no-consent@example.com",
+                  phone_number: "+15550000004",
+                  sms_opt_in: 0,
+                  sms_opt_out_at: null,
+                  sms_opt_out_source: null,
+                },
+                {
+                  ...memberDefaults,
+                  id: 5,
+                  name: "No Number",
+                  email: "no-number@example.com",
+                  phone_number: null,
+                  sms_opt_in: 0,
+                  sms_opt_out_at: null,
+                  sms_opt_out_source: null,
+                },
+              ],
+              templates: [],
+            },
+            actionData: undefined,
+          } as unknown) as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText("SMS: Enabled. Eligible.")).toBeInTheDocument();
+    expect(screen.getByLabelText("SMS: Opted out. By text.")).toBeInTheDocument();
+    expect(screen.getByLabelText("SMS: Opted out. In profile.")).toBeInTheDocument();
+    expect(screen.getByLabelText("SMS: Not enabled. No consent.")).toBeInTheDocument();
+    expect(screen.getByLabelText("SMS: No number. Not eligible.")).toBeInTheDocument();
+    expect(screen.queryByText("+15550000001")).not.toBeInTheDocument();
   });
 });
