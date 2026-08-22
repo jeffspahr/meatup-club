@@ -1,9 +1,13 @@
 name: Deploy to Cloudflare Workers
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Application CI
     branches:
       - main
+    types:
+      - completed
 
 permissions:
   contents: read
@@ -14,6 +18,10 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Workers
     timeout-minutes: 20
@@ -24,8 +32,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Confirm verified commit is current main
+        id: current_main
+        shell: bash
+        env:
+          VERIFIED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          remote_ref="$(git ls-remote origin refs/heads/main)"
+          current_main_sha="${remote_ref%%$'\t'*}"
+
+          if [[ "${VERIFIED_SHA}" == "${current_main_sha}" ]]; then
+            echo 'deploy=true' >> "${GITHUB_OUTPUT}"
+          else
+            echo 'deploy=false' >> "${GITHUB_OUTPUT}"
+            echo "::notice::Skipping stale verified commit ${VERIFIED_SHA}; current main is ${current_main_sha}."
+          fi
 
       - name: Setup Node.js
+        if: steps.current_main.outputs.deploy == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: 'app/.node-version'
@@ -33,12 +61,11 @@ jobs:
           cache-dependency-path: 'app/package-lock.json'
 
       - name: Install dependencies
+        if: steps.current_main.outputs.deploy == 'true'
         run: npm ci
 
-      - name: Verify application
-        run: npm run verify
-
       - name: Deploy to Cloudflare Workers
+        if: steps.current_main.outputs.deploy == 'true'
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

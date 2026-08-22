@@ -1,5 +1,4 @@
-import { redirect } from "react-router";
-import type { AppLoadContext } from "react-router";
+import { redirect, type AppLoadContext } from "react-router";
 import { getSession, commitSession, destroySession } from "./session.server";
 import { getUserByEmail, isUserActive } from "./db.server";
 

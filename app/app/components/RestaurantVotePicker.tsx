@@ -17,11 +17,14 @@ interface RestaurantVotePickerProps {
 export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: RestaurantVotePickerProps) {
   const sorted = [...suggestions].sort((a, b) => a.name.localeCompare(b.name));
   const currentVote = sorted.find((s) => s.user_has_voted > 0) ?? null;
-  const [selectedId, setSelectedId] = useState<string>(currentVote ? String(currentVote.id) : '');
+  const currentVoteId = currentVote ? String(currentVote.id) : '';
+  const [selectedId, setSelectedId] = useState<string>(currentVoteId);
 
+  // A loader refresh is authoritative for the persisted vote and intentionally
+  // resets any unsubmitted local selection when that persisted value changes.
   useEffect(() => {
-    setSelectedId(currentVote ? String(currentVote.id) : '');
-  }, [currentVote?.id]);
+    setSelectedId(currentVoteId);
+  }, [currentVoteId]);
 
   if (sorted.length === 0) {
     return (
@@ -41,7 +44,7 @@ export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: Restaura
     onVote(parseInt(selectedId, 10));
   }
 
-  const isUnchanged = selectedId === (currentVote ? String(currentVote.id) : '');
+  const isUnchanged = selectedId === currentVoteId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
