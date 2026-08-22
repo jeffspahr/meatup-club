@@ -7,6 +7,7 @@ import {
   processEventEmailQueueBatch,
   recoverEventEmailDeliveryBacklog,
 } from "../app/lib/event-email-delivery.server";
+import { logErrorEvent, logInfoEvent } from "../app/lib/observability.server";
 import { maybeEnsureResendEmailSetup } from "../app/lib/resend-setup.server";
 import { sendScheduledSmsReminders } from "../app/lib/sms.server";
 import type { CloudflareEnv } from "../app/env";
@@ -25,11 +26,11 @@ const requestHandler = createRequestHandler(build, "production");
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
     try {
-      return requestHandler(request, {
+      return await requestHandler(request, {
         cloudflare: { env, ctx },
       });
     } catch (error) {
-      console.error("Worker error:", error);
+      logErrorEvent("worker_fetch_failed", error);
       return new Response("Internal Server Error", { status: 500 });
     }
   },
@@ -54,14 +55,12 @@ export default {
         })
           .then((result) => {
             if (result.configured) {
-              console.log("Configured Resend email setup from scheduled bootstrap", {
-                domain: result.details.domain,
-                deliveryWebhookUrl: result.details.deliveryWebhookUrl,
-              });
+              logInfoEvent("scheduled_resend_setup_configured");
             }
           })
           .catch((error) => {
-            console.error("Scheduled Resend setup bootstrap error:", error);
+            logErrorEvent("scheduled_resend_setup_failed", error);
+            throw error;
           }),
       ]);
       if (ctx?.waitUntil) {
@@ -70,7 +69,8 @@ export default {
         await scheduledWork;
       }
     } catch (error) {
-      console.error("Scheduled worker task error:", error);
+      logErrorEvent("scheduled_task_failed", error);
+      throw error;
     }
   },
   async queue(batch, env) {

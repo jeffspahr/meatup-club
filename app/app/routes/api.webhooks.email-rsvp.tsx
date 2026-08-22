@@ -2,6 +2,7 @@ import type { AppLoadContext } from "react-router";
 import { Webhook } from "svix";
 import { upsertRsvp } from "../lib/rsvps.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { logErrorEvent, logInfoEvent } from "../lib/observability.server";
 
 interface ResendEmailReceivedPayload {
   type: string;
@@ -41,7 +42,7 @@ export async function action({ request, context }: { request: Request; context: 
     const webhookSecret = context.cloudflare.env.RESEND_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      console.error('RESEND_WEBHOOK_SECRET not configured');
+      logErrorEvent("resend_rsvp_webhook_secret_missing");
       return Response.json(
         { error: 'Webhook not configured' },
         { status: 500 }
@@ -55,7 +56,7 @@ export async function action({ request, context }: { request: Request; context: 
     const svixSignature = request.headers.get('svix-signature');
 
     if (!svixId || !svixTimestamp || !svixSignature) {
-      console.error('Missing Svix headers');
+      logErrorEvent("resend_rsvp_webhook_headers_missing");
       return Response.json(
         { error: 'Missing signature headers' },
         { status: 401 }
@@ -73,15 +74,14 @@ export async function action({ request, context }: { request: Request; context: 
         'svix-signature': svixSignature,
       }) as ResendEmailReceivedPayload;
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error('Webhook signature verification failed', { message });
+      logErrorEvent("resend_rsvp_webhook_signature_invalid", err);
       return Response.json(
         { error: 'Invalid signature' },
         { status: 401 }
       );
     }
 
-    console.log('Received email webhook event', { type: payload.type });
+    logInfoEvent("resend_rsvp_webhook_received");
 
     // Only process email.received events
     if (payload.type !== 'email.received') {
@@ -122,7 +122,7 @@ export async function action({ request, context }: { request: Request; context: 
     // Extract event ID from UID (format: event-{id}@meatup.club or event-{id}-{timestamp}@meatup.club)
     const uidMatch = rsvpData.eventUid.match(/^event-(\d+)(?:-\d+)?@/);
     if (!uidMatch) {
-      console.log('Invalid event UID format in webhook payload');
+      logInfoEvent("resend_rsvp_webhook_uid_invalid");
       return Response.json({
         message: 'Invalid event UID format',
         uid: rsvpData.eventUid,
@@ -142,7 +142,7 @@ export async function action({ request, context }: { request: Request; context: 
       const aliasedEventId = await resolveCanonicalEventId(db, originalEventId);
       if (aliasedEventId !== originalEventId) {
         eventId = aliasedEventId;
-        console.log(`Redirecting RSVP from event ${originalEventId} to event ${eventId}`);
+        logInfoEvent("resend_rsvp_webhook_event_aliased");
         event = await db
           .prepare('SELECT id, restaurant_name, event_date FROM events WHERE id = ?')
           .bind(eventId)
@@ -174,10 +174,11 @@ export async function action({ request, context }: { request: Request; context: 
       status: rsvpStatus,
       updatedViaCalendar: true,
     });
-    console.log(`${result === 'created' ? 'Created' : 'Updated'} RSVP from email webhook`, {
-      eventId,
-      status: rsvpStatus,
-    });
+    logInfoEvent(
+      result === "created"
+        ? "resend_rsvp_webhook_rsvp_created"
+        : "resend_rsvp_webhook_rsvp_updated"
+    );
 
     return Response.json({
       success: true,
@@ -190,8 +191,7 @@ export async function action({ request, context }: { request: Request; context: 
     });
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('Email webhook error', { message });
+    logErrorEvent("resend_rsvp_webhook_failed", error);
     return Response.json(
       {
         success: false,
@@ -218,7 +218,7 @@ async function resolveCanonicalEventId(db: AppLoadContext["cloudflare"]["env"]["
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.toLowerCase().includes('no such table')) {
-      console.error('Failed to resolve event alias', { message });
+      logErrorEvent("event_alias_resolution_failed", error);
     }
     return eventId;
   }

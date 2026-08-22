@@ -10,6 +10,7 @@ import {
   sendEventInviteEmail,
   sendEventUpdateEmail,
 } from "./email.server";
+import { logErrorEvent } from "./observability.server";
 
 export type EventEmailDeliveryType = "invite" | "update" | "cancel";
 export type EventEmailDeliveryStatus =
@@ -744,11 +745,7 @@ export async function enqueueStagedEventEmailBatch(
   }
 
   if (!context.queue) {
-    console.error("EMAIL_DELIVERY_QUEUE is not configured; leaving deliveries pending", {
-      batchId: stagedBatch.batchId,
-      recipientCount: stagedBatch.recipientCount,
-      deliveryType: stagedBatch.deliveryType,
-    });
+    logErrorEvent("event_email_queue_missing");
     return;
   }
 
@@ -934,6 +931,14 @@ export async function deliverEventEmailById(params: {
     return { outcome: "skip" };
   }
 
+  if (delivery.status === "failed") {
+    // Keep failed delivery messages unacknowledged until Cloudflare exhausts
+    // the queue retry budget and moves them to the configured DLQ. The failed
+    // status prevents another provider send while preserving the message as an
+    // independently observable operational signal.
+    return { outcome: "failed" };
+  }
+
   if (delivery.provider_message_id || TERMINAL_STATUSES.has(delivery.status)) {
     return { outcome: "skip" };
   }
@@ -1049,12 +1054,22 @@ export async function processEventEmailQueueBatch(params: {
         continue;
       }
 
+      if (result.outcome === "failed") {
+        message.retry({
+          delaySeconds: getRetryDelayWithJitterSeconds({
+            attemptCount: message.attempts,
+            deliveryId: message.body.deliveryId,
+          }),
+        });
+        continue;
+      }
+
       message.ack();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (message.attempts >= MAX_DELIVERY_ATTEMPTS) {
         await markDeliveryFailed(params.db, message.body.deliveryId, errorMessage);
-        message.ack();
+        message.retry();
         continue;
       }
 

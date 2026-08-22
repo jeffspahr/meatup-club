@@ -1,5 +1,39 @@
 # Active Backlog (2026-02-23)
 
+## Cloudflare Worker and DLQ Alerting (2026-08-22)
+
+### Goal
+Surface production Worker failures and undeliverable queued emails quickly, without exposing secrets or depending on the application Worker to report its own outage.
+
+### Acceptance Criteria
+- [x] Workers Logs/observability is enabled with a deliberate sampling policy and no new PII logging.
+- [x] A scheduled synthetic check and Cloudflare Workers analytics query alert the repository owner to availability failures or any runtime error.
+- [x] A scheduled, manually runnable monitor checks the email dead-letter queue backlog independently of the application Worker.
+- [x] A nonzero DLQ backlog creates or updates one GitHub incident; recovery resolves the same incident without deleting or replaying queue messages.
+- [x] Monitor parsing, Cloudflare API errors, deduplication, alert, and recovery decisions have deterministic automated coverage.
+- [x] Documentation explains alert ownership, notification timing, inspection, and safe recovery.
+- [x] Full verification, workflow parsing, Wrangler dry run, and live smoke checks pass.
+
+### Active Tasks
+- [x] Inspect live Cloudflare notification/observability capabilities and queue metrics.
+- [x] Implement the DLQ monitor and incident lifecycle.
+- [x] Enable Worker observability and implement the eligible error-alert equivalent.
+- [x] Add tests and operations documentation.
+- [ ] Publish and confirm production behavior.
+
+### Working Notes
+- Work is isolated on `codex/cloudflare-alerting` from current `origin/main` (`345bddd`).
+- The DLQ monitor must remain outside the application Worker so a Worker outage cannot suppress the alert.
+- Cloudflare queue metrics are read-only; the monitor must never purge, pull, acknowledge, or replay messages.
+- The live Free account has no eligible Workers error, HTTP error-rate, or Health Check notification. Use an external absolute-failure monitor rather than a traffic-rate alert.
+
+### Results
+- Added independent 15-minute Worker availability/runtime-error and DLQ backlog monitors with deduplicated GitHub incident/recovery lifecycle.
+- Enabled privacy-safe Workers Logs and replaced persisted server console output with static event names and error classes.
+- Changed terminal queued-email failures to exhaust Cloudflare retries into the DLQ without repeating provider sends.
+- Full verification passed: 79 files/603 tests, D1 checks, production build, and five Chromium journeys. Workflow YAML parsing, Wrangler deployment dry run, `git diff --check`, and a live production smoke check also passed.
+- Publishing and production workflow checks remain in progress.
+
 ## Cloudflare Operations and CI Follow-up (2026-08-22)
 
 ### Goal

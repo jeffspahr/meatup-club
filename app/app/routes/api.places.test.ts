@@ -258,8 +258,9 @@ describe("Places API behavior", () => {
     await expect(response.json()).resolves.toEqual({
       error: "Failed to fetch place details",
     });
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Place details failed", {
-      message: "Places details request failed with status 429",
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "place_details_fetch_failed",
+      errorName: "Error",
     });
   });
 
@@ -382,10 +383,10 @@ describe("Places API behavior", () => {
     expect(response.status).toBe(200);
     await expect(response.text()).resolves.toBe("fresh-image");
     await Promise.allSettled(waitUntilPromises);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Failed to update photo URL",
-      { message: "update failed" }
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "place_photo_url_update_failed",
+      errorName: "Error",
+    });
   });
 
   it("returns the original photo status when the stale photo cannot be refreshed", async () => {

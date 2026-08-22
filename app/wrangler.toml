@@ -31,3 +31,14 @@ APP_BASE_URL = "https://meatup.club"
 
 [triggers]
 crons = ["*/15 * * * *"]
+
+# Persist structured application errors for this low-volume private Worker.
+# Invocation logs are disabled so request URLs and their query parameters are
+# not retained by Workers Logs.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+invocation_logs = false

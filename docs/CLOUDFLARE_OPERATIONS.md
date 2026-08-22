@@ -139,3 +139,68 @@ delete or replace unrelated secrets during a rotation.
    queue in the dashboard before retrying messages.
 7. Decide between a Git revert, a forward fix, or an emergency Worker rollback;
    record the decision and its verification evidence.
+
+## Worker availability and runtime-error alerting
+
+The `Monitor Worker health` GitHub workflow runs at 7, 22, 37, and 52 minutes
+past each hour and can also be started manually. It checks two independent
+signals:
+
+- three consecutive synthetic requests to the apex page, verification page,
+  and `www` redirect; and
+- Cloudflare GraphQL Analytics for any `meatup-club` Worker invocation errors
+  during the previous 30 minutes.
+
+An availability failure or error count of at least one opens a single issue
+titled `[Operations] Worker availability or runtime errors`. Overlapping query
+windows keep the issue open through short scheduling delays. The workflow adds
+a recovery comment and closes the issue only after the synthetic check is
+healthy and the error count is zero.
+
+The live account's Free plan does not expose Workers error notifications,
+standalone Health Checks, or configurable HTTP error-rate notifications.
+Rate-based alerts would also be unreliable for this low-traffic application,
+so the absolute synthetic and invocation-error signals are intentional.
+
+Workers Logs are enabled at 100% sampling because this is a low-volume private
+Worker. Invocation logs are disabled so request URLs and query parameters are
+not retained. Server-side application logging uses static event names and error
+classes only; do not add raw errors, request/provider payloads, member details,
+URLs, or identifiers to console output.
+
+The monitor uses `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. In addition
+to its deployment permissions, the token must have account-level
+`Account Analytics: Read`. A GraphQL authentication, schema, or response error
+fails the workflow without closing an existing incident. The repository
+`GITHUB_TOKEN` is limited to `contents: read` and `issues: write`.
+
+## Email dead-letter queue alerting
+
+The `Monitor email delivery DLQ` GitHub workflow runs every 15 minutes and can
+also be started manually. It resolves the DLQ by its exact queue name, then
+reads Cloudflare's realtime Queue metrics endpoint. The endpoint returns a
+best-effort point-in-time backlog count, byte count, and oldest-message time.
+
+When the backlog is non-zero, the workflow opens one GitHub issue titled
+`[Operations] Email delivery DLQ backlog`. Later checks leave that issue open
+without creating duplicates. When the backlog returns to zero, the workflow
+adds a resolution comment and closes every matching open incident. A later,
+distinct backlog creates a new issue, preserving incident history.
+
+The workflow requires the existing `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN` GitHub Actions secrets. The API token needs only
+account-level Queues Read (or Workers Scripts Read) permission. The repository
+`GITHUB_TOKEN` is scoped to `contents: read` and `issues: write` for this
+workflow. The monitor never pulls, acknowledges, purges, deletes, or replays a
+queue message.
+
+The application records a terminal provider failure in D1 and keeps its Queue
+message unacknowledged. Later Queue attempts see the failed state and do not
+send to the provider again; they only exhaust Cloudflare's configured retry
+budget so Cloudflare moves the message to the DLQ. This makes the failed
+delivery independently observable without duplicate email sends. Unhandled
+consumer failures follow the same retry-to-DLQ path.
+
+Treat a zero backlog as a recovery signal, not proof that every delivery was
+successfully replayed. Review the delivery records and provider status before
+closing any related user-impact investigation.

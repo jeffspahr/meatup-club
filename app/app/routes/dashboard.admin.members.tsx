@@ -9,6 +9,7 @@ import { Alert, Badge, Button, Card, PageHeader, UserAvatar } from "../component
 import type { Member } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
+import { logErrorEvent } from "../lib/observability.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -100,7 +101,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         });
 
         if (!emailResult.success) {
-          console.error('Failed to send invitation email:', emailResult.error);
+          logErrorEvent("member_invitation_email_failed");
           // Still continue - user was created, just email failed
           return {
             success: true,
@@ -112,7 +113,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       return redirect('/dashboard/admin/members');
     } catch (err) {
-      console.error('Invite error:', err);
+      logErrorEvent("member_invitation_failed", err);
       return { error: 'Failed to invite member' };
     }
   }

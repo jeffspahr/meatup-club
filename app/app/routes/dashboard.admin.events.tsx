@@ -40,6 +40,7 @@ import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../component
 import type { VoteWinner, DateWinner } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
+import { logErrorEvent } from "../lib/observability.server";
 
 interface AdminEventRow {
   id: number;
@@ -376,13 +377,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       try {
         await enqueueStagedEventEmailBatch(queueContext, stagedInviteBatch);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to enqueue staged event invite deliveries', { eventId, message });
+        logErrorEvent("admin_event_invite_enqueue_failed", error);
       }
 
       return redirect('/dashboard/admin/events');
     } catch (err) {
-      console.error('Event creation error:', err);
+      logErrorEvent("admin_event_creation_failed", err);
       return { error: 'Failed to create event' };
     }
   }
@@ -470,7 +470,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         eventUrl: 'https://meatup.club/dashboard/events',
         resendApiKey,
       }).catch((error: Error) => {
-        console.error('RSVP override email failed:', error);
+        logErrorEvent("admin_rsvp_override_email_failed", error);
         return { success: false, error: error.message };
       });
 
@@ -543,13 +543,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       try {
         await enqueueStagedEventEmailBatch(queueContext, stagedUpdateBatch);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to enqueue staged event update deliveries', { eventId, message });
+        logErrorEvent("admin_event_update_enqueue_failed", error);
       }
 
       return redirect('/dashboard/admin/events');
     } catch (err) {
-      console.error('Event update error:', err);
+      logErrorEvent("admin_event_update_failed", err);
       return { error: 'Failed to update event' };
     }
   }
@@ -676,8 +675,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       try {
         await enqueueStagedEventEmailBatch(queueContext, resendBatch);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to enqueue resent event calendar deliveries', { eventId, message });
+        logErrorEvent("admin_event_calendar_resend_enqueue_failed", error);
       }
 
       await logActivity({
@@ -706,7 +704,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         success: `Queued calendar resend for ${resendBatch.recipientCount} ${modeLabel} ${memberLabel}.`,
       };
     } catch (error) {
-      console.error('Event calendar resend error:', error);
+      logErrorEvent("admin_event_calendar_resend_failed", error);
       return { error: 'Failed to resend calendar event' };
     }
   }
@@ -764,8 +762,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       try {
         await enqueueStagedEventEmailBatch(queueContext, stagedCancellationBatch);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to enqueue staged event cancellation deliveries', { eventId, message });
+        logErrorEvent("admin_event_cancellation_enqueue_failed", error);
       }
 
       return redirect('/dashboard/admin/events');

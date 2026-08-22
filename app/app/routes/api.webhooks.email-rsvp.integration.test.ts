@@ -785,8 +785,8 @@ describe('Webhook Handler - Database Operations', () => {
       // The redirect is verified by the log test below
     });
 
-    it('should log the redirect from event 2 to event 3', async () => {
-      const consoleSpy = vi.spyOn(console, 'log');
+    it('should log an identifier-free event redirect', async () => {
+      const consoleSpy = vi.spyOn(console, 'info');
 
       mockDb.first
         .mockResolvedValueOnce({ id: 123, email: 'user@example.com', name: 'Test User' })
@@ -818,7 +818,10 @@ describe('Webhook Handler - Database Operations', () => {
 
       await action({ request, context } as any);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Redirecting RSVP from event 2 to event 3');
+      expect(consoleSpy).toHaveBeenCalledWith({
+        event: "resend_rsvp_webhook_event_aliased",
+      });
+      expect(JSON.stringify(consoleSpy.mock.calls)).not.toContain("event 2");
       consoleSpy.mockRestore();
     });
   });

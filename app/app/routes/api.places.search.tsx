@@ -2,6 +2,7 @@ import type { Route } from "./+types/api.places.search";
 import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
+import { logErrorEvent } from "../lib/observability.server";
 
 interface PlacesSearchResponse {
   places?: Array<{
@@ -107,8 +108,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       "public, max-age=600, stale-while-revalidate=3600"
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Places search failed", { message });
+    logErrorEvent("places_search_failed", error);
     return Response.json(
       { error: "Failed to search places" },
       { status: 500 }

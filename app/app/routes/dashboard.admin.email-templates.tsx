@@ -6,6 +6,7 @@ import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import type { EmailTemplate } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
+import { logErrorEvent } from "../lib/observability.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
@@ -59,7 +60,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       return redirect('/dashboard/admin/email-templates');
     } catch (err) {
-      console.error('Template save error:', err);
+      logErrorEvent("email_template_save_failed", err);
       return { error: 'Failed to save template' };
     }
   }

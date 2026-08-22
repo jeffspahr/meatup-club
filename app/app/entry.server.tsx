@@ -1,5 +1,6 @@
 import { renderToReadableStream } from "react-dom/server";
 import { ServerRouter, type EntryContext } from "react-router";
+import { logErrorEvent } from "./lib/observability.server";
 
 export default async function handleRequest(
   request: Request,
@@ -12,7 +13,7 @@ export default async function handleRequest(
     {
       signal: request.signal,
       onError(error: unknown) {
-        console.error(error);
+        logErrorEvent("ssr_render_failed", error);
         responseStatusCode = 500;
       },
     }

@@ -1,6 +1,7 @@
 // Email sending utilities using Resend
 
 import { renderAnnouncementMessageHtml } from "./announcement-markdown.server";
+import { logErrorEvent } from "./observability.server";
 
 interface EmailTemplate {
   subject: string;
@@ -48,17 +49,6 @@ function redactEmail(email: string): string {
 
   const visible = localPart.slice(0, Math.min(2, localPart.length));
   return `${visible}***@${domain}`;
-}
-
-function logResendFailure(operation: string, response: Response) {
-  const headers = response.headers;
-  console.error(`${operation} failed`, {
-    status: response.status,
-    statusText: response.statusText,
-    retryAfter: headers?.get("retry-after") ?? null,
-    rateLimitRemaining: headers?.get("ratelimit-remaining") ?? null,
-    rateLimitReset: headers?.get("ratelimit-reset") ?? null,
-  });
 }
 
 type ResendDeliveryResult =
@@ -110,12 +100,9 @@ function isRetryableResponseStatus(status: number): boolean {
 }
 
 async function sendResendEmailRequest(params: {
-  operation: string;
   resendApiKey: string;
   payload: Record<string, unknown>;
   idempotencyKey?: string;
-  recipientForLog?: string;
-  eventId?: number;
 }): Promise<ResendDeliveryResult> {
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -129,7 +116,7 @@ async function sendResendEmailRequest(params: {
     });
 
     if (!response.ok) {
-      logResendFailure(params.operation, response);
+      logErrorEvent("resend_email_request_rejected");
       return {
         success: false,
         error: `Failed to send email: ${response.statusText}`,
@@ -149,11 +136,7 @@ async function sendResendEmailRequest(params: {
 
     return { success: true, providerMessageId: data.id };
   } catch (error) {
-    console.error(`${params.operation} failed`, {
-      eventId: params.eventId,
-      recipient: params.recipientForLog ? redactEmail(params.recipientForLog) : undefined,
-      message: getErrorMessage(error),
-    });
+    logErrorEvent("resend_email_request_failed", error);
     return {
       success: false,
       error: getErrorMessage(error),
@@ -214,7 +197,7 @@ export async function sendAnnouncementEmails({
       });
 
       if (!response.ok) {
-        logResendFailure("Member announcement batch email", response);
+        logErrorEvent("resend_announcement_batch_rejected");
         return {
           success: false,
           sentCount,
@@ -239,10 +222,7 @@ export async function sendAnnouncementEmails({
 
     return { success: true, sentCount };
   } catch (error) {
-    console.error("Member announcement batch email failed", {
-      recipientCount: uniqueRecipients.length,
-      message: getErrorMessage(error),
-    });
+    logErrorEvent("resend_announcement_batch_failed", error);
     return {
       success: false,
       sentCount,
@@ -297,14 +277,14 @@ export async function sendInviteEmail({
     });
 
     if (!response.ok) {
-      logResendFailure('Invite email', response);
+      logErrorEvent("resend_invite_email_rejected");
       return { success: false, error: `Failed to send email: ${response.statusText}` };
     }
 
     await response.json();
     return { success: true };
   } catch (error) {
-    console.error('Invite email send failed', { message: getErrorMessage(error) });
+    logErrorEvent("resend_invite_email_failed", error);
     return { success: false, error: 'Failed to send invitation email' };
   }
 }
@@ -371,14 +351,14 @@ export async function sendRsvpOverrideEmail({
     });
 
     if (!response.ok) {
-      logResendFailure('RSVP override email', response);
+      logErrorEvent("resend_rsvp_override_email_rejected");
       return { success: false, error: `Failed to send email: ${response.statusText}` };
     }
 
     await response.json();
     return { success: true };
   } catch (error) {
-    console.error('RSVP override email send failed', { message: getErrorMessage(error) });
+    logErrorEvent("resend_rsvp_override_email_failed", error);
     return { success: false, error: 'Failed to send RSVP override notification' };
   }
 }
@@ -518,11 +498,8 @@ export async function sendEventInviteEmail({
   const personalizedIcsBase64 = Buffer.from(personalizedIcsContent).toString("base64");
 
   return sendResendEmailRequest({
-    operation: "Calendar invite email",
     resendApiKey,
     idempotencyKey,
-    recipientForLog: userEmail,
-    eventId,
     payload: {
       from: "Meatup.Club Events <events@mail.meatup.club>",
       to: [userEmail],
@@ -870,17 +847,13 @@ An updated calendar invite is attached. It will update the existing event in you
     });
 
     if (!response.ok) {
-      logResendFailure('Calendar RSVP update email', response);
+      logErrorEvent("resend_calendar_rsvp_update_rejected");
       return { success: false, error: `Failed to send update: ${response.statusText}` };
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Calendar RSVP update email failed', {
-      eventId,
-      recipient: redactEmail(userEmail),
-      message: getErrorMessage(error),
-    });
+    logErrorEvent("resend_calendar_rsvp_update_failed", error);
     return { success: false, error: getErrorMessage(error) };
   }
 }
@@ -979,11 +952,8 @@ export async function sendEventUpdateEmail({
     const icsBase64 = Buffer.from(icsContent).toString('base64');
 
     return await sendResendEmailRequest({
-      operation: "Event update email",
       resendApiKey,
       idempotencyKey,
-      recipientForLog: userEmail,
-      eventId,
       payload: {
         from: 'Meatup.Club Events <events@mail.meatup.club>',
         to: [userEmail],
@@ -1064,11 +1034,7 @@ An updated calendar invite is attached. It will update the existing event in you
       },
     });
   } catch (error) {
-    console.error('Event update email failed', {
-      eventId,
-      recipient: redactEmail(userEmail),
-      message: getErrorMessage(error),
-    });
+    logErrorEvent("resend_event_update_email_failed", error);
     return { success: false, error: getErrorMessage(error), retryable: true };
   }
 }
@@ -1158,11 +1124,8 @@ export async function sendEventCancellationEmail({
     const icsBase64 = Buffer.from(icsContent).toString('base64');
 
     return await sendResendEmailRequest({
-      operation: "Event cancellation email",
       resendApiKey,
       idempotencyKey,
-      recipientForLog: userEmail,
-      eventId,
       payload: {
         from: 'Meatup.Club Events <events@mail.meatup.club>',
         to: [userEmail],
@@ -1243,11 +1206,7 @@ A cancellation notice is attached to remove the event from your calendar.
       },
     });
   } catch (error) {
-    console.error('Event cancellation email failed', {
-      eventId,
-      recipient: redactEmail(userEmail),
-      message: getErrorMessage(error),
-    });
+    logErrorEvent("resend_event_cancellation_email_failed", error);
     return { success: false, error: getErrorMessage(error), retryable: true };
   }
 }

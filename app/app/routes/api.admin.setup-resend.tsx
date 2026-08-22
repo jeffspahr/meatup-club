@@ -1,6 +1,7 @@
 import type { AppLoadContext } from "react-router";
 import { requireAdmin } from "../lib/auth.server";
 import { ensureResendEmailSetup } from "../lib/resend-setup.server";
+import { logErrorEvent } from "../lib/observability.server";
 
 /**
  * Admin endpoint to configure Resend delivery tracking.
@@ -38,7 +39,7 @@ export async function action({
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Resend setup error", { message });
+    logErrorEvent("resend_setup_failed", error);
     return Response.json(
       {
         success: false,

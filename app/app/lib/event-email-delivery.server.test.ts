@@ -901,6 +901,70 @@ describe("event-email-delivery.server", () => {
     expect(ack).not.toHaveBeenCalled();
   });
 
+  it("keeps terminal failures unacknowledged until Cloudflare moves them to the DLQ", async () => {
+    const { db, deliveries } = createMockDeliveryDb({
+      seededDeliveries: [
+        {
+          id: 31,
+          batch_id: "batch-dlq",
+          event_id: 32,
+          user_id: 1,
+          delivery_type: "invite",
+          recipient_email: "alpha@example.com",
+          rsvp_status: null,
+          restaurant_name: "DLQ Steakhouse",
+          restaurant_address: "123 Main St",
+          event_date: "2026-04-20",
+          event_time: "18:30",
+          calendar_sequence: 0,
+          dedupe_key: "invite:32:0:1",
+          status: "pending",
+          provider_message_id: null,
+          attempt_count: 0,
+          last_error: null,
+          last_provider_event: null,
+          last_queued_at: null,
+          next_attempt_at: "2026-03-12 12:00:00",
+          sending_started_at: null,
+          provider_accepted_at: null,
+          delivered_at: null,
+          created_at: "2026-03-12 12:00:00",
+          updated_at: "2026-03-12 12:00:00",
+        },
+      ],
+    });
+    const retry = vi.fn();
+    const ack = vi.fn();
+
+    await processEventEmailQueueBatch({
+      batch: {
+        messages: [{ body: { deliveryId: 31 }, attempts: 1, retry, ack }],
+      } as never,
+      db: db as never,
+    });
+
+    expect(deliveries[0]).toEqual(
+      expect.objectContaining({
+        status: "failed",
+        last_error: "RESEND_API_KEY is not configured",
+      })
+    );
+    expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
+    expect(ack).not.toHaveBeenCalled();
+
+    retry.mockClear();
+    await processEventEmailQueueBatch({
+      batch: {
+        messages: [{ body: { deliveryId: 31 }, attempts: 2, retry, ack }],
+      } as never,
+      db: db as never,
+    });
+
+    expect(retry).toHaveBeenCalledWith({ delaySeconds: 120 });
+    expect(ack).not.toHaveBeenCalled();
+    expect(deliveries[0]?.attempt_count).toBe(0);
+  });
+
   it("processes queue deliveries sequentially with a throttle between sends", async () => {
     const { db } = createMockDeliveryDb({
       seededDeliveries: [
