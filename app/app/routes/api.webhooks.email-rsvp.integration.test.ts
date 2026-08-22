@@ -12,7 +12,7 @@ import { action } from './api.webhooks.email-rsvp';
  */
 
 // Mock verify function that will be reused
-let mockVerify = vi.fn();
+const mockVerify = vi.fn();
 
 // Mock the Svix library
 vi.mock('svix', () => {

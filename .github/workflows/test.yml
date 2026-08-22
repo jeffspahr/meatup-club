@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Verify application
         run: npm run verify
 
@@ -50,4 +53,4 @@ jobs:
           name: coverage-report
           path: app/coverage
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 30

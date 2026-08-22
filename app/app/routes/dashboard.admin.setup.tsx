@@ -1,5 +1,4 @@
-import { Form, Link } from "react-router";
-import type { AppLoadContext } from "react-router";
+import { Form, Link, type AppLoadContext } from "react-router";
 import { useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
 import { EnvelopeIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";

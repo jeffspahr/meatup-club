@@ -1,5 +1,48 @@
 # Active Backlog (2026-02-23)
 
+## CI/Test Roadmap Completion (2026-08-22)
+
+### Goal
+Finish the remaining CI and test-suite improvements on current `main` without weakening branch protection or production deployment safety.
+
+### Acceptance Criteria
+- [ ] Coverage documentation matches the honest full-source baseline and thresholds prevent a material regression.
+- [ ] Critical auth/webhook/RSVP/admin modules have explicit coverage expectations.
+- [ ] Deployment waits for successful main-branch Application CI instead of rerunning the entire gate.
+- [ ] Real Svix signing-library verification is covered with scanner-safe synthetic fixtures.
+- [ ] A minimal Playwright layer covers safe high-value browser behavior, with no production auth bypass.
+- [ ] Lint/static analysis and secret-shaped fixture checks run in the shared verification gate.
+- [ ] A scheduled shuffled/repeated suite detects order dependence.
+- [ ] Terraform retains PR validation and exposes a secret-safe trusted manual plan path.
+- [ ] Coverage artifacts are retained for 30 days.
+- [ ] Local verification and GitHub required checks pass; deployment completes successfully.
+
+### Active Tasks
+- [x] Reassess current `main` and record the current 71-file/565-test full-source baseline.
+- [x] Tighten coverage thresholds and add critical-module gates.
+- [x] Refresh `app/TESTING.md`.
+- [x] Deduplicate application/deployment CI.
+- [x] Add scheduled shuffled/repeated tests and longer artifact retention.
+- [x] Add real Svix contract tests.
+- [x] Add Playwright browser tests.
+- [x] Add lint/static analysis and secret-fixture scanning.
+- [x] Add trusted manual Terraform planning.
+- [x] Run complete local verification and record results.
+
+### Working Notes
+- Post-change full-source coverage: 78.60% statements, 69.97% branches, 69.36% functions, 79.11% lines across 73 files and 570 tests.
+- Existing documented 92% baseline predates full-source instrumentation and is not comparable.
+- `Verify application` is a strict required check on `main`; administrator enforcement is enabled.
+- The original workspace remains dirty, so implementation is isolated in `/tmp/meatup-ci-required-verification`.
+
+### Results
+- Added an application gate that runs ESLint, credential-fixture scanning, typecheck, 570 full-source coverage tests, D1 schema/migration checks, the production build, and four Chromium journeys.
+- Raised global coverage floors to 75% statements/lines, 65% branches, and 60% functions, with tighter gates for auth, RSVP, webhook, and mutation-heavy admin modules.
+- Added real Svix signing verification, a weekly three-pass shuffled suite, 30-day coverage retention, a trusted manual Terraform plan, and CI-gated exact-SHA deployment.
+- `npm run verify` passed after a hydration-sensitive Playwright interaction was made deterministic; the browser suite also passed 12/12 across three repeated CI-mode runs.
+- `npm run test:stability` passed twice with randomized seeds; Terraform formatting, initialization, validation, workflow YAML parsing, and `git diff --check` passed.
+- GitHub required-check and post-merge deployment results will be monitored on the pull request.
+
 ## Goal
 Keep only unresolved, high-impact work and remove stale planning artifacts.
 
