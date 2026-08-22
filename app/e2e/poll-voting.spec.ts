@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 test("an authenticated member can cast and remove a restaurant vote", async ({ page }) => {
-  test.setTimeout(90_000);
   await page.goto("/dashboard");
+  // The first authenticated request primes Cloudflare Vite's development
+  // bundle. Reload before interacting so the page is hydrated on a cold CI runner.
+  await page.reload();
 
   await expect(page.getByRole("heading", { name: "Playwright Dinner Poll" })).toBeVisible();
 
@@ -14,7 +16,7 @@ test("an authenticated member can cast and remove a restaurant vote", async ({ p
     await restaurantVote.selectOption("");
     await restaurantVote.selectOption({ label: "E2E Chophouse (0 votes)" });
     await expect(submitVote).toBeEnabled();
-  }).toPass({ timeout: 75_000 });
+  }).toPass();
   await submitVote.click();
 
   await expect(page.getByText("Current vote: E2E Chophouse")).toBeVisible();
