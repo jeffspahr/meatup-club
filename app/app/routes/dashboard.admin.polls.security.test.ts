@@ -22,7 +22,7 @@ vi.mock("../lib/event-email-delivery.server", () => ({
 function createMockDb({
   activePoll = { id: 1 },
   restaurant = { id: 10, name: "Prime", address: "123 Main", vote_count: 2 },
-  date = { id: 20, suggested_date: "2026-06-10", vote_count: 3 },
+  date = { id: 20, suggested_date: "2099-06-10", vote_count: 3 },
   closeChanges = 1,
   failOnRawTransactions = false,
 }: {
@@ -231,7 +231,7 @@ describe("dashboard.admin.polls close action", () => {
         details: {
           restaurantName: "Prime",
           restaurantAddress: "123 Main",
-          eventDate: "2026-06-10",
+          eventDate: "2099-06-10",
           eventTime: "18:30",
         },
       }

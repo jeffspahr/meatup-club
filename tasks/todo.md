@@ -1003,3 +1003,49 @@ Harden the production SMS reminder flow before repeating a live Twilio test.
   - `npm run build` passed.
   - Full suite: `561` tests passed; two `dashboard.admin.polls.security.test.ts` tests failed identically on untouched `origin/main`, confirming a pre-existing baseline failure.
   - PR CI stops before tests at `npm ci` because current `origin/main` combines Wrangler's Workers Types v5 peer requirement with React Router Cloudflare's Workers Types v4 peer requirement; dependency alignment is a separate baseline fix.
+
+## Security - Dependabot Alert #37 (2026-08-22)
+
+### Goal
+Resolve GHSA-4x5r-pxfx-6jf8 / CVE-2026-49356 by replacing the vulnerable transitive `@babel/core` version in the npm lockfile with a patched release.
+
+### Acceptance Criteria
+- [x] `app/package-lock.json` resolves `@babel/core` to version `7.29.6` or newer on the compatible 7.x line.
+- [x] No unnecessary direct dependency or unrelated package upgrades are introduced.
+- [x] `npm audit` no longer reports GHSA-4x5r-pxfx-6jf8.
+- [x] The CI-equivalent clean install, full test suite, coverage, typecheck, and production build pass under Node 22/npm 10.
+
+### Active Tasks
+- [x] Inspect alert 37 and trace the affected dependency paths.
+- [x] Confirm the existing parent ranges accept the patched release.
+- [x] Update the lockfile with the smallest safe dependency change.
+- [x] Run security and application verification.
+- [x] Record the final result and verification story.
+
+### Working Notes
+- Alert 37 affects the transitive development dependency `@babel/core` at `7.29.0`; the first patched 7.x release is `7.29.6`.
+- The package is pulled through `@react-router/dev` and `@vitejs/plugin-react`, whose existing ranges accept the patched version, so no direct Babel dependency or override is needed.
+- Work is isolated on `codex/dependabot-37` from current `origin/main` to avoid the unrelated user changes and stale lockfile in the root worktree.
+- A standard targeted `npm update` is blocked by the existing Wrangler / optional `@cloudflare/workers-types` peer conflict.
+- The legacy peer resolver was rejected because it removed unrelated optional peer packages from the lockfile; probe alternative npm resolution in a disposable worktree and accept only a Babel-scoped diff.
+- The first full test run passed 555 tests and failed two poll-close security assertions; the exact same failures reproduced on untouched `origin/main` and traced to an expired June 2026 success fixture, which this branch repairs without production changes.
+
+### Results
+- Updated the transitive Babel dependency tree in `app/package-lock.json`, including `@babel/core` from `7.29.0` to patched `7.29.7`.
+- Confined the lockfile version changes to 16 Babel packages required by the patched core release. No application code, direct dependency, or unrelated package version changed.
+- Confirmed `@react-router/dev` and `@vitejs/plugin-react` both deduplicate onto `@babel/core@7.29.7` after a clean install.
+- Confirmed `npm audit` no longer reports GHSA-4x5r-pxfx-6jf8. Two unrelated pre-existing moderate advisories remain for `valibot` and `yaml`.
+- Added a narrow npm override for Wrangler's optional `@cloudflare/workers-types` peer so Node 22/npm 10 can install the lockfile while preserving the v4 type package required by React Router 7 and imported by the application.
+
+### Verification
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm ci` passed.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm ls @babel/core --all` passed and resolved every path to `7.29.7`.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm audit --json` returned only the unrelated `valibot` and `yaml` advisories; GHSA-4x5r-pxfx-6jf8 is absent.
+- `fnm exec --using=v22.22.0 npm ci` passed with no force or legacy-peer flags after the targeted Wrangler optional-peer override.
+- `fnm exec --using=v22.22.0 npm ls @cloudflare/workers-types --all` passed and reported the v4 package as intentionally overridden rather than invalid.
+- `fnm exec --using=v22.22.0 npm run test:run -- app/routes/dashboard.admin.polls.security.test.ts` passed all 4 focused tests after replacing the expired `2026-06-10` success fixture with `2099-06-10`.
+- `fnm exec --using=v22.22.0 npm run test:run` passed all 557 tests in 71 files.
+- `fnm exec --using=v22.22.0 npm run test:coverage` passed all 557 tests and the configured coverage thresholds.
+- `fnm exec --using=v22.22.0 npm run typecheck` passed.
+- `fnm exec --using=v22.22.0 npm run build` passed with the existing Vite dynamic-import warnings.
+- `fnm exec --using=v22.22.0 npm audit --json` reported only the unrelated `valibot` and `yaml` advisories; GHSA-4x5r-pxfx-6jf8 is absent.
