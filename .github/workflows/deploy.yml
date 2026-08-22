@@ -5,46 +5,43 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Workers
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: app
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '22'
+          node-version-file: 'app/.node-version'
           cache: 'npm'
           cache-dependency-path: 'app/package-lock.json'
 
       - name: Install dependencies
-        run: |
-          cd app
-          npm ci
+        run: npm ci
 
-      - name: Typecheck
-        run: |
-          cd app
-          npm run typecheck
-
-      - name: Run tests
-        run: |
-          cd app
-          npm run test:run
-
-      - name: Build React Router application
-        run: |
-          cd app
-          npm run build
+      - name: Verify application
+        run: npm run verify
         env:
           NODE_ENV: production
 
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v4
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

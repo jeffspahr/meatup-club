@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v3
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -24,10 +24,11 @@ jobs:
         # Auto-merge patch and minor updates
         # For GitHub Actions, also auto-merge major updates (major version tags are safe)
         if: |
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
-          (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
-           steps.metadata.outputs.package-ecosystem == 'github_actions')
+          steps.metadata.outputs.package-ecosystem != 'terraform' &&
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+           (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+            steps.metadata.outputs.package-ecosystem == 'github_actions'))
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
@@ -37,10 +38,11 @@ jobs:
         # Auto-approve patch and minor updates
         # For GitHub Actions, also auto-approve major updates (major version tags are safe)
         if: |
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
-          (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
-           steps.metadata.outputs.package-ecosystem == 'github_actions')
+          steps.metadata.outputs.package-ecosystem != 'terraform' &&
+          (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
+           (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
+            steps.metadata.outputs.package-ecosystem == 'github_actions'))
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
@@ -50,7 +52,8 @@ jobs:
         # For major updates (except GitHub Actions), just comment but don't auto-merge
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-major' &&
-          steps.metadata.outputs.package-ecosystem != 'github_actions'
+          steps.metadata.outputs.package-ecosystem != 'github_actions' &&
+          steps.metadata.outputs.package-ecosystem != 'terraform'
         run: |
           gh pr comment "$PR_URL" --body "⚠️ **Major version update detected!**
 

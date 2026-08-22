@@ -2,10 +2,13 @@
   "name": "meatup-club",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
-    "deploy": "npm run test:run && npm run build && wrangler deploy",
+    "deploy": "npm run verify && wrangler deploy",
     "preview": "npm run build && wrangler pages dev ./build/client",
     "typecheck": "react-router typegen && tsc",
     "cf-typegen": "wrangler types",
@@ -13,7 +16,9 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:d1": "bash scripts/verify-d1-schema.sh",
     "test:watch": "vitest watch",
+    "verify": "npm run typecheck && npm run test:coverage && npm run test:d1 && npm run build",
     "prepare": "husky"
   },
   "dependencies": {

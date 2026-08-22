@@ -1,5 +1,5 @@
 -- Meatup.Club canonical schema (fresh install)
--- Snapshot aligned to production D1 schema on 2026-02-23.
+-- Snapshot includes the canonical schema through 2026-03-12.
 -- Internal D1 tables (_cf_KV, d1_migrations) are intentionally excluded.
 
 PRAGMA foreign_keys = ON;
