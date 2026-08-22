@@ -3,6 +3,7 @@ import { Webhook } from "svix";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { logErrorEvent } from "../lib/observability.server";
 
 interface ResendDeliveryWebhookPayload {
   type: string;
@@ -37,7 +38,7 @@ export async function action({
   try {
     const webhookSecret = await getWebhookSecret(context);
     if (!webhookSecret) {
-      console.error("Resend delivery webhook secret is not configured");
+      logErrorEvent("resend_delivery_webhook_secret_missing");
       return Response.json({ error: "Webhook not configured" }, { status: 500 });
     }
 
@@ -59,8 +60,7 @@ export async function action({
         "svix-signature": svixSignature,
       }) as ResendDeliveryWebhookPayload;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("Resend delivery webhook signature verification failed", { message });
+      logErrorEvent("resend_delivery_webhook_signature_invalid", error);
       return Response.json({ error: "Invalid signature" }, { status: 401 });
     }
 
@@ -80,7 +80,7 @@ export async function action({
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("Resend delivery webhook error", { message });
+    logErrorEvent("resend_delivery_webhook_failed", error);
     return Response.json(
       {
         success: false,

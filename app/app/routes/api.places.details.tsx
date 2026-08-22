@@ -3,6 +3,7 @@ import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
 import { fetchPlaceDetails, isValidPlaceId } from "../lib/places.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
+import { logErrorEvent } from "../lib/observability.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -61,8 +62,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       "public, max-age=86400, stale-while-revalidate=604800"
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Place details failed", { message });
+    logErrorEvent("place_details_fetch_failed", error);
     return Response.json(
       { error: "Failed to fetch place details" },
       { status: 500 }

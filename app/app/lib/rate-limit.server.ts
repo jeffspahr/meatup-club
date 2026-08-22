@@ -1,5 +1,6 @@
 import type { ExecutionContext } from "@cloudflare/workers-types";
 import type { D1Database } from "./db.server";
+import { logErrorEvent } from "./observability.server";
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -59,7 +60,7 @@ export async function enforceRateLimit({
       .bind(now)
       .run()
       .catch((error: unknown) => {
-        console.error("Rate limit cleanup failed:", error);
+        logErrorEvent("rate_limit_cleanup_failed", error);
       });
 
     if (ctx?.waitUntil) {
@@ -74,7 +75,7 @@ export async function enforceRateLimit({
       resetAt: windowStart + windowSeconds,
     };
   } catch (error) {
-    console.error("Rate limit check failed:", error);
+    logErrorEvent("rate_limit_check_failed", error);
     return {
       allowed: true,
       remaining: limit,

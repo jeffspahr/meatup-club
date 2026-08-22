@@ -1,3 +1,5 @@
+import { logErrorEvent, logInfoEvent } from "./observability.server";
+
 interface NotificationContext {
   db: any;
   env: {
@@ -55,13 +57,13 @@ export async function sendEventInvitesToActiveMembers(
     resendApiKey: context.env.RESEND_API_KEY || "",
   })
     .then((result) => {
-      console.log(`Calendar invites sent: ${result.sentCount}/${recipientEmails.length}`);
+      logInfoEvent("calendar_invite_batch_completed");
       if (result.errors.length > 0) {
-        console.error("Some invites failed:", result.errors);
+        logErrorEvent("calendar_invite_batch_partially_failed");
       }
     })
     .catch((error) => {
-      console.error("Failed to send calendar invites:", error);
+      logErrorEvent("calendar_invite_batch_failed", error);
     });
 
   await dispatchPromise(context.waitUntil, promise);
@@ -101,18 +103,16 @@ export async function sendEventUpdatesToActiveMembers(
         sequence: calendarSequence,
         resendApiKey: context.env.RESEND_API_KEY || "",
       }).catch((error) => {
-        console.error(`Failed to send event update to ${user.email}:`, error);
+        logErrorEvent("calendar_update_recipient_failed", error);
         return { success: false };
       })
     )
   )
-    .then((results) => {
-      const successCount = results.filter((result: { success: boolean }) => result.success).length;
-      const failureCount = results.length - successCount;
-      console.log(`Calendar updates sent: ${successCount} succeeded, ${failureCount} failed`);
+    .then(() => {
+      logInfoEvent("calendar_update_batch_completed");
     })
     .catch((error) => {
-      console.error("Failed to send event updates:", error);
+      logErrorEvent("calendar_update_batch_failed", error);
     });
 
   await dispatchPromise(context.waitUntil, promise);
@@ -142,18 +142,16 @@ export async function sendEventCancellationToActiveMembers(
         userEmail: user.email,
         resendApiKey: context.env.RESEND_API_KEY || "",
       }).catch((error) => {
-        console.error(`Failed to send cancellation to ${user.email}:`, error);
+        logErrorEvent("calendar_cancellation_recipient_failed", error);
         return { success: false };
       })
     )
   )
-    .then((results) => {
-      const successCount = results.filter((result: { success: boolean }) => result.success).length;
-      const failureCount = results.length - successCount;
-      console.log(`Event cancellations sent: ${successCount} succeeded, ${failureCount} failed`);
+    .then(() => {
+      logInfoEvent("calendar_cancellation_batch_completed");
     })
     .catch((error) => {
-      console.error("Failed to send event cancellations:", error);
+      logErrorEvent("calendar_cancellation_batch_failed", error);
     });
 
   await dispatchPromise(context.waitUntil, promise);

@@ -126,10 +126,10 @@ describe("rate-limit.server", () => {
       windowSeconds: 60,
     });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Rate limit cleanup failed:",
-      expect.any(Error)
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "rate_limit_cleanup_failed",
+      errorName: "Error",
+    });
     expect(result).toEqual({
       allowed: false,
       remaining: 0,
@@ -149,10 +149,10 @@ describe("rate-limit.server", () => {
       windowSeconds: 60,
     });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Rate limit check failed:",
-      expect.any(Error)
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "rate_limit_check_failed",
+      errorName: "Error",
+    });
     expect(result).toEqual({
       allowed: true,
       remaining: 10,
@@ -172,10 +172,10 @@ describe("rate-limit.server", () => {
       windowSeconds: 60,
     });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      "Rate limit check failed:",
-      expect.any(Error)
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "rate_limit_check_failed",
+      errorName: "Error",
+    });
     expect(result).toEqual({
       allowed: true,
       remaining: 4,

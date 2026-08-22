@@ -107,8 +107,9 @@ describe("api.admin.setup-resend route", () => {
       error: "Failed to configure Resend",
       details: "Failed to fetch domains from Resend: invalid api key",
     });
-    expect(consoleErrorSpy).toHaveBeenCalledWith("Resend setup error", {
-      message: "Failed to fetch domains from Resend: invalid api key",
+    expect(consoleErrorSpy).toHaveBeenCalledWith({
+      event: "resend_setup_failed",
+      errorName: "Error",
     });
   });
 });

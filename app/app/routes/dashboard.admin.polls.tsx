@@ -18,6 +18,7 @@ import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
+import { logErrorEvent } from "../lib/observability.server";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -136,8 +137,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       return redirect('/dashboard/admin/polls');
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error('Poll creation error', { message });
+      logErrorEvent("poll_creation_failed", error);
       return { error: 'Failed to create poll' };
     }
   }
@@ -381,14 +381,10 @@ export async function action({ request, context }: Route.ActionArgs) {
           stagedInviteBatch
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to enqueue staged poll-close invite deliveries', {
-          eventId: createdEventId,
-          message,
-        });
+        logErrorEvent("poll_close_invite_enqueue_failed", error);
       }
     } catch (error) {
-      console.error('Failed to close poll transaction:', error);
+      logErrorEvent("poll_close_transaction_failed", error);
       return { error: 'Failed to close poll. Please try again.' };
     }
 

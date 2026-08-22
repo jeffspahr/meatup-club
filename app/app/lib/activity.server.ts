@@ -4,6 +4,7 @@
  */
 
 import type { D1Database } from "@cloudflare/workers-types";
+import { logErrorEvent } from "./observability.server";
 
 export type ActivityType =
   | 'login'
@@ -83,7 +84,7 @@ export async function logActivity({
       .run();
   } catch (error) {
     // Log error but don't throw - activity logging should never break the app
-    console.error('Failed to log activity:', error);
+    logErrorEvent("activity_log_write_failed", error);
   }
 }
 

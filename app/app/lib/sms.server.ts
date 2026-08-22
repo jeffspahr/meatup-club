@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { getAppTimeZone, getEventDateTimeUtc } from "./dateUtils";
 import type { D1Database } from "./db.server";
+import { logErrorEvent, logWarningEvent } from "./observability.server";
 
 type SmsEnv = {
   TWILIO_ACCOUNT_SID?: string;
@@ -293,7 +294,7 @@ export async function sendScheduledSmsReminders({
   now?: Date;
 }): Promise<void> {
   if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_FROM_NUMBER) {
-    console.warn("Twilio credentials are missing; skipping SMS reminders.");
+    logWarningEvent("twilio_credentials_missing");
     return;
   }
 
@@ -366,13 +367,7 @@ export async function sendScheduledSmsReminders({
         if (result.success) {
           await recordAcceptedReminder(db, event.id, recipient.id, target.type);
         } else {
-          console.error({
-            event: "sms_reminder_failed",
-            eventId: event.id,
-            userId: recipient.id,
-            reminderType: target.type,
-            errorCode: result.errorCode || null,
-          });
+          logErrorEvent("sms_reminder_failed");
         }
       }
     }

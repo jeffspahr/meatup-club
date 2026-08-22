@@ -1,6 +1,7 @@
 import type { D1Database, D1Result, Queue } from "@cloudflare/workers-types";
 import type { AuthUser } from "./auth.server";
 import { logActivity } from "./activity.server";
+import { logErrorEvent } from "./observability.server";
 import {
   buildCreateEventStatement,
   buildSelectLastInsertedEventIdStatement,
@@ -94,11 +95,7 @@ export async function runCreateEventAction(
     try {
       await enqueueStagedEventEmailBatch(queueContext, stagedInviteBatch);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("Failed to enqueue staged event invite deliveries", {
-        eventId,
-        message,
-      });
+      logErrorEvent("event_invite_enqueue_failed", error);
     }
 
     await logActivity({
@@ -112,7 +109,7 @@ export async function runCreateEventAction(
 
     return { ok: true, performedAction: "create" };
   } catch (error) {
-    console.error("Event creation error:", error);
+    logErrorEvent("event_creation_failed", error);
     return { error: "Failed to create event" };
   }
 }
@@ -187,11 +184,7 @@ export async function runUpdateEventAction(
     try {
       await enqueueStagedEventEmailBatch(queueContext, stagedUpdateBatch);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error("Failed to enqueue staged event update deliveries", {
-        eventId,
-        message,
-      });
+      logErrorEvent("event_update_enqueue_failed", error);
     }
 
     await logActivity({
@@ -205,7 +198,7 @@ export async function runUpdateEventAction(
 
     return { ok: true, performedAction: "update" };
   } catch (error) {
-    console.error("Event update error:", error);
+    logErrorEvent("event_update_failed", error);
     return { error: "Failed to update event" };
   }
 }

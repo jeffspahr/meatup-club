@@ -2,6 +2,7 @@ import type { Route } from "./+types/api.places.photo";
 import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
+import { logErrorEvent } from "../lib/observability.server";
 
 const MAX_PHOTO_NAME_LENGTH = 1024;
 
@@ -100,8 +101,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
                   )
                   .run()
                   .catch((e: unknown) => {
-                    const message = e instanceof Error ? e.message : String(e);
-                    console.error("Failed to update photo URL", { message });
+                    logErrorEvent("place_photo_url_update_failed", e);
                   })
               );
               return new Response(freshResponse.body, {
@@ -120,8 +120,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       "public, max-age=604800, stale-while-revalidate=2592000"
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Place photo failed", { message });
+    logErrorEvent("place_photo_fetch_failed", error);
     return Response.json(
       { error: "Failed to fetch place photo" },
       { status: 500 }

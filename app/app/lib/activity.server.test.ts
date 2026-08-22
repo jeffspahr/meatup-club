@@ -147,10 +147,10 @@ describe("activity.server", () => {
       }),
     });
 
-    expect(consoleError).toHaveBeenCalledWith(
-      "Failed to log activity:",
-      expect.any(Error)
-    );
+    expect(consoleError).toHaveBeenCalledWith({
+      event: "activity_log_write_failed",
+      errorName: "Error",
+    });
   });
 
   it("returns user-scoped activity rows", async () => {
