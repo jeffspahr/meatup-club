@@ -324,5 +324,11 @@ describe("dashboard.admin.members loader and UI", () => {
     expect(screen.getByLabelText("SMS: Not enabled. No consent.")).toBeInTheDocument();
     expect(screen.getByLabelText("SMS: No number. Not eligible.")).toBeInTheDocument();
     expect(screen.queryByText("+15550000001")).not.toBeInTheDocument();
+
+    const main = screen.getByRole("main");
+    const table = screen.getByRole("table");
+    expect(main).toHaveClass("page-main-wide");
+    expect(table).toHaveClass("w-full", "min-w-[72rem]");
+    expect(table.parentElement).toHaveClass("overflow-x-auto");
   });
 });

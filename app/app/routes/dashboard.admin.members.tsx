@@ -339,7 +339,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
   return (
     <AdminLayout>
-    <main className="page-main">
+    <main className="page-main page-main-wide">
       <PageHeader
         title="Member Management"
         description={`Total members: ${members.length}`}
@@ -454,7 +454,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
       {/* Members List */}
       <Card className="overflow-x-auto p-0">
-        <table className="min-w-[72rem] divide-y divide-border">
+        <table className="w-full min-w-[72rem] divide-y divide-border">
           <caption className="sr-only">
             Member roles, account status, SMS reminder eligibility, join date, and actions
           </caption>
