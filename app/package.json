@@ -32,7 +32,7 @@
     "svix": "^1.99.1"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.52.1",
+    "@cloudflare/vite-plugin": "^1.53.0",
     "@react-router/dev": "7.18.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -40,7 +40,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.5.4",
     "happy-dom": "^20.11.2",
