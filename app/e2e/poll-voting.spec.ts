@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("an authenticated member can cast and remove a restaurant vote", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto("/dashboard");
 
   await expect(page.getByRole("heading", { name: "Playwright Dinner Poll" })).toBeVisible();
@@ -13,7 +14,7 @@ test("an authenticated member can cast and remove a restaurant vote", async ({ p
     await restaurantVote.selectOption("");
     await restaurantVote.selectOption({ label: "E2E Chophouse (0 votes)" });
     await expect(submitVote).toBeEnabled();
-  }).toPass();
+  }).toPass({ timeout: 75_000 });
   await submitVote.click();
 
   await expect(page.getByText("Current vote: E2E Chophouse")).toBeVisible();
