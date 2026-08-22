@@ -19,7 +19,7 @@ Surface production Worker failures and undeliverable queued emails quickly, with
 - [x] Implement the DLQ monitor and incident lifecycle.
 - [x] Enable Worker observability and implement the eligible error-alert equivalent.
 - [x] Add tests and operations documentation.
-- [ ] Publish and confirm production behavior.
+- [x] Publish and confirm production behavior.
 
 ### Working Notes
 - Work is isolated on `codex/cloudflare-alerting` from current `origin/main` (`345bddd`).
@@ -32,7 +32,8 @@ Surface production Worker failures and undeliverable queued emails quickly, with
 - Enabled privacy-safe Workers Logs and replaced persisted server console output with static event names and error classes.
 - Changed terminal queued-email failures to exhaust Cloudflare retries into the DLQ without repeating provider sends.
 - Full verification passed: 79 files/603 tests, D1 checks, production build, and five Chromium journeys. Workflow YAML parsing, Wrangler deployment dry run, `git diff --check`, and a live production smoke check also passed.
-- Publishing and production workflow checks remain in progress.
+- PR #270 merged as `cf423f6`; the required main check and gated Cloudflare deployment passed, including the post-deploy smoke check.
+- Manual live runs confirmed DLQ backlog `0`, Worker errors `0`, a healthy synthetic check, and no incident action. The existing Cloudflare token has the required Queue metrics and Analytics read permissions.
 
 ## Cloudflare Operations and CI Follow-up (2026-08-22)
 
