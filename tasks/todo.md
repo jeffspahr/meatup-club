@@ -1,5 +1,36 @@
 # Active Backlog (2026-02-23)
 
+## SMS Vanity Number Copy (2026-08-22)
+
+### Goal
+Include the memorable toll-free number in every generated event reminder.
+
+### Acceptance Criteria
+- [x] Default and custom reminders begin with `Meatup.Club (888-857-MEAT):`.
+- [x] RSVP instructions, opt-out copy, and direct event links remain unchanged.
+- [x] Focused tests, the full test suite, typecheck, and build pass.
+
+### Active Tasks
+- [x] Locate the authoritative reminder copy and existing regression coverage.
+- [x] Update the shared reminder builder and tests.
+- [x] Run verification.
+- [ ] Publish through the normal deployment workflow.
+
+### Working Notes
+- Work is isolated in `/private/tmp/meatup-sms-vanity` from current `origin/main` so unrelated changes in the primary checkout remain untouched.
+
+### Results
+- Default and custom event reminders now begin with `Meatup.Club (888-857-MEAT):`.
+- The direct event link, current RSVP status, YES/NO instructions, HELP instructions, and STOP opt-out copy are unchanged.
+
+### Verification
+- `fnm exec --using=v24.14.0 npm run test:run -- app/lib/sms.server.test.ts` (32 passed)
+- `fnm exec --using=v24.14.0 npm run test:run` (616 passed)
+- `fnm exec --using=v24.14.0 npm run lint`
+- `fnm exec --using=v24.14.0 npm run typecheck`
+- `fnm exec --using=v24.14.0 npm run build`
+- `git diff --check`
+
 ## Cloudflare Worker and DLQ Alerting (2026-08-22)
 
 ### Goal

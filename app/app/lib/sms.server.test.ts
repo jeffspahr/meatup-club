@@ -167,7 +167,7 @@ describe("sms delivery and reminder flows", () => {
   });
 
   it("builds reminder messages with relative labels, RSVP status, and opt-out instructions", () => {
-    const message = buildSmsReminderMessage({
+    const reminder = {
       event: {
         id: 1,
         restaurant_name: "Prime Steakhouse",
@@ -178,10 +178,16 @@ describe("sms delivery and reminder flows", () => {
       timeZone: "UTC",
       rsvpStatus: "maybe",
       now: new Date("2026-04-01T12:05:00Z"),
+    };
+    const defaultMessage = buildSmsReminderMessage(reminder);
+    const message = buildSmsReminderMessage({
+      ...reminder,
       customMessage: "Heads up",
     });
 
-    expect(message).toContain("Heads up");
+    expect(defaultMessage.startsWith("Meatup.Club (888-857-MEAT): Reminder")).toBe(true);
+    expect(message.startsWith("Meatup.Club (888-857-MEAT): Heads up Reminder")).toBe(true);
+    expect(message.match(/Meatup\.Club/g)).toHaveLength(1);
     expect(message).toContain("Reminder for tomorrow at 12:00 PM");
     expect(message).toContain("Prime Steakhouse");
     expect(message).toContain("Your RSVP: Maybe.");

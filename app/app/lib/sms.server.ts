@@ -32,6 +32,7 @@ const OPT_IN_KEYWORDS = new Set(["start", "unstop"]);
 const HELP_KEYWORDS = new Set(["help", "info"]);
 const YES_KEYWORDS = new Set(["y", "yes"]);
 const NO_KEYWORDS = new Set(["n", "no"]);
+const SMS_BRAND_PREFIX = "Meatup.Club (888-857-MEAT):";
 
 export type SmsReplyType = "yes" | "no" | "opt_out" | "opt_in" | "help";
 export type SmsDeliveryStatus =
@@ -227,10 +228,10 @@ export function buildSmsReminderMessage({
     messageNow
   );
   const statusLabel = formatRsvpStatus(rsvpStatus);
-  const baseTemplate = `Meatup.Club: Reminder for ${relativeLabel ?? dateLabel} at ${timeLabel} at ${event.restaurant_name}.`;
+  const reminderText = `Reminder for ${relativeLabel ?? dateLabel} at ${timeLabel} at ${event.restaurant_name}.`;
   const messageBody = customMessage
-    ? `Meatup.Club: ${customMessage.trim()} ${baseTemplate.replace("Meatup.Club: ", "")}`
-    : baseTemplate;
+    ? `${SMS_BRAND_PREFIX} ${customMessage.trim()} ${reminderText}`
+    : `${SMS_BRAND_PREFIX} ${reminderText}`;
   const baseUrl = normalizeAppBaseUrl(appBaseUrl);
   const eventUrl = `${baseUrl}/dashboard?event=${event.id}#event-${event.id}`;
   const base = `${messageBody} Your RSVP: ${statusLabel}. Details: ${eventUrl}`;

@@ -28,3 +28,8 @@
 - 2026-08-22: A deployment workflow cannot consume build output from a separate CI runner unless that output is uploaded and downloaded explicitly. When deduplicating CI from deploy, retain a build-only step before Wrangler or transfer the verified artifact; detection signal is Wrangler reporting that `build/client` does not exist.
 - 2026-08-22: Webhook handlers must treat body decoding as an untrusted boundary. Detection signal: a malformed POST without the expected form content type throws in `request.formData()` and returns 500 before authentication. Prevention rule: catch body-decoding failures, return a controlled 400, and include a non-form request in route regression tests.
 - 2026-08-22: Browser tests for auto-submitting, visually styled radio controls should click the visible label and prove persistence after reload. Clicking the screen-reader-only input can be intercepted, and matching an internal React Router data URL couples the test to framework routing details instead of user-visible behavior.
+# 2026-08-22: Use matchers supported by the configured Vitest assertions
+
+- Failure mode: Added a Jest-style `toStartWith` assertion that is not available in this project's Chai-backed matcher configuration.
+- Detection signal: The focused test failed with `Invalid Chai property: toStartWith`.
+- Prevention rule: For string-prefix checks, use `expect(value.startsWith(prefix)).toBe(true)` unless the repository already demonstrates a custom prefix matcher.
