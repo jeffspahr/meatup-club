@@ -96,7 +96,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_out") {
     await db
-      .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP WHERE id = ?")
+      .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?")
       .bind(user.id)
       .run();
     return twilioAlreadyReplied
@@ -106,7 +106,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_in") {
     await db
-      .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL WHERE id = ?")
+      .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?")
       .bind(user.id)
       .run();
     return twilioAlreadyReplied
@@ -127,19 +127,28 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (user.sms_opt_out_at) {
-    return buildSmsResponse("You are opted out of SMS. Update your profile if you'd like reminders again.");
+    return buildSmsResponse("You are opted out of SMS. Reply START to re-enable reminders.");
   }
 
+  const timeZone = getAppTimeZone(env.APP_TIMEZONE);
+  const today = getTodayDateStringInTimeZone(timeZone);
   const latestReminder = await db
-    .prepare("SELECT event_id FROM sms_reminders WHERE user_id = ? ORDER BY sent_at DESC LIMIT 1")
-    .bind(user.id)
+    .prepare(`
+      SELECT sr.event_id
+      FROM sms_reminders sr
+      JOIN events e ON e.id = sr.event_id
+      WHERE sr.user_id = ?
+        AND e.status = 'upcoming'
+        AND e.event_date >= ?
+      ORDER BY sr.sent_at DESC
+      LIMIT 1
+    `)
+    .bind(user.id, today)
     .first() as SmsReminderRow | null;
 
   let eventId = latestReminder?.event_id;
 
   if (!eventId) {
-    const timeZone = getAppTimeZone(env.APP_TIMEZONE);
-    const today = getTodayDateStringInTimeZone(timeZone);
     const nextEvent = await db
       .prepare(
         "SELECT id FROM events WHERE status = 'upcoming' AND event_date >= ? ORDER BY event_date ASC LIMIT 1"

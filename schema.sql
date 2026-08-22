@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS users (
   notify_event_updates INTEGER DEFAULT 1,
   phone_number TEXT,
   sms_opt_in INTEGER DEFAULT 0,
-  sms_opt_out_at DATETIME
+  sms_opt_out_at DATETIME,
+  sms_opt_out_source TEXT CHECK(sms_opt_out_source IN ('profile', 'sms') OR sms_opt_out_source IS NULL)
 );
 
 -- Events ---------------------------------------------------------------------
@@ -145,6 +146,21 @@ CREATE TABLE IF NOT EXISTS sms_reminders (
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE(event_id, user_id, reminder_type)
+);
+
+CREATE TABLE IF NOT EXISTS sms_deliveries (
+  id TEXT PRIMARY KEY,
+  event_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  reminder_type TEXT NOT NULL,
+  provider_message_sid TEXT UNIQUE,
+  status TEXT NOT NULL,
+  status_rank INTEGER NOT NULL DEFAULT 0,
+  error_code TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Comments + activity --------------------------------------------------------
@@ -330,6 +346,9 @@ CREATE INDEX IF NOT EXISTS idx_rsvps_user_id ON rsvps(user_id);
 CREATE INDEX IF NOT EXISTS idx_rsvps_admin_override ON rsvps(admin_override);
 
 CREATE INDEX IF NOT EXISTS idx_sms_reminders_event_user ON sms_reminders(event_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_sms_deliveries_event_created ON sms_deliveries(event_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_sms_deliveries_user_created ON sms_deliveries(user_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sms_deliveries_provider_sid ON sms_deliveries(provider_message_sid);
 
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_commentable ON comments(commentable_type, commentable_id);

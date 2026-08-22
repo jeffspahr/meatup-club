@@ -76,6 +76,7 @@ describe("dashboard.profile route", () => {
       phone_number: null,
       sms_opt_in: 0,
       sms_opt_out_at: null,
+      sms_opt_out_source: null,
     } as never);
     vi.mocked(normalizePhoneNumber).mockImplementation((value: string) =>
       value === "555-123-4567" ? "+15551234567" : null
@@ -172,9 +173,73 @@ describe("dashboard.profile route", () => {
     expect(db.runCalls).toEqual([
       expect.objectContaining({
         sql: expect.stringContaining("UPDATE users SET phone_number = ?"),
-        bindArgs: ["+15551234567", 1, 1, 123],
+        bindArgs: ["+15551234567", 1, 1, 1, 0, 123],
       }),
     ]);
+  });
+
+  it("requires START after a carrier-level opt-out", async () => {
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 123,
+      is_admin: 0,
+      status: "active",
+      email: "user@example.com",
+      name: "User",
+      picture: null,
+      notify_poll_updates: 1,
+      notify_event_updates: 1,
+      phone_number: "+15551234567",
+      sms_opt_in: 0,
+      sms_opt_out_at: "2026-08-22 12:00:00",
+      sms_opt_out_source: "sms",
+    } as never);
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "update_sms",
+        phone_number: "555-123-4567",
+        sms_opt_in: "on",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({
+      error: "Reply START to (888) 857-6328 to re-enable SMS after opting out by text.",
+    });
+    expect(db.runCalls).toEqual([]);
+  });
+
+  it("allows profile-disabled reminders to be re-enabled in profile", async () => {
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 123,
+      is_admin: 0,
+      status: "active",
+      email: "user@example.com",
+      name: "User",
+      picture: null,
+      notify_poll_updates: 1,
+      notify_event_updates: 1,
+      phone_number: "+15551234567",
+      sms_opt_in: 0,
+      sms_opt_out_at: "2026-08-22 12:00:00",
+      sms_opt_out_source: "profile",
+    } as never);
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "update_sms",
+        phone_number: "555-123-4567",
+        sms_opt_in: "on",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ success: "SMS preferences updated successfully" });
+    expect(db.runCalls[0]?.bindArgs).toEqual(["+15551234567", 1, 1, 1, 0, 123]);
   });
 
   it("rejects unknown action types", async () => {

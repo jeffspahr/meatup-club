@@ -5,7 +5,9 @@ import {
   buildSmsResponse,
   normalizePhoneNumber,
   parseSmsReply,
+  parseTwilioMessageStatus,
   parseTwilioOptOutType,
+  recordSmsDeliveryStatus,
   sendAdhocSmsReminder,
   sendScheduledSmsReminders,
   sendSms,
@@ -119,6 +121,17 @@ describe("parseTwilioOptOutType", () => {
   });
 });
 
+describe("parseTwilioMessageStatus", () => {
+  it("accepts known statuses case-insensitively", () => {
+    expect(parseTwilioMessageStatus("DELIVERED")).toBe("delivered");
+    expect(parseTwilioMessageStatus("undelivered")).toBe("undelivered");
+  });
+
+  it("rejects unknown statuses", () => {
+    expect(parseTwilioMessageStatus("unknown")).toBeNull();
+  });
+});
+
 describe("sms delivery and reminder flows", () => {
   let originalFetch: typeof global.fetch;
   let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
@@ -128,7 +141,9 @@ describe("sms delivery and reminder flows", () => {
     originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => "OK",
+      status: 201,
+      text: async () =>
+        JSON.stringify({ sid: `SM${"1".repeat(32)}`, status: "queued" }),
       statusText: "OK",
     } as unknown as Response);
     consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -193,7 +208,11 @@ describe("sms delivery and reminder flows", () => {
       },
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({
+      success: true,
+      messageSid: `SM${"1".repeat(32)}`,
+      status: "queued",
+    });
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
     const [url, requestInit] = vi.mocked(global.fetch).mock.calls[0];
@@ -212,7 +231,8 @@ describe("sms delivery and reminder flows", () => {
   it("returns the Twilio response body when message delivery fails", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
-      text: async () => "Invalid destination number",
+      status: 400,
+      text: async () => JSON.stringify({ code: 21211, message: "Invalid destination number" }),
       statusText: "Bad Request",
     } as unknown as Response);
 
@@ -229,6 +249,7 @@ describe("sms delivery and reminder flows", () => {
     expect(result).toEqual({
       success: false,
       error: "Invalid destination number",
+      errorCode: "21211",
     });
   });
 
@@ -309,15 +330,17 @@ describe("sms delivery and reminder flows", () => {
         bindArgs: [77, 77, "24h"],
       }),
     ]);
-    expect(db.insertCalls).toEqual([
-      expect.objectContaining({
-        bindArgs: [77, 8, "24h"],
-      }),
-    ]);
+    expect(
+      db.insertCalls.filter((call) => call.sql.startsWith("INSERT OR IGNORE INTO sms_reminders"))
+    ).toEqual([expect.objectContaining({ bindArgs: [77, 8, "24h"] })]);
 
     const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
     const body = new URLSearchParams(String(requestInit?.body));
     expect(body.get("Body")).toContain("Your RSVP: Maybe.");
+    expect(body.get("Body")).toContain("/dashboard?event=77#event-77");
+    expect(body.get("StatusCallback")).toMatch(
+      /^https:\/\/meatup\.club\/api\/webhooks\/sms-status\?delivery_id=/
+    );
   });
 
   it("sends a reminder after one delayed cron interval", async () => {
@@ -353,7 +376,10 @@ describe("sms delivery and reminder flows", () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([78, 78, "24h"]);
-    expect(db.insertCalls[0]?.bindArgs).toEqual([78, 9, "24h"]);
+    expect(
+      db.insertCalls.find((call) => call.sql.startsWith("INSERT OR IGNORE INTO sms_reminders"))
+        ?.bindArgs
+    ).toEqual([78, 9, "24h"]);
   });
 
   it("returns an explicit error for adhoc reminders when credentials are missing", async () => {
@@ -420,12 +446,15 @@ describe("sms delivery and reminder flows", () => {
       .fn()
       .mockResolvedValueOnce({
         ok: true,
-        text: async () => "OK",
+        status: 201,
+        text: async () =>
+          JSON.stringify({ sid: `SM${"2".repeat(32)}`, status: "queued" }),
         statusText: "OK",
       } as unknown as Response)
       .mockResolvedValueOnce({
         ok: false,
-        text: async () => "Twilio outage",
+        status: 503,
+        text: async () => JSON.stringify({ code: 20500, message: "Twilio outage" }),
         statusText: "Service Unavailable",
       } as unknown as Response);
 
@@ -448,12 +477,32 @@ describe("sms delivery and reminder flows", () => {
     });
 
     expect(result.sent).toBe(1);
-    expect(result.errors).toEqual(["+15550000002: Twilio outage"]);
+    expect(result.errors).toEqual(["Member 2: Twilio outage"]);
     expect(db.recipientQueryCalls[0]?.sql).toContain("AND r.status = ?");
     expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([90, "maybe"]);
-    expect(db.insertCalls).toHaveLength(1);
-    expect(db.insertCalls[0]?.bindArgs[0]).toBe(90);
-    expect(db.insertCalls[0]?.bindArgs[1]).toBe(1);
-    expect(String(db.insertCalls[0]?.bindArgs[2])).toMatch(/^adhoc:\d+$/);
+    const reminderInsert = db.insertCalls.find((call) =>
+      call.sql.startsWith("INSERT OR IGNORE INTO sms_reminders")
+    );
+    expect(reminderInsert?.bindArgs[0]).toBe(90);
+    expect(reminderInsert?.bindArgs[1]).toBe(1);
+    expect(String(reminderInsert?.bindArgs[2])).toMatch(/^adhoc:[0-9a-f-]{36}$/);
+  });
+
+  it("persists ranked delivery status updates", async () => {
+    const db = createMockDb();
+
+    const recorded = await recordSmsDeliveryStatus({
+      db: db as never,
+      deliveryId: "11111111-1111-4111-8111-111111111111",
+      messageSid: `SM${"3".repeat(32)}`,
+      status: "delivered",
+    });
+
+    expect(recorded).toBe(true);
+    expect(db.insertCalls.at(-1)).toEqual(
+      expect.objectContaining({
+        bindArgs: expect.arrayContaining(["delivered", 50]),
+      })
+    );
   });
 });
