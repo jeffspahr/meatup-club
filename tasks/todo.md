@@ -30,7 +30,7 @@ Finish the remaining CI and test-suite improvements on current `main` without we
 - [x] Run complete local verification and record results.
 
 ### Working Notes
-- Post-change full-source coverage: 78.60% statements, 69.97% branches, 69.36% functions, 79.11% lines across 73 files and 570 tests.
+- Post-change full-source coverage: 78.56% statements, 69.99% branches, 69.21% functions, 79.07% lines across 73 files and 570 tests.
 - Existing documented 92% baseline predates full-source instrumentation and is not comparable.
 - `Verify application` is a strict required check on `main`; administrator enforcement is enabled.
 - The original workspace remains dirty, so implementation is isolated in `/tmp/meatup-ci-required-verification`.

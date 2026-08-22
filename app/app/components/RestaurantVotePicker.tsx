@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, EmptyState } from "./ui";
 
 interface RestaurantVoteOption {
@@ -19,12 +19,6 @@ export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: Restaura
   const currentVote = sorted.find((s) => s.user_has_voted > 0) ?? null;
   const currentVoteId = currentVote ? String(currentVote.id) : '';
   const [selectedId, setSelectedId] = useState<string>(currentVoteId);
-
-  // A loader refresh is authoritative for the persisted vote and intentionally
-  // resets any unsubmitted local selection when that persisted value changes.
-  useEffect(() => {
-    setSelectedId(currentVoteId);
-  }, [currentVoteId]);
 
   if (sorted.length === 0) {
     return (
