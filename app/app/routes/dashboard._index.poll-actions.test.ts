@@ -31,6 +31,7 @@ type MockDbOptions = {
   dateOwner?: { user_id: number; poll_id: number } | null;
   insertSuggestionId?: number | null;
   existingRestaurantVote?: { restaurant_id: number } | null;
+  availableRestaurant?: { id: number } | null;
 };
 
 function createMockDb({
@@ -41,6 +42,7 @@ function createMockDb({
   dateOwner = { user_id: 123, poll_id: 1 },
   insertSuggestionId = 555,
   existingRestaurantVote = null,
+  availableRestaurant = { id: 9 },
 }: MockDbOptions = {}) {
   const runCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
 
@@ -65,6 +67,9 @@ function createMockDb({
       }
       if (normalizedSql.includes("SELECT restaurant_id FROM restaurant_votes WHERE poll_id = ? AND user_id = ?")) {
         return existingRestaurantVote;
+      }
+      if (normalizedSql.includes("FROM restaurants r WHERE r.id = ?")) {
+        return availableRestaurant;
       }
       throw new Error(`Unexpected first() query: ${normalizedSql}`);
     };
@@ -93,10 +98,7 @@ function createMockDb({
 }
 
 function createRequest(formEntries: Record<string, string>) {
-  const formData = new FormData();
-  for (const [key, value] of Object.entries(formEntries)) {
-    formData.set(key, value);
-  }
+  const formData = new URLSearchParams(Object.entries(formEntries));
   return new Request("http://localhost/dashboard", {
     method: "POST",
     body: formData,
@@ -319,6 +321,44 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     } as never);
     expect(result).toEqual({ error: "Restaurant ID is required" });
     expect(voteForRestaurant).not.toHaveBeenCalled();
+  });
+
+  it.each(["abc", "1.5", "1e3", "0", "-1"])("rejects invalid restaurant id %s", async (suggestionId) => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({ _action: "vote_restaurant", suggestion_id: suggestionId }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Restaurant ID is invalid" });
+    expect(voteForRestaurant).not.toHaveBeenCalled();
+    expect(removeVote).not.toHaveBeenCalled();
+  });
+
+  it("rejects a restaurant that is missing or excluded from the active poll", async () => {
+    const db = createMockDb({ availableRestaurant: null });
+    const result = await action({
+      request: createRequest({ _action: "vote_restaurant", suggestion_id: "9" }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ error: "Restaurant is not available in the active poll" });
+    expect(voteForRestaurant).not.toHaveBeenCalled();
+  });
+
+  it("treats a present empty selection as removing the current vote", async () => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({ _action: "vote_restaurant", suggestion_id: "" }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({ ok: true });
+    expect(removeVote).toHaveBeenCalledWith(expect.anything(), 1, 123);
+    expect(voteForRestaurant).not.toHaveBeenCalled();
+    expect(logActivity).toHaveBeenCalledWith(
+      expect.objectContaining({ actionType: "unvote_restaurant" }),
+    );
   });
 
   it("records vote and flags 'changed' when an existing vote was found", async () => {

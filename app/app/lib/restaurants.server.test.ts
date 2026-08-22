@@ -91,7 +91,7 @@ describe("restaurants.server", () => {
     );
   });
 
-  it("replaces an existing restaurant vote by deleting first and inserting second", async () => {
+  it("creates or replaces a restaurant vote with one atomic upsert", async () => {
     const runCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
     const prepare = vi.fn((sql: string) => ({
       bind: (...bindArgs: unknown[]) => ({
@@ -107,11 +107,9 @@ describe("restaurants.server", () => {
 
     expect(runCalls).toEqual([
       {
-        sql: "DELETE FROM restaurant_votes WHERE poll_id = ? AND user_id = ?",
-        bindArgs: [7, 123],
-      },
-      {
-        sql: "INSERT INTO restaurant_votes (poll_id, restaurant_id, user_id) VALUES (?, ?, ?)",
+        sql: expect.stringMatching(
+          /INSERT INTO restaurant_votes[\s\S]*ON CONFLICT\(poll_id, user_id\) DO UPDATE SET/
+        ),
         bindArgs: [7, 12, 123],
       },
     ]);
