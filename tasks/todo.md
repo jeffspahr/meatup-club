@@ -1,5 +1,39 @@
 # Active Backlog (2026-02-23)
 
+## Member SMS Status (2026-08-22)
+
+### Goal
+Show admins whether each member is currently eligible to receive SMS reminders.
+
+### Acceptance Criteria
+- [x] Member Management displays a compact SMS status for every member.
+- [x] Status reflects phone presence, consent, and opt-out state rather than consent alone.
+- [x] Carrier opt-outs are distinguishable from profile opt-outs without exposing phone numbers.
+- [x] Focused UI tests, lint, typecheck, and build pass.
+
+### Active Tasks
+- [x] Locate the SMS eligibility source of truth and existing member table coverage.
+- [x] Add status presentation and regression coverage.
+- [x] Run verification and record results.
+
+### Working Notes
+- SMS sends require `phone_number IS NOT NULL`, `sms_opt_in = 1`, and `sms_opt_out_at IS NULL`; the admin status must mirror those production eligibility rules.
+- Work is isolated in `/private/tmp/meatup-member-sms-status` from current `origin/main`; unrelated changes in the primary checkout remain untouched.
+
+### Results
+- Added an SMS column with Enabled, Opted out, Not enabled, and No number states plus concise eligibility details.
+- Text-message opt-outs and profile opt-outs carry distinct detail text and explanatory tooltips.
+- Phone numbers are not rendered in the table, and the wide table scrolls within its card on narrow screens without causing page overflow.
+
+### Verification
+- `fnm exec --using=v24.14.0 npm run test:run -- app/routes/dashboard.admin.members.route-ui.test.tsx` (4 passed)
+- `fnm exec --using=v24.14.0 npm run test:run` (626 passed)
+- `fnm exec --using=v24.14.0 npm run lint`
+- `fnm exec --using=v24.14.0 npm run typecheck`
+- `fnm exec --using=v24.14.0 npm run build`
+- Seeded local D1 visual check at desktop and 390px; document width remained 390px while the table scrolled inside its 358px container.
+- `git diff --check`
+
 ## SMS Vanity Number Copy (2026-08-22)
 
 ### Goal

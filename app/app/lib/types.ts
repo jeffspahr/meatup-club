@@ -118,6 +118,10 @@ export interface Member {
   picture: string | null;
   is_admin: number;
   status: string;
+  phone_number: string | null;
+  sms_opt_in: number;
+  sms_opt_out_at: string | null;
+  sms_opt_out_source: "profile" | "sms" | null;
   created_at: string;
 }
 

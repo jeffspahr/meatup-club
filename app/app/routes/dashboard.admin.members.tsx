@@ -11,6 +11,76 @@ import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
 
+type MemberSmsStatus = {
+  label: string;
+  detail: string;
+  variant: "success" | "warning" | "muted";
+  title: string;
+};
+
+function getMemberSmsStatus(member: Member): MemberSmsStatus {
+  if (!member.phone_number) {
+    return {
+      label: "No number",
+      detail: "Not eligible",
+      variant: "muted",
+      title: "This member has not added a mobile number.",
+    };
+  }
+
+  if (member.sms_opt_out_at) {
+    const detail = member.sms_opt_out_source === "sms"
+      ? "By text"
+      : member.sms_opt_out_source === "profile"
+        ? "In profile"
+        : "Source unknown";
+    const title = member.sms_opt_out_source === "sms"
+      ? "This member opted out by text and must reply START to re-enable SMS."
+      : member.sms_opt_out_source === "profile"
+        ? "This member disabled SMS reminders in their profile."
+        : "This member is opted out, but the original opt-out source was not recorded.";
+    return {
+      label: "Opted out",
+      detail,
+      variant: "warning",
+      title,
+    };
+  }
+
+  if (member.sms_opt_in === 1) {
+    return {
+      label: "Enabled",
+      detail: "Eligible",
+      variant: "success",
+      title: "This member is eligible to receive SMS reminders.",
+    };
+  }
+
+  return {
+    label: "Not enabled",
+    detail: "No consent",
+    variant: "muted",
+    title: "This member has a mobile number but has not enabled SMS reminders.",
+  };
+}
+
+function MemberSmsStatusCell({ member }: { member: Member }) {
+  const smsStatus = getMemberSmsStatus(member);
+
+  return (
+    <td className="px-6 py-4 whitespace-nowrap">
+      <div
+        className="flex flex-col items-start gap-1"
+        title={smsStatus.title}
+        aria-label={`SMS: ${smsStatus.label}. ${smsStatus.detail}.`}
+      >
+        <Badge variant={smsStatus.variant}>{smsStatus.label}</Badge>
+        <span className="text-xs text-muted-foreground">{smsStatus.detail}</span>
+      </div>
+    </td>
+  );
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
   const db = context.cloudflare.env.DB;
@@ -18,7 +88,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Fetch all members
   const membersResult = await db
     .prepare('SELECT * FROM users ORDER BY created_at DESC')
-    .all();
+    .all<Member>();
 
   // Fetch email templates for invite form
   const templatesResult = await db
@@ -209,7 +279,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
   const navigation = useNavigation();
   const submittedActionRef = useRef<string | null>(null);
 
-  function startEditing(member: any) {
+  function startEditing(member: Member) {
     setEditingId(member.id);
     setEditData({
       user_id: member.id,
@@ -383,8 +453,11 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       )}
 
       {/* Members List */}
-      <Card className="overflow-hidden p-0">
-        <table className="min-w-full divide-y divide-border">
+      <Card className="overflow-x-auto p-0">
+        <table className="min-w-[72rem] divide-y divide-border">
+          <caption className="sr-only">
+            Member roles, account status, SMS reminder eligibility, join date, and actions
+          </caption>
           <thead className="bg-muted">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -400,6 +473,9 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                SMS
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Joined
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -408,10 +484,10 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
             </tr>
           </thead>
           <tbody className="bg-card divide-y divide-border">
-            {members.map((member: any) => (
+            {members.map((member: Member) => (
               <tr key={member.id}>
                 {editingId === member.id ? (
-                  <td colSpan={6} className="px-6 py-4">
+                  <td colSpan={7} className="px-6 py-4">
                     <Form method="post" className="space-y-4">
                       <input type="hidden" name="_action" value="update" />
                       <input type="hidden" name="user_id" value={editData.user_id} />
@@ -496,6 +572,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         <Badge variant="warning">Invited</Badge>
                       )}
                     </td>
+                    <MemberSmsStatusCell member={member} />
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateForDisplay(member.created_at)}
                     </td>
