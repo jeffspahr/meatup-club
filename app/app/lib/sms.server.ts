@@ -26,9 +26,12 @@ type SmsRecipientRow = {
 };
 
 const OPT_OUT_KEYWORDS = new Set(["stop", "stopall", "unsubscribe", "cancel", "end", "quit"]);
+const OPT_IN_KEYWORDS = new Set(["start", "unstop"]);
 const HELP_KEYWORDS = new Set(["help", "info"]);
 const YES_KEYWORDS = new Set(["y", "yes"]);
 const NO_KEYWORDS = new Set(["n", "no"]);
+
+export type SmsReplyType = "yes" | "no" | "opt_out" | "opt_in" | "help";
 
 export function normalizePhoneNumber(input: string): string | null {
   if (!input) {
@@ -57,7 +60,7 @@ export function normalizePhoneNumber(input: string): string | null {
   return null;
 }
 
-export function parseSmsReply(body: string): "yes" | "no" | "opt_out" | "help" | null {
+export function parseSmsReply(body: string): SmsReplyType | null {
   if (!body) {
     return null;
   }
@@ -70,6 +73,10 @@ export function parseSmsReply(body: string): "yes" | "no" | "opt_out" | "help" |
   const condensed = normalized.replace(/[^a-z]/g, "");
   if (OPT_OUT_KEYWORDS.has(condensed) || OPT_OUT_KEYWORDS.has(normalized)) {
     return "opt_out";
+  }
+
+  if (OPT_IN_KEYWORDS.has(condensed) || OPT_IN_KEYWORDS.has(normalized)) {
+    return "opt_in";
   }
 
   if (HELP_KEYWORDS.has(condensed) || HELP_KEYWORDS.has(normalized)) {
@@ -87,6 +94,19 @@ export function parseSmsReply(body: string): "yes" | "no" | "opt_out" | "help" |
   }
 
   return null;
+}
+
+export function parseTwilioOptOutType(value: string | null): SmsReplyType | null {
+  switch (value?.trim().toUpperCase()) {
+    case "START":
+      return "opt_in";
+    case "STOP":
+      return "opt_out";
+    case "HELP":
+      return "help";
+    default:
+      return null;
+  }
 }
 
 export function buildSmsReminderMessage({
@@ -113,7 +133,7 @@ export function buildSmsReminderMessage({
   const messageBody = customMessage
     ? `Meatup.Club: ${customMessage.trim()} ${baseTemplate.replace("Meatup.Club: ", "")}`
     : baseTemplate;
-  const base = `${messageBody} Your RSVP: ${statusLabel}. Details: https://meatup.club/dashboard/events`;
+  const base = `${messageBody} Your RSVP: ${statusLabel}. Details: https://meatup.club/dashboard`;
   return appendSmsInstructions(base);
 }
 
@@ -188,7 +208,10 @@ export async function sendScheduledSmsReminders({
     { type: "24h", offsetMs: 24 * 60 * 60 * 1000 },
     { type: "2h", offsetMs: 2 * 60 * 60 * 1000 },
   ];
-  const windowMs = 15 * 60 * 1000;
+  // The cron runs every 15 minutes. A 30-minute lookback tolerates one delayed
+  // or missed invocation, while the sms_reminders uniqueness check prevents
+  // duplicate delivery during the overlapping windows.
+  const windowMs = 30 * 60 * 1000;
 
   for (const event of events) {
     const eventDateTime = getEventDateTimeUtc(event.event_date, event.event_time, timeZone);
@@ -370,7 +393,7 @@ function isWithinWindow(diffMs: number, targetMs: number, windowMs: number): boo
 }
 
 function appendSmsInstructions(message: string): string {
-  return `${message} Reply YES or NO to RSVP. Reply STOP to opt out.`;
+  return `${message} Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out.`;
 }
 
 function buildRecipientScopeQuery(

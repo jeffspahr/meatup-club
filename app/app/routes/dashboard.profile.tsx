@@ -183,7 +183,8 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
 
         {user.sms_opt_out_at && (
           <Alert variant="warning" className="mb-4">
-            You are currently opted out of SMS. Re-enable below if you want reminders again.
+            You are currently opted out of SMS. If you opted out by text, reply START to
+            (888) 857-6328 to re-enable carrier delivery, then confirm your preference below.
           </Alert>
         )}
 

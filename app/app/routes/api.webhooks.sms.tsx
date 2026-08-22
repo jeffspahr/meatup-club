@@ -3,6 +3,7 @@ import {
   buildSmsResponse,
   normalizePhoneNumber,
   parseSmsReply,
+  parseTwilioOptOutType,
   verifyTwilioSignature,
 } from "../lib/sms.server";
 import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
@@ -48,10 +49,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const messageSid = formData.get("MessageSid")?.toString().trim();
+  const twilioOptOutType = parseTwilioOptOutType(
+    formData.get("OptOutType")?.toString() ?? null
+  );
   if (messageSid) {
     const isFirstDelivery = await reserveWebhookDelivery(db, "twilio", messageSid);
     if (!isFirstDelivery) {
-      return buildSmsResponse("Thanks! We already received that response.");
+      return twilioOptOutType
+        ? buildSmsResponse()
+        : buildSmsResponse("Thanks! We already received that response.");
     }
   }
 
@@ -60,7 +66,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const from = normalizePhoneNumber(fromRaw);
 
   if (!from) {
-    return buildSmsResponse("We couldn't read your phone number.");
+    return twilioOptOutType
+      ? buildSmsResponse()
+      : buildSmsResponse("We couldn't read your phone number.");
   }
 
   const user = await db
@@ -69,21 +77,49 @@ export async function action({ request, context }: Route.ActionArgs) {
     .first() as SmsWebhookUserRow | null;
 
   if (!user) {
-    return buildSmsResponse("We couldn't find your account. Update your phone number in your profile.");
+    return twilioOptOutType
+      ? buildSmsResponse()
+      : buildSmsResponse(
+          "We couldn't find your account. Update your phone number in your profile."
+        );
   }
 
-  const replyType = parseSmsReply(body);
+  const parsedBodyReply = parseSmsReply(body);
+  // YES and NO are Meatup RSVP commands. Give them precedence in case a
+  // Messaging Service was mistakenly configured to classify YES as START.
+  const replyType =
+    parsedBodyReply === "yes" || parsedBodyReply === "no"
+      ? parsedBodyReply
+      : twilioOptOutType ?? parsedBodyReply;
+  const twilioAlreadyReplied =
+    twilioOptOutType !== null && twilioOptOutType === replyType;
 
   if (replyType === "opt_out") {
     await db
       .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP WHERE id = ?")
       .bind(user.id)
       .run();
-    return buildSmsResponse("You are opted out of Meatup SMS. Update your profile to re-enable.");
+    return twilioAlreadyReplied
+      ? buildSmsResponse()
+      : buildSmsResponse("You are opted out of Meatup SMS. Reply START to re-enable.");
+  }
+
+  if (replyType === "opt_in") {
+    await db
+      .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL WHERE id = ?")
+      .bind(user.id)
+      .run();
+    return twilioAlreadyReplied
+      ? buildSmsResponse()
+      : buildSmsResponse("You are opted in to Meatup SMS reminders. Reply STOP to opt out.");
   }
 
   if (replyType === "help" || replyType === null) {
-    return buildSmsResponse("Reply YES or NO to RSVP. Reply STOP to opt out.");
+    return twilioAlreadyReplied
+      ? buildSmsResponse()
+      : buildSmsResponse(
+          "Meatup.Club reminders. Reply YES or NO to RSVP, STOP to opt out, or START to re-enable. Help: support@meatup.club."
+        );
   }
 
   if (user.sms_opt_in !== 1) {

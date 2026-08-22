@@ -54,6 +54,7 @@ export default function SmsConsentPage() {
               <li>Purpose: event reminders and RSVP status updates only.</li>
               <li>Frequency: varies by event, typically low volume.</li>
               <li>Opt-out: reply STOP at any time.</li>
+              <li>Re-enrollment: after opting out by text, reply START or UNSTOP.</li>
               <li>Help: reply HELP for instructions.</li>
               <li>Fees: message and data rates may apply.</li>
             </ul>

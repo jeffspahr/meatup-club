@@ -5,6 +5,7 @@ import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import {
   normalizePhoneNumber,
   parseSmsReply,
+  parseTwilioOptOutType,
   verifyTwilioSignature,
 } from "../lib/sms.server";
 
@@ -36,6 +37,7 @@ vi.mock("../lib/sms.server", () => ({
     ),
   normalizePhoneNumber: vi.fn(() => "+15551234567"),
   parseSmsReply: vi.fn(() => "yes"),
+  parseTwilioOptOutType: vi.fn(() => null),
   verifyTwilioSignature: vi.fn(() => true),
 }));
 
@@ -95,16 +97,21 @@ function createRequest({
   from = "+15551234567",
   sid = "SM123",
   signature = "valid",
+  optOutType,
 }: {
   body?: string;
   from?: string;
   sid?: string;
   signature?: string;
+  optOutType?: "START" | "STOP" | "HELP";
 } = {}) {
   const formData = new FormData();
   formData.set("MessageSid", sid);
   formData.set("From", from);
   formData.set("Body", body);
+  if (optOutType) {
+    formData.set("OptOutType", optOutType);
+  }
 
   return new Request("http://localhost/api/webhooks/sms", {
     method: "POST",
@@ -125,6 +132,7 @@ describe("api.webhooks.sms", () => {
     vi.mocked(verifyTwilioSignature).mockReturnValue(true);
     vi.mocked(normalizePhoneNumber).mockReturnValue("+15551234567");
     vi.mocked(parseSmsReply).mockReturnValue("yes");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue(null);
     vi.mocked(reserveWebhookDelivery).mockResolvedValue(true);
     vi.mocked(upsertRsvp).mockResolvedValue("created");
   });
@@ -244,6 +252,95 @@ describe("api.webhooks.sms", () => {
     expect(upsertRsvp).not.toHaveBeenCalled();
   });
 
+  it("syncs Advanced Opt-Out STOP without sending a duplicate reply", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("opt_out");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_out");
+    const db = createMockDb();
+
+    const response = await action({
+      request: createRequest({ body: "STOP", optOutType: "STOP" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(await getSmsBody(response)).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    );
+    expect(db.runCalls).toEqual([
+      {
+        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP WHERE id = ?",
+        bindArgs: [7],
+      },
+    ]);
+  });
+
+  it("syncs Advanced Opt-Out START and restores application consent", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
+    const db = createMockDb({
+      user: { id: 7, sms_opt_in: 0, sms_opt_out_at: "2026-03-01T10:00:00Z" },
+    });
+
+    const response = await action({
+      request: createRequest({ body: "START", optOutType: "START" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(await getSmsBody(response)).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    );
+    expect(db.runCalls).toEqual([
+      {
+        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL WHERE id = ?",
+        bindArgs: [7],
+      },
+    ]);
+    expect(upsertRsvp).not.toHaveBeenCalled();
+  });
+
+  it("keeps YES as an RSVP command if Twilio misclassifies it as START", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("yes");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
+    const db = createMockDb();
+
+    const response = await action({
+      request: createRequest({ body: "YES", optOutType: "START" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(upsertRsvp).toHaveBeenCalledWith({
+      db,
+      eventId: 42,
+      userId: 7,
+      status: "yes",
+    });
+    expect(await getSmsBody(response)).toContain("RSVP is set to Yes");
+    expect(db.runCalls).toEqual([]);
+  });
+
   it("returns instructions for help and unrecognized replies", async () => {
     vi.mocked(parseSmsReply).mockReturnValue(null);
     const db = createMockDb();
@@ -262,6 +359,30 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("Reply YES or NO to RSVP");
+    expect(upsertRsvp).not.toHaveBeenCalled();
+  });
+
+  it("does not duplicate Twilio's Advanced Opt-Out HELP response", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("help");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("help");
+    const db = createMockDb();
+
+    const response = await action({
+      request: createRequest({ body: "HELP", optOutType: "HELP" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(await getSmsBody(response)).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    );
     expect(upsertRsvp).not.toHaveBeenCalled();
   });
 
