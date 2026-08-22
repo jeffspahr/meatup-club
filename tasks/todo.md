@@ -31,6 +31,67 @@ Include the memorable toll-free number in every generated event reminder.
 - `fnm exec --using=v24.14.0 npm run build`
 - `git diff --check`
 
+## Fix Issue #256 Voting Reliability (2026-08-22)
+
+### Goal
+Make restaurant voting reliable on a fresh iPhone/Safari page load even before React hydrates, while preventing invalid or destructive vote replacements.
+
+### Acceptance Criteria
+- [x] The restaurant vote form submits through native HTML when JavaScript has not hydrated.
+- [x] Empty selection removes a vote; a valid selection saves through one form contract.
+- [x] Invalid, missing, nonexistent, and poll-excluded restaurant IDs cannot mutate votes.
+- [x] Replacing a vote is one atomic D1 upsert rather than DELETE followed by INSERT.
+- [x] Browser coverage proves the fresh-load path in iPhone WebKit with JavaScript disabled and no reload/retry workaround.
+- [x] Targeted tests, lint, typecheck, full coverage, D1 checks, build, and E2E pass.
+
+### Active Tasks
+- [x] Specify the progressive-enhancement form and validation contract.
+- [x] Implement the component, route action, and atomic DB helper changes.
+- [x] Add component, action, helper, and WebKit regression coverage.
+- [x] Run targeted and full verification.
+- [x] Summarize results and prepare the change for review.
+
+### Working Notes
+- Use the existing `vote_restaurant` intent with a present-but-empty `suggestion_id` to remove a vote; a missing field remains invalid.
+- Restaurants are global to polls, so server availability means the restaurant exists and is not present in `poll_excluded_restaurants` for the active poll.
+- The React best-practices skill favors removing client-derived form state here; an uncontrolled named select plus native submit is both simpler and hydration-safe.
+
+### Results
+- Replaced the JavaScript-only controlled vote form with native named controls inside `fetcher.Form`; the same request works before hydration and is enhanced in place afterward.
+- Unified save/remove behavior under the existing `vote_restaurant` intent, validated positive integer IDs against the active poll's available restaurants, and retained activity logging for both paths.
+- Replaced DELETE-then-INSERT with a single `ON CONFLICT(poll_id, user_id) DO UPDATE` statement and exercised cast, replacement, persistence, and removal against local D1.
+- Added an iPhone 17 WebKit project with JavaScript disabled, removed the Chromium reload/retry workaround, and updated CI to install both browsers.
+- Full `npm run verify` passed on the latest main: lint, secret scan, typecheck, 80 files/625 tests with coverage, D1 schema/migrations, production build, and six browser journeys.
+
+## Triage GitHub Issue #256 (2026-08-22)
+
+### Goal
+Determine whether the reported iPhone/Safari voting failure and missing SMS are reproducible, related, already resolved, or require separate fixes, without changing production data.
+
+### Acceptance Criteria
+- [x] Reconcile the sparse issue report with current code, tests, deployment history, and production-safe evidence.
+- [x] Trace the restaurant voting request path and identify mobile/Safari-specific failure candidates.
+- [x] Trace SMS eligibility, sending, and delivery-state evidence without exposing member data or message bodies.
+- [x] State the most likely root cause for each symptom, confidence, missing evidence, and the smallest next action.
+- [x] Add a concise, project-facing triage update to issue #256 only after the evidence supports it.
+
+### Active Tasks
+- [x] Inspect issue history and relevant recent changes.
+- [x] Audit and exercise the voting flow at the smallest reliable test layer.
+- [x] Audit production-safe SMS state and delivery signals.
+- [x] Synthesize findings and update the issue.
+
+### Working Notes
+- The issue body is the untouched bug template; all usable detail currently comes from the title.
+- Triage is read-only: do not modify member records, votes, SMS consent, or send messages.
+
+### Results
+- The report predates PRs #258, #265, and #267; its untouched template and title do not identify the exact vote state, event, reminder, or send time.
+- The restaurant picker has a credible first-load Safari failure: its disabled submit button and POST path depend on hydration, while the sole Playwright journey reloads/retries and only runs Desktop Chrome. Existing component/action tests pass (2 files, 17 tests) but do not cover that gap.
+- Historical SMS delivery cannot be reconstructed because the report predates per-message status tracking. Current code records provider state/error codes and exposes them in the admin Events view; opt-out/eligibility and carrier failure remain the leading checks.
+- A live aggregate D1 check was not available because the configured Wrangler account is no longer authorized for the bound database; no production records were read or changed.
+- Posted the evidence and targeted reporter questions to issue #256; kept it open pending a same-device retest and member-specific SMS status inspection.
+
 ## Cloudflare Worker and DLQ Alerting (2026-08-22)
 
 ### Goal

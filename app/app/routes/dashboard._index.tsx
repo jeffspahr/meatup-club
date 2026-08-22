@@ -522,9 +522,52 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (intent === 'vote_restaurant') {
-      const restaurantId = formData.get('suggestion_id');
-      if (!restaurantId) {
+      const rawRestaurantId = formData.get('suggestion_id');
+      if (typeof rawRestaurantId !== 'string') {
         return { error: 'Restaurant ID is required' };
+      }
+
+      const normalizedRestaurantId = rawRestaurantId.trim();
+      if (!normalizedRestaurantId) {
+        await removeVote(db, activePoll.id, user.id);
+
+        await logActivity({
+          db,
+          userId: user.id,
+          actionType: 'unvote_restaurant',
+          actionDetails: { poll_id: activePoll.id },
+          route: '/dashboard',
+          request,
+        });
+
+        return { ok: true };
+      }
+
+      if (!/^[1-9]\d*$/.test(normalizedRestaurantId)) {
+        return { error: 'Restaurant ID is invalid' };
+      }
+
+      const restaurantId = Number(normalizedRestaurantId);
+      if (!Number.isSafeInteger(restaurantId)) {
+        return { error: 'Restaurant ID is invalid' };
+      }
+
+      const availableRestaurant = await db
+        .prepare(`
+          SELECT r.id
+          FROM restaurants r
+          WHERE r.id = ?
+            AND NOT EXISTS (
+              SELECT 1
+              FROM poll_excluded_restaurants per
+              WHERE per.poll_id = ? AND per.restaurant_id = r.id
+            )
+        `)
+        .bind(restaurantId, activePoll.id)
+        .first() as { id: number } | null;
+
+      if (!availableRestaurant) {
+        return { error: 'Restaurant is not available in the active poll' };
       }
 
       const existingVote = await db
@@ -532,7 +575,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .bind(activePoll.id, user.id)
         .first();
 
-      await voteForRestaurant(db, activePoll.id, parseInt(restaurantId as string), user.id);
+      await voteForRestaurant(db, activePoll.id, restaurantId, user.id);
 
       await logActivity({
         db,
@@ -737,19 +780,6 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
     formData.append('_action', 'vote_date');
     formData.append('suggestion_id', suggestionId.toString());
     formData.append('remove', remove ? 'true' : 'false');
-    pollFetcher.submit(formData, { method: 'post' });
-  }
-
-  function handlePollRestaurantVote(suggestionId: number) {
-    const formData = new FormData();
-    formData.append('_action', 'vote_restaurant');
-    formData.append('suggestion_id', suggestionId.toString());
-    pollFetcher.submit(formData, { method: 'post' });
-  }
-
-  function handlePollRestaurantUnvote() {
-    const formData = new FormData();
-    formData.append('_action', 'unvote_restaurant');
     pollFetcher.submit(formData, { method: 'post' });
   }
 
@@ -983,12 +1013,14 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
                 <p className="text-sm text-muted-foreground mb-4">
                   Pick a restaurant from the list and submit your vote.
                 </p>
-                <RestaurantVotePicker
-                  key={restaurantSuggestions.find((suggestion) => suggestion.user_has_voted > 0)?.id ?? 'no-vote'}
-                  suggestions={restaurantSuggestions}
-                  onVote={handlePollRestaurantVote}
-                  onUnvote={handlePollRestaurantUnvote}
-                />
+                <pollFetcher.Form method="post">
+                  <input type="hidden" name="_action" value="vote_restaurant" />
+                  <RestaurantVotePicker
+                    key={restaurantSuggestions.find((suggestion) => suggestion.user_has_voted > 0)?.id ?? 'no-vote'}
+                    suggestions={restaurantSuggestions}
+                    isSubmitting={pollFetcher.state !== 'idle'}
+                  />
+                </pollFetcher.Form>
               </div>
 
               <div>

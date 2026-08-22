@@ -148,16 +148,13 @@ export async function voteForRestaurant(
   restaurantId: number,
   userId: number
 ): Promise<void> {
-  // Delete any existing vote by this user in this poll
-  await db
-    .prepare('DELETE FROM restaurant_votes WHERE poll_id = ? AND user_id = ?')
-    .bind(pollId, userId)
-    .run();
-
-  // Insert new vote
   await db
     .prepare(
-      'INSERT INTO restaurant_votes (poll_id, restaurant_id, user_id) VALUES (?, ?, ?)'
+      `INSERT INTO restaurant_votes (poll_id, restaurant_id, user_id)
+       VALUES (?, ?, ?)
+       ON CONFLICT(poll_id, user_id) DO UPDATE SET
+         restaurant_id = excluded.restaurant_id,
+         created_at = CURRENT_TIMESTAMP`
     )
     .bind(pollId, restaurantId, userId)
     .run();

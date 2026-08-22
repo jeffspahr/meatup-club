@@ -23,6 +23,15 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /\.no-js\.spec\.ts/,
+    },
+    {
+      name: "webkit-iphone-no-js",
+      testMatch: /poll-voting\.no-js\.spec\.ts/,
+      use: {
+        ...devices["iPhone 17"],
+        javaScriptEnabled: false,
+      },
     },
   ],
   webServer: {

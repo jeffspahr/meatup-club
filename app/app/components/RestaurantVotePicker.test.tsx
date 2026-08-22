@@ -8,16 +8,9 @@ const suggestions = [
 ];
 
 describe("RestaurantVotePicker", () => {
-  it("preserves a draft selection across refreshes until the persisted vote changes", async () => {
-    const onVote = vi.fn();
-    const onUnvote = vi.fn();
+  it("preserves a draft selection across refreshes until the persisted vote changes", () => {
     const { rerender } = render(
-      <RestaurantVotePicker
-        key="1"
-        suggestions={suggestions}
-        onVote={onVote}
-        onUnvote={onUnvote}
-      />
+      <RestaurantVotePicker key="1" suggestions={suggestions} />
     );
 
     const select = screen.getByRole("combobox", { name: "Your vote" });
@@ -30,8 +23,6 @@ describe("RestaurantVotePicker", () => {
       <RestaurantVotePicker
         key="1"
         suggestions={suggestions.map((suggestion) => ({ ...suggestion }))}
-        onVote={onVote}
-        onUnvote={onUnvote}
       />
     );
     expect(select).toHaveValue("2");
@@ -43,12 +34,42 @@ describe("RestaurantVotePicker", () => {
           ...suggestion,
           user_has_voted: suggestion.id === 2 ? 1 : 0,
         }))}
-        onVote={onVote}
-        onUnvote={onUnvote}
       />
     );
 
     expect(screen.getByRole("combobox", { name: "Your vote" })).toHaveValue("2");
-    expect(screen.getByRole("button", { name: "Submit Vote" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Vote" })).toBeEnabled();
+  });
+
+  it("submits the selected restaurant through native form fields", () => {
+    const onSubmit = vi.fn((event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      expect(formData.get("_action")).toBe("vote_restaurant");
+      expect(formData.get("suggestion_id")).toBe("2");
+    });
+
+    render(
+      <form onSubmit={onSubmit}>
+        <input type="hidden" name="_action" value="vote_restaurant" />
+        <RestaurantVotePicker suggestions={suggestions} />
+      </form>
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Your vote" }), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Vote" }));
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the native submit available until an enhanced request is pending", () => {
+    const { rerender } = render(<RestaurantVotePicker suggestions={suggestions} />);
+
+    expect(screen.getByRole("button", { name: "Save Vote" })).toBeEnabled();
+
+    rerender(<RestaurantVotePicker suggestions={suggestions} isSubmitting />);
+    expect(screen.getByRole("button", { name: "Saving Vote…" })).toBeDisabled();
   });
 });
