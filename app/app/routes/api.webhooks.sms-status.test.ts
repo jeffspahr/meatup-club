@@ -65,6 +65,18 @@ describe("api.webhooks.sms-status", () => {
     expect(recordSmsDeliveryStatus).not.toHaveBeenCalled();
   });
 
+  it("rejects non-form callback bodies without throwing", async () => {
+    const request = new Request("https://meatup.club/api/webhooks/sms-status", {
+      method: "POST",
+    });
+
+    const response = await action(createArgs(request) as never);
+
+    expect(response.status).toBe(400);
+    expect(verifyTwilioSignature).not.toHaveBeenCalled();
+    expect(recordSmsDeliveryStatus).not.toHaveBeenCalled();
+  });
+
   it("records a valid delivery callback", async () => {
     const args = createArgs(createRequest());
 

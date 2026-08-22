@@ -9,7 +9,12 @@ const DELIVERY_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f
 const MESSAGE_SID_PATTERN = /^SM[a-fA-F0-9]{32}$/;
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return new Response("Invalid callback payload", { status: 400 });
+  }
   const params = new URLSearchParams();
   for (const [key, value] of formData.entries()) {
     if (typeof value === "string") {
