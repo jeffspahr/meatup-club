@@ -31,9 +31,12 @@ import { EventRestaurantFields } from "../components/EventRestaurantFields";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
 import {
+  maybeCheckTwilioProviderHealth,
   sendAdhocSmsReminder,
   type SmsDeliveryStatus,
   type SmsEvent,
+  type SmsProviderHealth,
+  type SmsProviderHealthStatus,
   type SmsRecipientScope,
 } from "../lib/sms.server";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
@@ -176,6 +179,71 @@ function getSmsDeliveryBadge(status: SmsDeliveryStatus): {
   }
 }
 
+function getSmsProviderHealthDisplay(status: SmsProviderHealthStatus): {
+  label: string;
+  description: string;
+  variant: "success" | "danger" | "warning";
+} {
+  switch (status) {
+    case "healthy":
+      return {
+        label: "Healthy",
+        description: "Twilio authentication succeeded and the account is active.",
+        variant: "success",
+      };
+    case "misconfigured":
+      return {
+        label: "Configuration problem",
+        description: "One or more Twilio Worker bindings are missing or invalid.",
+        variant: "danger",
+      };
+    case "authentication_failed":
+      return {
+        label: "Authentication failed",
+        description: "Twilio rejected the configured account credentials.",
+        variant: "danger",
+      };
+    case "account_suspended":
+      return {
+        label: "Account suspended",
+        description: "Twilio reports that the account is suspended.",
+        variant: "danger",
+      };
+    case "account_closed":
+      return {
+        label: "Account closed",
+        description: "Twilio reports that the account is closed.",
+        variant: "danger",
+      };
+    case "provider_error":
+    default:
+      return {
+        label: "Check failed",
+        description: "The application could not confirm Twilio account health.",
+        variant: "warning",
+      };
+  }
+}
+
+function formatSmsHealthTimestamp(value: string, timeZone: string): string {
+  const normalizedValue = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+    ? `${value.replace(" ", "T")}Z`
+    : value;
+  const date = new Date(normalizedValue);
+  if (!Number.isFinite(date.getTime())) {
+    return "Unknown";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
   const db = context.cloudflare.env.DB;
@@ -202,6 +270,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     deliveryHistory,
     voteLeaders,
     smsDeliveriesResult,
+    smsProviderHealth,
   ] = await Promise.all([
     db
       .prepare(`
@@ -250,12 +319,28 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         LIMIT 250
       `)
       .all(),
+    maybeCheckTwilioProviderHealth({
+      db,
+      env: context.cloudflare.env,
+      minimumIntervalMs: 6 * 60 * 60 * 1000,
+    }).catch((error): SmsProviderHealth => {
+      logErrorEvent("twilio_health_check_failed", error);
+      return {
+        status: "provider_error",
+        errorCode: "HEALTH_CHECK_FAILED",
+        checkedAt: new Date().toISOString(),
+        lastHealthyAt: null,
+      };
+    }),
   ]);
 
   const smsMembers = (smsMembersResult.results || []) as unknown as SmsMemberRow[];
   const rsvpRows = (rsvpRowsResult.results || []) as unknown as RsvpLookupRow[];
   const activeMembers = (activeMembersResult.results || []) as unknown as ActiveMemberRow[];
   const smsDeliveries = (smsDeliveriesResult.results || []) as unknown as SmsDeliveryRow[];
+  const lastSuccessfulSmsDeliveryAt = smsDeliveries.find(
+    (delivery) => delivery.status === "delivered" || delivery.status === "read"
+  )?.updated_at || null;
   const smsDeliveriesByEventId: Record<number, SmsDeliveryRow[]> = {};
   for (const delivery of smsDeliveries) {
     (smsDeliveriesByEventId[delivery.event_id] ||= []).push(delivery);
@@ -311,6 +396,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     smsMembers,
     eventMembersById,
     smsDeliveriesByEventId,
+    smsProviderHealth,
+    appTimeZone,
+    lastSuccessfulSmsDeliveryAt,
   };
 }
 
@@ -805,7 +893,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Select a specific recipient' };
     }
 
-    const sendPromise = sendAdhocSmsReminder({
+    const result = await sendAdhocSmsReminder({
       db,
       env: context.cloudflare.env,
       event: event as SmsEvent,
@@ -813,18 +901,13 @@ export async function action({ request, context }: Route.ActionArgs) {
       recipientScope: recipientScope as SmsRecipientScope,
       recipientUserId,
     });
-
-    if (context.cloudflare.ctx?.waitUntil) {
-      context.cloudflare.ctx.waitUntil(sendPromise);
-      return { success: 'SMS reminder sending in the background.' };
-    }
-
-    const result = await sendPromise;
     if (result.errors.length > 0) {
-      return { error: `Some SMS messages failed: ${result.errors[0]}` };
+      const acceptedSummary = result.sent > 0 ? ` Twilio accepted ${result.sent}.` : '';
+      return { error: `SMS send failed.${acceptedSummary} ${result.errors[0]}` };
     }
 
-    return { success: `Sent ${result.sent} SMS reminders.` };
+    const reminderLabel = result.sent === 1 ? 'reminder' : 'reminders';
+    return { success: `Twilio accepted ${result.sent} SMS ${reminderLabel}.` };
   }
 
   return { error: 'Invalid action' };
@@ -838,7 +921,11 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
     smsMembers,
     eventMembersById,
     smsDeliveriesByEventId,
+    smsProviderHealth,
+    appTimeZone,
+    lastSuccessfulSmsDeliveryAt,
   } = loaderData;
+  const smsProviderDisplay = getSmsProviderHealthDisplay(smsProviderHealth.status);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [smsScopeByEvent, setSmsScopeByEvent] = useState<Record<number, string>>({});
   const [createData, setCreateData] = useState({
@@ -983,6 +1070,44 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
           {actionData.success}
         </Alert>
       )}
+
+      <Card className="mb-6 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">SMS provider</h2>
+              <Badge variant={smsProviderDisplay.variant}>{smsProviderDisplay.label}</Badge>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {smsProviderDisplay.description}
+            </p>
+          </div>
+          <div className="text-left text-xs text-muted-foreground sm:text-right">
+            <p>
+              Last checked{" "}
+              <time dateTime={smsProviderHealth.checkedAt}>
+                {formatSmsHealthTimestamp(smsProviderHealth.checkedAt, appTimeZone)}
+              </time>
+            </p>
+            {smsProviderHealth.lastHealthyAt ? (
+              <p className="mt-1">
+                Last healthy{" "}
+                <time dateTime={smsProviderHealth.lastHealthyAt}>
+                  {formatSmsHealthTimestamp(smsProviderHealth.lastHealthyAt, appTimeZone)}
+                </time>
+              </p>
+            ) : null}
+            {lastSuccessfulSmsDeliveryAt ? (
+              <p className="mt-1">
+                Last delivery{" "}
+                <time dateTime={lastSuccessfulSmsDeliveryAt}>
+                  {formatSmsHealthTimestamp(lastSuccessfulSmsDeliveryAt, appTimeZone)}
+                </time>
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </Card>
 
       {/* Vote Winners Summary */}
       <VoteLeadersCard

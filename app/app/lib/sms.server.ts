@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { getAppTimeZone, getEventDateTimeUtc } from "./dateUtils";
 import type { D1Database } from "./db.server";
-import { logErrorEvent, logWarningEvent } from "./observability.server";
+import { logErrorEvent } from "./observability.server";
 
 type SmsEnv = {
   TWILIO_ACCOUNT_SID?: string;
@@ -51,6 +51,32 @@ export type SmsSendResult =
   | { success: true; messageSid: string; status: SmsDeliveryStatus }
   | { success: false; error: string; errorCode?: string };
 
+export type SmsProviderHealthStatus =
+  | "healthy"
+  | "misconfigured"
+  | "authentication_failed"
+  | "account_suspended"
+  | "account_closed"
+  | "provider_error";
+
+export type SmsProviderHealth = {
+  status: SmsProviderHealthStatus;
+  errorCode: string | null;
+  checkedAt: string;
+  lastHealthyAt: string | null;
+};
+
+type TwilioBindingName =
+  | "TWILIO_ACCOUNT_SID"
+  | "TWILIO_AUTH_TOKEN"
+  | "TWILIO_FROM_NUMBER";
+
+export type TwilioConfigurationStatus = {
+  valid: boolean;
+  missingBindings: TwilioBindingName[];
+  invalidBindings: TwilioBindingName[];
+};
+
 const SMS_STATUS_RANK: Record<SmsDeliveryStatus, number> = {
   creating: 0,
   accepted: 10,
@@ -66,6 +92,35 @@ const SMS_STATUS_RANK: Record<SmsDeliveryStatus, number> = {
 };
 
 const TWILIO_MESSAGE_SID_PATTERN = /^SM[a-fA-F0-9]{32}$/;
+const TWILIO_ACCOUNT_SID_PATTERN = /^AC[a-fA-F0-9]{32}$/;
+const E164_PHONE_NUMBER_PATTERN = /^\+[1-9]\d{7,14}$/;
+const TWILIO_HEALTHY_ACCOUNT_STATUS = "active";
+const DEFAULT_PROVIDER_HEALTH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+export function getTwilioConfigurationStatus(env: SmsEnv): TwilioConfigurationStatus {
+  const values: Record<TwilioBindingName, string> = {
+    TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID?.trim() || "",
+    TWILIO_AUTH_TOKEN: env.TWILIO_AUTH_TOKEN?.trim() || "",
+    TWILIO_FROM_NUMBER: env.TWILIO_FROM_NUMBER?.trim() || "",
+  };
+  const missingBindings = (Object.keys(values) as TwilioBindingName[]).filter(
+    (binding) => !values[binding]
+  );
+  const invalidBindings: TwilioBindingName[] = [];
+
+  if (values.TWILIO_ACCOUNT_SID && !TWILIO_ACCOUNT_SID_PATTERN.test(values.TWILIO_ACCOUNT_SID)) {
+    invalidBindings.push("TWILIO_ACCOUNT_SID");
+  }
+  if (values.TWILIO_FROM_NUMBER && !E164_PHONE_NUMBER_PATTERN.test(values.TWILIO_FROM_NUMBER)) {
+    invalidBindings.push("TWILIO_FROM_NUMBER");
+  }
+
+  return {
+    valid: missingBindings.length === 0 && invalidBindings.length === 0,
+    missingBindings,
+    invalidBindings,
+  };
+}
 
 export function normalizePhoneNumber(input: string): string | null {
   if (!input) {
@@ -193,13 +248,22 @@ export async function sendSms({
   env: SmsEnv;
   statusCallbackUrl?: string;
 }): Promise<SmsSendResult> {
-  const accountSid = env.TWILIO_ACCOUNT_SID;
-  const authToken = env.TWILIO_AUTH_TOKEN;
-  const fromNumber = env.TWILIO_FROM_NUMBER;
-
-  if (!accountSid || !authToken || !fromNumber) {
-    return { success: false, error: "Missing Twilio credentials." };
+  const configuration = getTwilioConfigurationStatus(env);
+  if (!configuration.valid) {
+    const missing = configuration.missingBindings.length > 0;
+    const bindings = missing
+      ? configuration.missingBindings
+      : configuration.invalidBindings;
+    return {
+      success: false,
+      error: `Twilio configuration ${missing ? "is missing" : "is invalid"}: ${bindings.join(", ")}.`,
+      errorCode: missing ? "CONFIG_MISSING" : "CONFIG_INVALID",
+    };
   }
+
+  const accountSid = env.TWILIO_ACCOUNT_SID!.trim();
+  const authToken = env.TWILIO_AUTH_TOKEN!.trim();
+  const fromNumber = env.TWILIO_FROM_NUMBER!.trim();
 
   const params = new URLSearchParams();
   params.set("To", to);
@@ -210,17 +274,26 @@ export async function sendSms({
   }
 
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-    }
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
+      }
+    );
+  } catch {
+    return {
+      success: false,
+      error: "Twilio could not be reached.",
+      errorCode: "NETWORK_ERROR",
+    };
+  }
 
   const responseText = await response.text();
   const payload = parseTwilioResponse(responseText);
@@ -238,6 +311,184 @@ export async function sendSms({
   }
 
   return { success: true, messageSid, status };
+}
+
+export async function checkTwilioProviderHealth({
+  env,
+  now = new Date(),
+}: {
+  env: SmsEnv;
+  now?: Date;
+}): Promise<SmsProviderHealth> {
+  const checkedAt = now.toISOString();
+  const configuration = getTwilioConfigurationStatus(env);
+  if (!configuration.valid) {
+    const errorCode = configuration.missingBindings.length > 0
+      ? "CONFIG_MISSING"
+      : "CONFIG_INVALID";
+    logTwilioConfigurationError(configuration);
+    return {
+      status: "misconfigured",
+      errorCode,
+      checkedAt,
+      lastHealthyAt: null,
+    };
+  }
+
+  const accountSid = env.TWILIO_ACCOUNT_SID!.trim();
+  const authToken = env.TWILIO_AUTH_TOKEN!.trim();
+  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}.json`,
+      {
+        headers: {
+          Authorization: `Basic ${auth}`,
+          Accept: "application/json",
+        },
+      }
+    );
+  } catch {
+    const health = createUnhealthyProviderResult("provider_error", "NETWORK_ERROR", checkedAt);
+    logTwilioProviderHealthError(health);
+    return health;
+  }
+
+  const payload = parseTwilioResponse(await response.text());
+  if (!response.ok) {
+    const status = response.status === 401 || response.status === 403
+      ? "authentication_failed"
+      : "provider_error";
+    const health = createUnhealthyProviderResult(
+      status,
+      asOptionalString(payload.code) || `HTTP_${response.status}`,
+      checkedAt
+    );
+    logTwilioProviderHealthError(health);
+    return health;
+  }
+
+  const accountStatus = asOptionalString(payload.status)?.toLowerCase();
+  if (accountStatus === TWILIO_HEALTHY_ACCOUNT_STATUS) {
+    return {
+      status: "healthy",
+      errorCode: null,
+      checkedAt,
+      lastHealthyAt: checkedAt,
+    };
+  }
+
+  const status: SmsProviderHealthStatus = accountStatus === "suspended"
+    ? "account_suspended"
+    : accountStatus === "closed"
+      ? "account_closed"
+      : "provider_error";
+  const health = createUnhealthyProviderResult(
+    status,
+    accountStatus ? `ACCOUNT_${accountStatus.toUpperCase()}` : "ACCOUNT_STATUS_MISSING",
+    checkedAt
+  );
+  logTwilioProviderHealthError(health);
+  return health;
+}
+
+export async function getSmsProviderHealth(db: D1Database): Promise<SmsProviderHealth | null> {
+  const row = await db
+    .prepare(`
+      SELECT status, error_code, checked_at, last_healthy_at
+      FROM sms_provider_health
+      WHERE provider = 'twilio'
+    `)
+    .first() as
+    | {
+        status: SmsProviderHealthStatus;
+        error_code: string | null;
+        checked_at: string;
+        last_healthy_at: string | null;
+      }
+    | null;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    status: row.status,
+    errorCode: row.error_code,
+    checkedAt: row.checked_at,
+    lastHealthyAt: row.last_healthy_at,
+  };
+}
+
+export async function recordSmsProviderHealth({
+  db,
+  health,
+}: {
+  db: D1Database;
+  health: SmsProviderHealth;
+}): Promise<void> {
+  await db
+    .prepare(`
+      INSERT INTO sms_provider_health (
+        provider, status, error_code, checked_at, last_healthy_at
+      ) VALUES ('twilio', ?, ?, ?, ?)
+      ON CONFLICT(provider) DO UPDATE SET
+        status = excluded.status,
+        error_code = excluded.error_code,
+        checked_at = excluded.checked_at,
+        last_healthy_at = CASE
+          WHEN excluded.status = 'healthy' THEN excluded.checked_at
+          ELSE sms_provider_health.last_healthy_at
+        END
+    `)
+    .bind(
+      health.status,
+      health.errorCode,
+      health.checkedAt,
+      health.status === "healthy" ? health.checkedAt : health.lastHealthyAt
+    )
+    .run();
+}
+
+export function isSmsProviderHealthFresh(
+  health: SmsProviderHealth | null,
+  now = new Date(),
+  maximumAgeMs = DEFAULT_PROVIDER_HEALTH_INTERVAL_MS
+): boolean {
+  if (!health) {
+    return false;
+  }
+
+  const checkedAt = new Date(health.checkedAt).getTime();
+  return Number.isFinite(checkedAt) && now.getTime() - checkedAt <= maximumAgeMs;
+}
+
+export async function maybeCheckTwilioProviderHealth({
+  db,
+  env,
+  now = new Date(),
+  minimumIntervalMs = DEFAULT_PROVIDER_HEALTH_INTERVAL_MS,
+}: {
+  db: D1Database;
+  env: SmsEnv;
+  now?: Date;
+  minimumIntervalMs?: number;
+}): Promise<SmsProviderHealth> {
+  const stored = await getSmsProviderHealth(db);
+  if (isSmsProviderHealthFresh(stored, now, minimumIntervalMs)) {
+    return stored!;
+  }
+
+  const checked = await checkTwilioProviderHealth({ env, now });
+  await recordSmsProviderHealth({ db, health: checked });
+  return {
+    ...checked,
+    lastHealthyAt: checked.status === "healthy"
+      ? checked.checkedAt
+      : stored?.lastHealthyAt || null,
+  };
 }
 
 export async function recordSmsDeliveryStatus({
@@ -293,9 +544,9 @@ export async function sendScheduledSmsReminders({
   env: SmsEnv;
   now?: Date;
 }): Promise<void> {
-  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_FROM_NUMBER) {
-    logWarningEvent("twilio_credentials_missing");
-    return;
+  const configuration = getTwilioConfigurationStatus(env);
+  if (!configuration.valid) {
+    logTwilioConfigurationError(configuration);
   }
 
   const timeZone = getAppTimeZone(env.APP_TIMEZONE);
@@ -389,10 +640,6 @@ export async function sendAdhocSmsReminder({
   recipientScope?: SmsRecipientScope;
   recipientUserId?: number | null;
 }): Promise<{ sent: number; errors: string[] }> {
-  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_FROM_NUMBER) {
-    return { sent: 0, errors: ["Twilio credentials are missing."] };
-  }
-
   const timeZone = getAppTimeZone(env.APP_TIMEZONE);
   const recipientQuery = buildRecipientScopeQuery(recipientScope, recipientUserId);
   const recipients = await db
@@ -408,6 +655,11 @@ export async function sendAdhocSmsReminder({
     `)
     .bind(event.id, ...recipientQuery.bindings)
     .all();
+
+  const configuration = getTwilioConfigurationStatus(env);
+  if (!configuration.valid) {
+    logTwilioConfigurationError(configuration);
+  }
 
   const reminderType = `adhoc:${crypto.randomUUID()}`;
   let sent = 0;
@@ -598,6 +850,35 @@ function asOptionalString(value: unknown): string | undefined {
     return String(value);
   }
   return undefined;
+}
+
+function createUnhealthyProviderResult(
+  status: Exclude<SmsProviderHealthStatus, "healthy">,
+  errorCode: string,
+  checkedAt: string
+): SmsProviderHealth {
+  return {
+    status,
+    errorCode,
+    checkedAt,
+    lastHealthyAt: null,
+  };
+}
+
+function logTwilioConfigurationError(configuration: TwilioConfigurationStatus): void {
+  console.error({
+    event: "twilio_configuration_error",
+    missingBindings: configuration.missingBindings,
+    invalidBindings: configuration.invalidBindings,
+  });
+}
+
+function logTwilioProviderHealthError(health: SmsProviderHealth): void {
+  console.error({
+    event: "twilio_provider_unhealthy",
+    status: health.status,
+    errorCode: health.errorCode,
+  });
 }
 
 function buildRecipientScopeQuery(

@@ -1281,3 +1281,46 @@ Resolve GHSA-4x5r-pxfx-6jf8 / CVE-2026-49356 by replacing the vulnerable transit
 - `fnm exec --using=v22.22.0 npm run typecheck` passed.
 - `fnm exec --using=v22.22.0 npm run build` passed with the existing Vite dynamic-import warnings.
 - `fnm exec --using=v22.22.0 npm audit --json` reported only the unrelated `valibot` and `yaml` advisories; GHSA-4x5r-pxfx-6jf8 is absent.
+# SMS Reliability Hardening (2026-08-22)
+
+### Goal
+Prevent SMS configuration failures from appearing successful and surface Twilio provider health before reminders are silently skipped.
+
+### Acceptance Criteria
+- [x] Ad-hoc sends await the provider result and return the actual accepted/failed count.
+- [x] Every eligible recipient gets an `sms_deliveries` attempt, including configuration and provider failures.
+- [x] Twilio credentials are validated without logging secret values, and account health is checked periodically.
+- [x] Admins can see the latest SMS provider health state and last successful check.
+- [x] The independent production monitor detects stale or unhealthy SMS provider state.
+- [x] Focused tests, lint, typecheck, D1 verification, and production build pass.
+
+### Active Tasks
+- [x] Inspect the current send, tracking, scheduler, observability, and monitoring paths.
+- [x] Add provider-health persistence and runtime validation.
+- [x] Make ad-hoc and scheduled failures durable and observable.
+- [x] Add the admin health panel and production health endpoint.
+- [x] Extend production monitoring and regression coverage.
+- [x] Run verification and record results.
+
+### Working Notes
+- Work is isolated in `/tmp/meatup-sms-reliability` from `origin/main`; the primary checkout has unrelated documentation and Terraform changes.
+- Cloudflare secret listings prove binding names only. Runtime Twilio authentication is the authoritative health signal.
+- This private, low-volume application should await ad-hoc Twilio sends instead of returning an untracked background-success response.
+
+### Results
+- Ad-hoc and scheduled reminders now create delivery attempts before configuration/provider validation and retain stable failure codes.
+- Twilio account authentication and account status are checked at most every six hours from admin/health traffic and daily from the Worker scheduler.
+- The admin event page shows provider health, last health check, last healthy check, and last successful delivery.
+- Production smoke tests and the independent GitHub monitor now fail and open an incident when SMS provider health is unavailable.
+
+### Verification
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test:run` (616 passed)
+- `npm run test:coverage` (79.45% statements, 70.44% branches, 70.62% functions, 79.91% lines)
+- `npm run test:d1`
+- `npm run build`
+- `npm run test:e2e` (5 passed)
+- `git diff --check`
+- Production D1 Time Travel bookmark before migration: `00003f0b-00000000-000050cf-36f95f44e7a34e59f86f3d48af8b08df`
+- Applied and verified `20260822_add_sms_provider_health.sql` against remote `meatup-club-db`.
