@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button, EmptyState } from "./ui";
 
 interface RestaurantVoteOption {
@@ -10,15 +9,16 @@ interface RestaurantVoteOption {
 
 interface RestaurantVotePickerProps {
   suggestions: RestaurantVoteOption[];
-  onVote: (suggestionId: number) => void;
-  onUnvote: () => void;
+  isSubmitting?: boolean;
 }
 
-export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: RestaurantVotePickerProps) {
+export function RestaurantVotePicker({
+  suggestions,
+  isSubmitting = false,
+}: RestaurantVotePickerProps) {
   const sorted = [...suggestions].sort((a, b) => a.name.localeCompare(b.name));
   const currentVote = sorted.find((s) => s.user_has_voted > 0) ?? null;
   const currentVoteId = currentVote ? String(currentVote.id) : '';
-  const [selectedId, setSelectedId] = useState<string>(currentVoteId);
 
   if (sorted.length === 0) {
     return (
@@ -29,27 +29,16 @@ export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: Restaura
     );
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!selectedId) {
-      onUnvote();
-      return;
-    }
-    onVote(parseInt(selectedId, 10));
-  }
-
-  const isUnchanged = selectedId === currentVoteId;
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <div className="space-y-3">
       <label htmlFor="restaurant-vote" className="block text-sm font-medium text-foreground">
         Your vote
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <select
           id="restaurant-vote"
-          value={selectedId}
-          onChange={(e) => setSelectedId(e.target.value)}
+          name="suggestion_id"
+          defaultValue={currentVoteId}
           className="flex-1 min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
         >
           <option value="">— No vote —</option>
@@ -59,8 +48,8 @@ export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: Restaura
             </option>
           ))}
         </select>
-        <Button type="submit" disabled={isUnchanged}>
-          {selectedId ? 'Submit Vote' : 'Remove Vote'}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving Vote…' : 'Save Vote'}
         </Button>
       </div>
       {currentVote && (
@@ -68,6 +57,6 @@ export function RestaurantVotePicker({ suggestions, onVote, onUnvote }: Restaura
           Current vote: <span className="font-medium text-foreground">{currentVote.name}</span>
         </p>
       )}
-    </form>
+    </div>
   );
 }

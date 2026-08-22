@@ -97,7 +97,10 @@ describe("dashboard._index UI", () => {
       ],
       dateSuggestions: [],
       dateVotes: [],
-      restaurantSuggestions: [],
+      restaurantSuggestions: [
+        { id: 1, name: "Prime Steakhouse", vote_count: 2, user_has_voted: 1 },
+        { id: 2, name: "Oak Room", vote_count: 2, user_has_voted: 0 },
+      ],
       previousPolls: [],
       upcomingEvents: [
         {
@@ -132,6 +135,12 @@ describe("dashboard._index UI", () => {
     expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Dates" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Restaurants" })).toBeInTheDocument();
+    const restaurantVote = screen.getByRole("combobox", { name: "Your vote" });
+    expect(restaurantVote).toHaveAttribute("name", "suggestion_id");
+    expect(
+      restaurantVote.closest("form")?.querySelector('input[name="_action"]')
+    ).toHaveValue("vote_restaurant");
+    expect(screen.getByRole("button", { name: "Save Vote" })).toHaveAttribute("type", "submit");
     expect(screen.getByRole("heading", { name: "Upcoming Events" })).toBeInTheDocument();
     expect(screen.getAllByText("RSVP needed").length).toBeGreaterThan(0);
 
