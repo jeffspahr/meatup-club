@@ -974,7 +974,7 @@ Harden the production SMS reminder flow before repeating a live Twilio test.
 - [x] Reminder copy includes HELP instructions and links directly to the current dashboard route.
 - [x] Scheduled reminders tolerate a delayed 15-minute cron invocation without duplicate sends.
 - [x] Regression tests cover opt-out/re-opt-in behavior, reminder copy/link changes, and delayed scheduled execution.
-- [ ] `npm run typecheck`, `npm run test:run`, and `npm run build` pass. (`typecheck` and `build` pass; full tests retain two confirmed `origin/main` baseline failures.)
+- [x] `npm run typecheck`, `npm run test:run`, and `npm run build` pass.
 
 ### Active Tasks
 - [x] Create an isolated branch/worktree from current `origin/main`.
@@ -1003,6 +1003,7 @@ Harden the production SMS reminder flow before repeating a live Twilio test.
   - `npm run build` passed.
   - Full suite: `561` tests passed; two `dashboard.admin.polls.security.test.ts` tests failed identically on untouched `origin/main`, confirming a pre-existing baseline failure.
   - PR CI stops before tests at `npm ci` because current `origin/main` combines Wrangler's Workers Types v5 peer requirement with React Router Cloudflare's Workers Types v4 peer requirement; dependency alignment is a separate baseline fix.
+  - After merging current `origin/main` (PR #257), Node 22/npm 10 clean install passed, all `565` tests passed, coverage passed, typecheck passed, and the production build passed.
 
 ## Security - Dependabot Alert #37 (2026-08-22)
 
