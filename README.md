@@ -34,4 +34,6 @@ Private web app for organizing quarterly steakhouse meetups.
 ## Notes
 
 - Production deploys run from GitHub Actions on pushes to `main`.
+- Production inventory, rollback, backup, and incident procedures are in
+  [`docs/CLOUDFLARE_OPERATIONS.md`](docs/CLOUDFLARE_OPERATIONS.md).
 - Route manifest is defined in `/Users/jspahr/repo/meatup-club/app/app/routes.ts`.

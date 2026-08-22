@@ -11,6 +11,7 @@
     "deploy": "npm run verify && wrangler deploy",
     "lint": "eslint . --max-warnings 0",
     "preview": "npm run build && wrangler pages dev ./build/client",
+    "smoke:production": "node scripts/smoke-production.mjs",
     "typecheck": "react-router typegen && tsc",
     "cf-typegen": "wrangler types",
     "test": "vitest",

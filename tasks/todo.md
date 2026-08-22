@@ -1,5 +1,37 @@
 # Active Backlog (2026-02-23)
 
+## Cloudflare Operations and CI Follow-up (2026-08-22)
+
+### Goal
+Close the remaining high-value CI/operations gaps after removing Terraform: document the live Cloudflare footprint, verify production immediately after deploys, add an authenticated RSVP browser journey, and resolve or explicitly accept current dependency-audit findings.
+
+### Acceptance Criteria
+- [x] A read-only live inventory confirms the Worker, D1 database, queues, deployment, secret names, custom-domain behavior, and runtime configuration without exposing secret values.
+- [x] A concise operations runbook records ownership boundaries, inspection commands, deployment/rollback procedures, D1 backup guidance, and incident checks.
+- [x] The production deploy workflow runs a retrying smoke check against the apex site and `www` redirect after Wrangler succeeds.
+- [x] Playwright proves an authenticated member can change an RSVP and persistence survives a reload using only local D1 fixtures.
+- [x] Current npm audit findings are safely remediated or documented with their actual runtime exposure and upgrade path.
+- [x] `npm run verify`, workflow/config parsing, and `git diff --check` pass.
+
+### Active Tasks
+- [x] Capture the read-only Cloudflare inventory and operational ownership boundary.
+- [x] Add the runbook and production smoke script/workflow step.
+- [x] Add local-D1 RSVP fixtures and Playwright coverage.
+- [x] Triage and remediate the npm audit findings.
+- [x] Run full verification and publish the follow-up change.
+
+### Working Notes
+- Work is isolated on `codex/cloudflare-ops-rsvp` from current `origin/main` (`6500646`).
+- `app/wrangler.toml` remains the repository source of truth for Worker runtime configuration; account- and zone-level resources remain externally managed.
+- The two moderate advisories affected development-only transitive copies of `valibot` and `yaml`; lockfile-only updates clear both without changing direct dependencies.
+
+### Results
+- Added a dated live Cloudflare inventory and an operations runbook covering the repository/dashboard ownership boundary, inspection, deploy, emergency rollback, D1 backup, secret rotation, and incident checks.
+- Added a dependency-free, retrying production smoke command and made it the final step of successful Wrangler deployments.
+- Added an authenticated local-D1 Playwright RSVP journey that changes a response and proves persistence across reload.
+- Updated development-only transitive `valibot` and `yaml` lockfile entries; Node 24 `npm audit` reports zero vulnerabilities.
+- `npm run verify` passed: 75 Vitest files/583 tests, D1 schema and migration checks, production build, and five Chromium journeys. Workflow YAML parsing, Wrangler deployment dry run, and `git diff --check` also passed.
+
 ## Remove Abandoned Terraform (2026-08-22)
 
 ### Goal
@@ -10,7 +42,7 @@ Remove the unmaintained Terraform layer without changing or deleting live Cloudf
 - [x] Remove active Terraform references and obsolete ignore rules.
 - [x] Document the boundary between Wrangler-managed runtime configuration and account/zone resources managed outside the repository.
 - [x] Verify all workflow YAML, the full application gate, and a Wrangler deployment dry run.
-- [ ] Merge the removal and confirm the gated production deployment succeeds.
+- [x] Merge the removal and confirm the gated production deployment succeeds.
 
 ### Working Notes
 - The removed configuration had no remote state and was not authoritative for the live Cloudflare account.
@@ -23,6 +55,7 @@ Remove the unmaintained Terraform layer without changing or deleting live Cloudf
 - `npm run verify` passed: 73 Vitest files/570 tests, D1 schema and migration checks, production build, and four Chromium tests.
 - `npx wrangler deploy --dry-run` passed and assembled the Worker with the D1, queue, assets, runtime-variable, and cron configuration.
 - All repository-root workflow/config YAML parsed and `git diff --check` passed.
+- PR #266 merged as `a2e56bb`, Application CI passed, and the following gated Wrangler deployment completed successfully.
 
 ## SMS Completion (2026-08-22)
 
