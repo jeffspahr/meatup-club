@@ -977,6 +977,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
                   Pick a restaurant from the list and submit your vote.
                 </p>
                 <RestaurantVotePicker
+                  key={restaurantSuggestions.find((suggestion) => suggestion.user_has_voted > 0)?.id ?? 'no-vote'}
                   suggestions={restaurantSuggestions}
                   onVote={handlePollRestaurantVote}
                   onUnvote={handlePollRestaurantUnvote}

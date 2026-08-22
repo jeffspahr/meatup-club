@@ -33,16 +33,16 @@ Baseline captured on 2026-08-22 after the CI-roadmap tests were added, with all 
 
 - 73 Vitest files
 - 570 Vitest tests
-- 78.60% statements
-- 69.97% branches
-- 69.36% functions
-- 79.11% lines
+- 78.56% statements
+- 69.99% branches
+- 69.21% functions
+- 79.07% lines
 
 Area-level statement coverage:
 
-- `app/app/components`: 83.63%
+- `app/app/components`: 83.53%
 - `app/app/lib`: 74.71%
-- `app/app/routes`: 81.00%
+- `app/app/routes`: 80.96%
 
 Older 90%+ figures used imported-files-only instrumentation and are not comparable to this full-source baseline.
 

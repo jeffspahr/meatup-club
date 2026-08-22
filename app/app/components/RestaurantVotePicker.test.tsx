@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { RestaurantVotePicker } from "./RestaurantVotePicker";
 
@@ -13,6 +13,7 @@ describe("RestaurantVotePicker", () => {
     const onUnvote = vi.fn();
     const { rerender } = render(
       <RestaurantVotePicker
+        key="1"
         suggestions={suggestions}
         onVote={onVote}
         onUnvote={onUnvote}
@@ -27,6 +28,7 @@ describe("RestaurantVotePicker", () => {
 
     rerender(
       <RestaurantVotePicker
+        key="1"
         suggestions={suggestions.map((suggestion) => ({ ...suggestion }))}
         onVote={onVote}
         onUnvote={onUnvote}
@@ -36,6 +38,7 @@ describe("RestaurantVotePicker", () => {
 
     rerender(
       <RestaurantVotePicker
+        key="2"
         suggestions={suggestions.map((suggestion) => ({
           ...suggestion,
           user_has_voted: suggestion.id === 2 ? 1 : 0,
@@ -45,7 +48,7 @@ describe("RestaurantVotePicker", () => {
       />
     );
 
-    await waitFor(() => expect(select).toHaveValue("2"));
+    expect(screen.getByRole("combobox", { name: "Your vote" })).toHaveValue("2");
     expect(screen.getByRole("button", { name: "Submit Vote" })).toBeDisabled();
   });
 });
