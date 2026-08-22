@@ -13,7 +13,6 @@ Key technologies:
 - Cloudflare Workers, Cloudflare D1, Cloudflare Queues, and Wrangler.
 - Vite 7 with `@cloudflare/vite-plugin`.
 - Tailwind CSS 3.4.
-- Terraform for Cloudflare infrastructure.
 - Vitest, Testing Library, `happy-dom`, and V8 coverage.
 
 ## Project Structure
@@ -27,7 +26,7 @@ Key technologies:
 - `app/public/` contains static assets served by the app.
 - `schema.sql` defines the production-aligned D1 baseline schema.
 - `app/migrations/` contains only post-baseline forward migrations.
-- `terraform/` manages Cloudflare Pages/Workers, D1, queues, DNS, and related infrastructure.
+- `.github/workflows/` contains the required verification and gated Wrangler deployment workflows.
 
 ## Commands
 
@@ -216,12 +215,11 @@ Page-level layout decisions are centralized in `app/app/app.css`. Do not reintro
 
 ## Infrastructure and Deployment
 
-- Infrastructure is managed in `terraform/main.tf`.
 - The D1 database name is `meatup-club-db`.
-- `app/wrangler.toml` configures `APP_TIMEZONE=America/New_York`, `NODE_VERSION=20`, Cloudflare D1, email delivery queues, assets, and a 15-minute cron trigger.
+- `app/wrangler.toml` is the repository source of truth for the Worker name, runtime variables, D1 binding, email delivery queues, assets, and 15-minute cron trigger.
 - `npm run deploy` runs tests, builds, then deploys with Wrangler.
-- Production deployment may also happen through GitHub/main-branch automation; confirm the current workflow before changing release assumptions.
-- Pair infrastructure changes with corresponding updates in `terraform/` and runtime configuration.
+- Production deployment is gated on successful main-branch Application CI and deploys the exact verified SHA through Wrangler.
+- Account- and zone-level resources such as DNS records, Worker routes, redirects, and the D1 database instance are existing Cloudflare resources managed outside this repository. Confirm their live state before changing them.
 
 ## Commit and Pull Request Guidelines
 

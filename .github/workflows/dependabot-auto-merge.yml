@@ -24,7 +24,6 @@ jobs:
         # Auto-merge patch and minor updates
         # For GitHub Actions, also auto-merge major updates (major version tags are safe)
         if: |
-          steps.metadata.outputs.package-ecosystem != 'terraform' &&
           (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
            steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
            (steps.metadata.outputs.update-type == 'version-update:semver-major' &&
@@ -38,8 +37,7 @@ jobs:
         # For major updates (except GitHub Actions), just comment but don't auto-merge
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-major' &&
-          steps.metadata.outputs.package-ecosystem != 'github_actions' &&
-          steps.metadata.outputs.package-ecosystem != 'terraform'
+          steps.metadata.outputs.package-ecosystem != 'github_actions'
         run: |
           gh pr comment "$PR_URL" --body "⚠️ **Major version update detected!**
 

@@ -1,5 +1,29 @@
 # Active Backlog (2026-02-23)
 
+## Remove Abandoned Terraform (2026-08-22)
+
+### Goal
+Remove the unmaintained Terraform layer without changing or deleting live Cloudflare resources, and keep Wrangler as the repository deployment source of truth.
+
+### Acceptance Criteria
+- [x] Remove the Terraform configuration, lock/config examples, CI workflow, and Dependabot entry.
+- [x] Remove active Terraform references and obsolete ignore rules.
+- [x] Document the boundary between Wrangler-managed runtime configuration and account/zone resources managed outside the repository.
+- [x] Verify all workflow YAML, the full application gate, and a Wrangler deployment dry run.
+- [ ] Merge the removal and confirm the gated production deployment succeeds.
+
+### Working Notes
+- The removed configuration had no remote state and was not authoritative for the live Cloudflare account.
+- It contained stale NextAuth variables and omitted current queue resources configured in `app/wrangler.toml`.
+- Removing repository files does not issue any Cloudflare delete operation; existing D1, DNS, route, redirect, and HTTPS resources remain live.
+
+### Results
+- Removed the Terraform configuration directory, Terraform CI workflow, Dependabot ecosystem entry, obsolete auto-merge conditions, ignore rules, and active documentation references.
+- Documented `app/wrangler.toml` as the runtime source of truth and recorded that account/zone resources are managed outside the repository.
+- `npm run verify` passed: 73 Vitest files/570 tests, D1 schema and migration checks, production build, and four Chromium tests.
+- `npx wrangler deploy --dry-run` passed and assembled the Worker with the D1, queue, assets, runtime-variable, and cron configuration.
+- All repository-root workflow/config YAML parsed and `git diff --check` passed.
+
 ## CI/Test Roadmap Completion (2026-08-22)
 
 ### Goal

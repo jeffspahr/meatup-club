@@ -103,9 +103,7 @@ Pull requests and `main` run the required application workflow. It installs depe
 
 Production deployment is triggered only after the `Application CI` workflow succeeds for `main`; it checks out the exact verified SHA and deploys that commit. It never checks out or executes an untrusted pull-request head with deployment secrets.
 
-Terraform pull requests run formatting and validation without Cloudflare credentials. A manual environment-gated plan is available only to trusted maintainers; without a configured remote backend, treat that plan as advisory rather than authoritative state drift detection.
-
-A weekly stability workflow runs the Vitest suite twice with randomized file and test order. The emitted seed can reproduce order-dependent failures.
+A weekly stability workflow runs the Vitest suite three times with randomized file and test order. The emitted seed can reproduce order-dependent failures.
 
 ## Browser-Test Boundaries
 

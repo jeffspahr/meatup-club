@@ -31,17 +31,6 @@ updates:
       - "dependencies"
       - "automerge"
 
-  # Enable version updates for Terraform
-  - package-ecosystem: "terraform"
-    directory: "/terraform"
-    schedule:
-      interval: "daily"
-      time: "09:00"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "terraform"
-
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

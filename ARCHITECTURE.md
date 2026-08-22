@@ -53,28 +53,11 @@ Meatup.Club is a serverless web application built on Cloudflare's edge infrastru
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Infrastructure as Code
+## Cloudflare Configuration and Deployment
 
-All Cloudflare resources are managed via Terraform:
+`app/wrangler.toml` is the repository source of truth for Worker runtime configuration: the Worker name, static assets, D1 binding, email-delivery queues, runtime variables, and scheduled trigger. GitHub Actions builds and deploys the exact `main` commit that passed Application CI.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Terraform Configuration                     │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  terraform/                                                │ │
-│  │  ├── main.tf          (Cloudflare resources)              │ │
-│  │  ├── variables.tf     (Configuration variables)           │ │
-│  │  └── outputs.tf       (Resource identifiers)              │ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                  │
-│  Manages:                                                        │
-│  • DNS records (A/AAAA for meatup.club)                         │
-│  • Worker deployment                                             │
-│  • D1 database instance                                          │
-│  • Environment variables and secrets                             │
-│  • SSL/TLS certificates                                          │
-└─────────────────────────────────────────────────────────────────┘
-```
+Account- and zone-level resources—including the existing D1 database instance, DNS records, Worker routes, HTTPS setting, and canonical-host redirect—are managed directly in Cloudflare and are not lifecycle-managed by this repository. Removing repository configuration does not remove those live resources; inspect the Cloudflare account before making operational changes.
 
 ## Application Architecture
 
