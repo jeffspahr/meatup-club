@@ -963,6 +963,48 @@ Make `AGENTS.md` the authoritative repository instruction file by merging the cu
   - Disposable apply-check against fresh `origin/main` showed `AGENTS.md` and `tasks/todo.md` apply cleanly, while `CLAUDE.md` needs manual resolution because PR `#176` modified the file that this work converts to a symlink.
   - Final read-through of `AGENTS.md` completed for consistency.
 
+## SMS Reminder Hardening (2026-08-22)
+
+### Goal
+Harden the production SMS reminder flow before repeating a live Twilio test.
+
+### Acceptance Criteria
+- [x] Twilio Advanced Opt-Out webhook metadata is honored for STOP, START/UNSTOP, and HELP without conflicting with RSVP YES/NO commands.
+- [x] Application SMS consent stays synchronized when a member opts out or back in by text.
+- [x] Reminder copy includes HELP instructions and links directly to the current dashboard route.
+- [x] Scheduled reminders tolerate a delayed 15-minute cron invocation without duplicate sends.
+- [x] Regression tests cover opt-out/re-opt-in behavior, reminder copy/link changes, and delayed scheduled execution.
+- [x] `npm run typecheck`, `npm run test:run`, and `npm run build` pass.
+
+### Active Tasks
+- [x] Create an isolated branch/worktree from current `origin/main`.
+- [x] Review the current SMS helper, inbound webhook, scheduler, schema, and tests.
+- [x] Implement the smallest safe hardening changes.
+- [x] Add targeted regression coverage.
+- [x] Run full verification and record results.
+
+### Working Notes
+- Branch: `codex/sms-hardening`.
+- Isolated worktree: `/private/tmp/meatup-club-sms-hardening`.
+- The original checkout's dirty state is intentionally untouched.
+- Cloudflare's current Workers guidance and `@cloudflare/workers-types@5.20260822.1` were retrieved before implementation.
+- Twilio documents that Advanced Opt-Out sends `OptOutType=START|STOP|HELP` after applying the carrier action and recommends that applications not send a second reply.
+- Toll-free carrier blocking can only be fully undone with START or UNSTOP; YES remains reserved for Meatup RSVP behavior.
+
+### Results
+- Added START/UNSTOP parsing and synchronized `sms_opt_in` / `sms_opt_out_at` from Twilio Advanced Opt-Out webhooks.
+- Returned empty TwiML for provider-handled START, STOP, and HELP commands to avoid duplicate replies, while preserving YES/NO RSVP precedence.
+- Updated reminder copy with HELP instructions and the direct `/dashboard` URL.
+- Expanded scheduled reminder lookback from 15 to 30 minutes; existing D1 uniqueness checks continue to prevent duplicate sends.
+- Updated profile and public compliance guidance with toll-free START/UNSTOP re-enrollment instructions.
+- Verification performed:
+  - Targeted SMS/profile tests passed (`42` tests).
+  - `npm run typecheck` passed.
+  - `npm run build` passed.
+  - Full suite: `561` tests passed; two `dashboard.admin.polls.security.test.ts` tests failed identically on untouched `origin/main`, confirming a pre-existing baseline failure.
+  - PR CI stops before tests at `npm ci` because current `origin/main` combines Wrangler's Workers Types v5 peer requirement with React Router Cloudflare's Workers Types v4 peer requirement; dependency alignment is a separate baseline fix.
+  - After merging current `origin/main` (PR #257), Node 22/npm 10 clean install passed, all `565` tests passed, coverage passed, typecheck passed, and the production build passed.
+
 ## Security - Dependabot Alert #37 (2026-08-22)
 
 ### Goal

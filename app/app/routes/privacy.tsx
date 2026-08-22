@@ -71,6 +71,10 @@ export default function PrivacyPage() {
                 time to stop SMS messages
               </li>
               <li>
+                <span className="font-medium text-foreground">Re-enrollment:</span> after opting
+                out by text, reply START or UNSTOP
+              </li>
+              <li>
                 <span className="font-medium text-foreground">Help:</span> reply HELP for usage
                 instructions
               </li>

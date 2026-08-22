@@ -5,6 +5,7 @@ import {
   buildSmsResponse,
   normalizePhoneNumber,
   parseSmsReply,
+  parseTwilioOptOutType,
   sendAdhocSmsReminder,
   sendScheduledSmsReminders,
   sendSms,
@@ -95,8 +96,26 @@ describe("parseSmsReply", () => {
     expect(parseSmsReply("STOP")).toBe("opt_out");
   });
 
+  it("parses toll-free re-opt-in keywords", () => {
+    expect(parseSmsReply("START")).toBe("opt_in");
+    expect(parseSmsReply("unstop")).toBe("opt_in");
+  });
+
   it("returns null for unknown text", () => {
     expect(parseSmsReply("maybe")).toBeNull();
+  });
+});
+
+describe("parseTwilioOptOutType", () => {
+  it("maps Twilio Advanced Opt-Out metadata", () => {
+    expect(parseTwilioOptOutType("START")).toBe("opt_in");
+    expect(parseTwilioOptOutType("stop")).toBe("opt_out");
+    expect(parseTwilioOptOutType("HELP")).toBe("help");
+  });
+
+  it("ignores missing or unknown metadata", () => {
+    expect(parseTwilioOptOutType(null)).toBeNull();
+    expect(parseTwilioOptOutType("UNKNOWN")).toBeNull();
   });
 });
 
@@ -142,7 +161,11 @@ describe("sms delivery and reminder flows", () => {
     expect(message).toContain("Reminder for tomorrow at 12:00 PM");
     expect(message).toContain("Prime Steakhouse");
     expect(message).toContain("Your RSVP: Maybe.");
-    expect(message).toContain("Reply YES or NO to RSVP. Reply STOP to opt out.");
+    expect(message).toContain("Details: https://meatup.club/dashboard");
+    expect(message).not.toContain("/dashboard/events");
+    expect(message).toContain(
+      "Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out."
+    );
   });
 
   it("returns an error without calling Twilio when credentials are missing", async () => {
@@ -295,6 +318,42 @@ describe("sms delivery and reminder flows", () => {
     const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
     const body = new URLSearchParams(String(requestInit?.body));
     expect(body.get("Body")).toContain("Your RSVP: Maybe.");
+  });
+
+  it("sends a reminder after one delayed cron interval", async () => {
+    const db = createMockDb({
+      events: [
+        {
+          id: 78,
+          restaurant_name: "Prime Steakhouse",
+          event_date: "2026-04-02",
+          event_time: "12:00",
+          status: "upcoming",
+        },
+      ],
+      recipients: [
+        {
+          id: 9,
+          phone_number: "+15551234567",
+          rsvp_status: "yes",
+        },
+      ],
+    });
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_TIMEZONE: "UTC",
+      },
+      now: new Date("2026-04-01T12:20:00Z"),
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([78, 78, "24h"]);
+    expect(db.insertCalls[0]?.bindArgs).toEqual([78, 9, "24h"]);
   });
 
   it("returns an explicit error for adhoc reminders when credentials are missing", async () => {

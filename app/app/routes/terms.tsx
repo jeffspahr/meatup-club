@@ -60,6 +60,9 @@ export default function TermsPage() {
                 Opt-out: reply STOP at any time to stop SMS messages.
               </li>
               <li>
+                Re-enrollment: after opting out by text, reply START or UNSTOP.
+              </li>
+              <li>
                 Help: reply HELP for usage instructions.
               </li>
               <li>
