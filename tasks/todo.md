@@ -962,3 +962,44 @@ Make `AGENTS.md` the authoritative repository instruction file by merging the cu
   - `LC_ALL=C grep -n '[^ -~]' AGENTS.md || true` produced no non-ASCII matches.
   - Disposable apply-check against fresh `origin/main` showed `AGENTS.md` and `tasks/todo.md` apply cleanly, while `CLAUDE.md` needs manual resolution because PR `#176` modified the file that this work converts to a symlink.
   - Final read-through of `AGENTS.md` completed for consistency.
+
+## Security - Dependabot Alert #37 (2026-08-22)
+
+### Goal
+Resolve GHSA-4x5r-pxfx-6jf8 / CVE-2026-49356 by replacing the vulnerable transitive `@babel/core` version in the npm lockfile with a patched release.
+
+### Acceptance Criteria
+- [x] `app/package-lock.json` resolves `@babel/core` to version `7.29.6` or newer on the compatible 7.x line.
+- [x] No unnecessary direct dependency or unrelated package upgrades are introduced.
+- [x] `npm audit` no longer reports GHSA-4x5r-pxfx-6jf8.
+- [x] The change introduces no new test failures relative to `origin/main`; typecheck and the production build pass.
+
+### Active Tasks
+- [x] Inspect alert 37 and trace the affected dependency paths.
+- [x] Confirm the existing parent ranges accept the patched release.
+- [x] Update the lockfile with the smallest safe dependency change.
+- [x] Run security and application verification.
+- [x] Record the final result and verification story.
+
+### Working Notes
+- Alert 37 affects the transitive development dependency `@babel/core` at `7.29.0`; the first patched 7.x release is `7.29.6`.
+- The package is pulled through `@react-router/dev` and `@vitejs/plugin-react`, whose existing ranges accept the patched version, so `package.json` should remain unchanged.
+- Work is isolated on `codex/dependabot-37` from current `origin/main` to avoid the unrelated user changes and stale lockfile in the root worktree.
+- A standard targeted `npm update` is blocked by the existing Wrangler / optional `@cloudflare/workers-types` peer conflict.
+- The legacy peer resolver was rejected because it removed unrelated optional peer packages from the lockfile; probe alternative npm resolution in a disposable worktree and accept only a Babel-scoped diff.
+- The full test run passed 555 tests and failed two poll-close security assertions; the exact same two failures reproduce on untouched `origin/main`, confirming they are pre-existing rather than a Babel-update regression.
+
+### Results
+- Updated the transitive Babel dependency tree in `app/package-lock.json`, including `@babel/core` from `7.29.0` to patched `7.29.7`; `app/package.json` is unchanged.
+- Confined the lockfile diff to 16 Babel packages required by the patched core release. No application code, direct dependency, or unrelated package version changed.
+- Confirmed `@react-router/dev` and `@vitejs/plugin-react` both deduplicate onto `@babel/core@7.29.7` after a clean install.
+- Confirmed `npm audit` no longer reports GHSA-4x5r-pxfx-6jf8. Two unrelated pre-existing moderate advisories remain for `valibot` and `yaml`.
+
+### Verification
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm ci` passed.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm ls @babel/core --all` passed and resolved every path to `7.29.7`.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm audit --json` returned only the unrelated `valibot` and `yaml` advisories; GHSA-4x5r-pxfx-6jf8 is absent.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm run test:run` passed 555 tests and reproduced two pre-existing failures in `dashboard.admin.polls.security.test.ts`.
+- Baseline comparison: the same focused test on untouched `origin/main` fails the same two assertions at lines 194 and 225.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm run typecheck` passed.
+- `cd /private/tmp/meatup-dependabot-37-20260822/app && npm run build` passed with the existing Vite dynamic-import warnings.
