@@ -48,5 +48,10 @@
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.16",
     "wrangler": "^4.123.0"
+  },
+  "overrides": {
+    "wrangler": {
+      "@cloudflare/workers-types": "^4.20260701.1"
+    }
   }
 }
