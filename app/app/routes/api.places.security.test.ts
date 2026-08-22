@@ -36,6 +36,7 @@ describe("Places API route guards", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn());
     vi.mocked(getUser).mockResolvedValue({
       id: 1,
       status: "active",
@@ -85,5 +86,68 @@ describe("Places API route guards", () => {
     } as any);
 
     expect(response.status).toBe(400);
+  });
+
+  it("forwards valid searches to Google Places and returns the response", async () => {
+    const places = [
+      {
+        id: "ChIJ12345",
+        displayName: { text: "Prime Steakhouse" },
+        formattedAddress: "123 Main St",
+        types: ["restaurant"],
+      },
+    ];
+    vi.mocked(fetch).mockResolvedValue(Response.json({ places }));
+
+    const response = await searchLoader({
+      request: new Request(
+        "http://localhost/api/places/search?input=Prime%20Steakhouse",
+        { headers: { "CF-Connecting-IP": "203.0.113.8" } }
+      ),
+      context: mockContext,
+      params: {},
+    } as any);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ places });
+    expect(enforceRateLimit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: "places.search",
+        identifier: "user:1:ip:203.0.113.8",
+        limit: 30,
+        windowSeconds: 60,
+      })
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "https://places.googleapis.com/v1/places:searchText",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "X-Goog-Api-Key": "test-places-api-key",
+        }),
+        body: expect.stringContaining('"textQuery":"Prime Steakhouse"'),
+      })
+    );
+  });
+
+  it("returns a generic 500 response when Google Places fails", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response("upstream unavailable", { status: 503 })
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await searchLoader({
+      request: new Request("http://localhost/api/places/search?input=steak"),
+      context: mockContext,
+      params: {},
+    } as any);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to search places",
+    });
+    expect(console.error).toHaveBeenCalledWith("Places search failed", {
+      message: "Failed to fetch places",
+    });
   });
 });

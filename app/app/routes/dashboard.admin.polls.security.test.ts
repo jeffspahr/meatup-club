@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import {
@@ -122,6 +122,8 @@ function createMockDb({
 
 describe("dashboard.admin.polls close action", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
     vi.clearAllMocks();
     vi.mocked(requireActiveUser).mockResolvedValue({
       id: 1,
@@ -137,6 +139,10 @@ describe("dashboard.admin.polls close action", () => {
       deliveryType: "invite",
     });
     vi.mocked(enqueueStagedEventEmailBatch).mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("rejects winning dates that are not in the poll being closed", async () => {

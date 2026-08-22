@@ -2,6 +2,37 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+type Rgb = [number, number, number];
+const cssContent = readFileSync(join(__dirname, '../app/app.css'), 'utf-8');
+
+function extractCssVariables(section: string): Record<string, Rgb> {
+  return Object.fromEntries(
+    Array.from(
+      section.matchAll(/--([\w-]+):\s*(\d+)\s+(\d+)\s+(\d+)\s*;/g),
+      (match) => [
+        match[1],
+        [Number(match[2]), Number(match[3]), Number(match[4])] as Rgb,
+      ]
+    )
+  );
+}
+
+function extractPalettes(cssContent: string) {
+  const darkSection = cssContent.match(/:root\s*\{([^}]*)\}/)?.[1];
+  const lightSection = cssContent.match(
+    /@media\s*\(prefers-color-scheme:\s*light\)\s*\{\s*:root\s*\{([^}]*)\}/
+  )?.[1];
+
+  if (!darkSection || !lightSection) {
+    throw new Error('Could not parse dark and light :root palettes from app.css');
+  }
+
+  return {
+    dark: extractCssVariables(darkSection),
+    light: extractCssVariables(lightSection),
+  };
+}
+
 /**
  * Dark Mode System Tests
  *
@@ -11,15 +42,6 @@ import { join } from 'path';
 describe('Dark Mode CSS System', () => {
 
   describe('CSS Variables Configuration', () => {
-    let cssContent: string;
-
-    // Read the actual CSS file
-    try {
-      cssContent = readFileSync(join(__dirname, '../app/app.css'), 'utf-8');
-    } catch (e) {
-      cssContent = '';
-    }
-
     it('should define CSS variables in :root', () => {
       expect(cssContent).toContain(':root {');
       expect(cssContent).toContain('--background:');
@@ -103,7 +125,7 @@ describe('Dark Mode CSS System', () => {
     });
   });
 
-  describe('Contrast Ratios (Documented Values)', () => {
+  describe('Contrast Ratios (app.css values)', () => {
     /**
      * Calculate relative luminance for a color
      * Formula from WCAG 2.1 spec
@@ -120,7 +142,7 @@ describe('Dark Mode CSS System', () => {
      * Calculate contrast ratio between two colors
      * WCAG 2.1 formula
      */
-    function getContrastRatio(rgb1: [number, number, number], rgb2: [number, number, number]): number {
+    function getContrastRatio(rgb1: Rgb, rgb2: Rgb): number {
       const lum1 = getLuminance(...rgb1);
       const lum2 = getLuminance(...rgb2);
       const lighter = Math.max(lum1, lum2);
@@ -128,59 +150,25 @@ describe('Dark Mode CSS System', () => {
       return (lighter + 0.05) / (darker + 0.05);
     }
 
-    it('light mode: foreground on background meets WCAG AA (4.5:1)', () => {
-      // Light mode: --foreground: 17 17 24, --background: 255 255 255
-      const foreground: [number, number, number] = [17, 17, 24];
-      const background: [number, number, number] = [255, 255, 255];
+    const palettes = extractPalettes(cssContent);
+    const contrastCases = [
+      { mode: 'light', foreground: 'foreground', background: 'background', minimum: 4.5 },
+      { mode: 'light', foreground: 'muted-foreground', background: 'background', minimum: 3 },
+      { mode: 'light', foreground: 'card-foreground', background: 'card', minimum: 4.5 },
+      { mode: 'dark', foreground: 'foreground', background: 'background', minimum: 4.5 },
+      { mode: 'dark', foreground: 'muted-foreground', background: 'background', minimum: 3 },
+      { mode: 'dark', foreground: 'card-foreground', background: 'card', minimum: 4.5 },
+    ] as const;
 
-      const ratio = getContrastRatio(foreground, background);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('light mode: muted-foreground on background meets WCAG AA for large text (3:1)', () => {
-      // Light mode: --muted-foreground: 107 114 128, --background: 255 255 255
-      const mutedForeground: [number, number, number] = [107, 114, 128];
-      const background: [number, number, number] = [255, 255, 255];
-
-      const ratio = getContrastRatio(mutedForeground, background);
-      expect(ratio).toBeGreaterThanOrEqual(3.0);
-    });
-
-    it('dark mode: foreground on background meets WCAG AA (4.5:1)', () => {
-      // Dark mode: --foreground: 229 231 235, --background: 10 10 15
-      const foreground: [number, number, number] = [229, 231, 235];
-      const background: [number, number, number] = [10, 10, 15];
-
-      const ratio = getContrastRatio(foreground, background);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('dark mode: muted-foreground on background meets WCAG AA for large text (3:1)', () => {
-      // Dark mode: --muted-foreground: 140 143 155, --background: 10 10 15
-      const mutedForeground: [number, number, number] = [140, 143, 155];
-      const background: [number, number, number] = [10, 10, 15];
-
-      const ratio = getContrastRatio(mutedForeground, background);
-      expect(ratio).toBeGreaterThanOrEqual(3.0);
-    });
-
-    it('light mode: card foreground on card background meets WCAG AA', () => {
-      // Light mode: --card-foreground: 17 17 24, --card: 249 250 251
-      const cardForeground: [number, number, number] = [17, 17, 24];
-      const card: [number, number, number] = [249, 250, 251];
-
-      const ratio = getContrastRatio(cardForeground, card);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
-
-    it('dark mode: card foreground on card background meets WCAG AA', () => {
-      // Dark mode: --card-foreground: 229 231 235, --card: 17 17 24
-      const cardForeground: [number, number, number] = [229, 231, 235];
-      const card: [number, number, number] = [17, 17, 24];
-
-      const ratio = getContrastRatio(cardForeground, card);
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    });
+    it.each(contrastCases)(
+      '$mode mode: --$foreground on --$background meets $minimum:1',
+      ({ mode, foreground, background, minimum }) => {
+        const palette = palettes[mode];
+        expect(palette[foreground], `Missing --${foreground} in ${mode} palette`).toBeDefined();
+        expect(palette[background], `Missing --${background} in ${mode} palette`).toBeDefined();
+        expect(getContrastRatio(palette[foreground], palette[background])).toBeGreaterThanOrEqual(minimum);
+      }
+    );
   });
 
   describe('Component Best Practices', () => {

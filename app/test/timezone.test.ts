@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import {
   getTodayDateStringUTC,
   getTodayDateStringLocal,
@@ -400,7 +400,7 @@ describe('Timezone Safety - Local Time Handling', () => {
   });
 
   describe('AUTO-DISCOVERY: Date/Time Presentations', () => {
-    it('should automatically scan codebase for date formatting patterns', async () => {
+    it('reports informational date formatting pattern counts', () => {
       const results = {
         formatDateForDisplay: 0,
         parseLocalDate: 0,
@@ -433,27 +433,30 @@ describe('Timezone Safety - Local Time Handling', () => {
         results.getUTCMethods += (content.match(/\.getUTC(FullYear|Month|Date|Hours|Minutes)/g) || []).length;
       }
 
-      // Log summary
-      console.log('\n📅 Date/Time Pattern Discovery:');
+      // This is intentionally an inventory, not a policy assertion. The focused
+      // scanner tests below enforce unsafe display and UTC method patterns.
+      console.log('\n📅 Informational date/time pattern inventory:');
       console.log(`   ✅ formatDateForDisplay: ${results.formatDateForDisplay} usages`);
       console.log(`   ✅ parseLocalDate: ${results.parseLocalDate} usages`);
       console.log(`   ✅ toLocaleDateString: ${results.toLocaleDateString} usages`);
-      console.log(`   ⚠️  new Date(string): ${results.newDateWithString} usages (check if used for display)`);
-      console.log(`   ⚠️  toISOString: ${results.toISOString} usages (check if used for display)`);
-      console.log(`   ⚠️  UTC methods: ${results.getUTCMethods} usages (should be limited to dateUtils.ts)`);
+      console.log(`   ℹ️  new Date(string): ${results.newDateWithString} usages`);
+      console.log(`   ℹ️  toISOString: ${results.toISOString} usages`);
+      console.log(`   ℹ️  UTC methods: ${results.getUTCMethods} usages`);
 
-      // Expect to have some good patterns
-      expect(results.formatDateForDisplay).toBeGreaterThan(0);
-      expect(results.parseLocalDate).toBeGreaterThan(0);
     });
 
-    it('should verify formatDateForDisplay is used for all user-facing dates', async () => {
+    it('requires date formatting in UI files, with explicit non-UI route exceptions', () => {
       const routeFiles = discoverSourceFiles(join(__dirname, '../app/routes'));
       const componentFiles = discoverSourceFiles(join(__dirname, '../app/components'));
       const allFiles = [...routeFiles, ...componentFiles];
 
       const filesWithDateDisplay: string[] = [];
       const filesWithCorrectFormatting: string[] = [];
+      const allowedNonUiRoutes = [
+        'routes/api.polls.tsx',
+        'routes/api.webhooks.email-rsvp.tsx',
+        'routes/api.webhooks.sms.tsx',
+      ];
 
       for (const file of allFiles) {
         const content = readFileSync(file, 'utf-8');
@@ -469,16 +472,18 @@ describe('Timezone Safety - Local Time Handling', () => {
         }
       }
 
-      console.log(`\n📋 Files displaying event dates: ${filesWithDateDisplay.length}`);
-      console.log(`   ✅ Using formatDateForDisplay: ${filesWithCorrectFormatting.length}`);
+      const missingFormatting = filesWithDateDisplay
+        .filter(file => !filesWithCorrectFormatting.includes(file))
+        .map(toSourceRelativePath);
+      const unexpectedMissing = missingFormatting.filter(
+        file => !allowedNonUiRoutes.includes(file)
+      );
+      const staleAllowlist = allowedNonUiRoutes.filter(
+        file => !missingFormatting.includes(file)
+      );
 
-      if (filesWithDateDisplay.length > filesWithCorrectFormatting.length) {
-        const missingFiles = filesWithDateDisplay.filter(f => !filesWithCorrectFormatting.includes(f));
-        console.log(`   ⚠️  Missing formatDateForDisplay:`, missingFiles.map(f => f.replace(__dirname, '')));
-      }
-
-      // At least some files should use formatDateForDisplay
-      expect(filesWithCorrectFormatting.length).toBeGreaterThan(0);
+      expect(unexpectedMissing, 'UI date fields missing formatDateForDisplay').toEqual([]);
+      expect(staleAllowlist, 'Remove stale non-UI timezone scanner exceptions').toEqual([]);
     });
 
     it('should detect anti-patterns: new Date(string) in user-facing code', async () => {
@@ -584,12 +589,12 @@ describe('Timezone Safety - Local Time Handling', () => {
         usesLocalTimePattern,
       });
 
-      // Should have calendar generation and use local time
+      // Every detected calendar generator must use the local-time constructor.
       expect(calendarInviteFiles).toBeGreaterThan(0);
-      expect(usesLocalTimePattern).toBeGreaterThan(0);
+      expect(usesLocalTimePattern).toBe(calendarInviteFiles);
     });
 
-    it('should verify UTC methods are only used in dateUtils for server validation', async () => {
+    it('allows UTC getter methods only in dateUtils', () => {
       const allFiles = discoverSourceFiles(join(__dirname, '../app'));
 
       const filesWithUTCMethods: Array<{ file: string; count: number }> = [];
@@ -602,30 +607,14 @@ describe('Timezone Safety - Local Time Handling', () => {
 
         if (utcMatches && utcMatches.length > 0) {
           filesWithUTCMethods.push({
-            file: file.replace(__dirname + '/../app/', ''),
+            file: toSourceRelativePath(file),
             count: utcMatches.length,
           });
         }
       }
 
-      console.log(`\n🌍 UTC method usage:`, {
-        filesWithUTCMethods: filesWithUTCMethods.length,
-      });
-
-      filesWithUTCMethods.forEach(({ file, count }) => {
-        console.log(`   - ${file}: ${count} UTC method calls`);
-
-        // UTC methods should primarily be in dateUtils.ts
-        if (file.includes('dateUtils')) {
-          console.log(`     ✅ (Expected in dateUtils)`);
-        } else {
-          console.log(`     ⚠️  (Check if this should use local time instead)`);
-        }
-      });
-
-      // At least dateUtils.ts should use UTC methods
-      const dateUtilsHasUTC = filesWithUTCMethods.some(f => f.file.includes('dateUtils'));
-      expect(dateUtilsHasUTC).toBe(true);
+      expect(filesWithUTCMethods.map(({ file }) => file)).toEqual(['lib/dateUtils.ts']);
+      expect(filesWithUTCMethods[0].count).toBeGreaterThan(0);
     });
   });
 });
@@ -657,4 +646,8 @@ function discoverSourceFiles(dir: string, fileList: string[] = []): string[] {
     console.warn('Could not read directory:', dir, err);
     return fileList;
   }
+}
+
+function toSourceRelativePath(file: string): string {
+  return relative(join(__dirname, '../app'), file);
 }

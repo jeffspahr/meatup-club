@@ -1,0 +1,39 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false -input=false
+
+      - name: Validate Terraform
+        run: terraform validate -no-color

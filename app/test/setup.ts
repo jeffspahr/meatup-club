@@ -1,11 +1,18 @@
 import '@testing-library/jest-dom';
-import { expect, afterEach, vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 // Import CSS for dark mode tests
 import '../app/app.css';
 
-// Cleanup after each test
+// Return shared process state to a clean baseline after every test. Individual
+// suites can still restore directly assigned globals (for example `fetch`) when
+// they need to preserve the environment's original implementation.
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
+  vi.clearAllMocks();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });

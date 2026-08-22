@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Enable version updates for npm (Next.js app)
+  # Enable version updates for the React Router app
   - package-ecosystem: "npm"
     directory: "/app"
     schedule:
@@ -41,7 +41,6 @@ updates:
     labels:
       - "dependencies"
       - "terraform"
-      - "automerge"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
