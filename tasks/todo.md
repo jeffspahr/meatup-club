@@ -1002,3 +1002,4 @@ Harden the production SMS reminder flow before repeating a live Twilio test.
   - `npm run typecheck` passed.
   - `npm run build` passed.
   - Full suite: `561` tests passed; two `dashboard.admin.polls.security.test.ts` tests failed identically on untouched `origin/main`, confirming a pre-existing baseline failure.
+  - PR CI stops before tests at `npm ci` because current `origin/main` combines Wrangler's Workers Types v5 peer requirement with React Router Cloudflare's Workers Types v4 peer requirement; dependency alignment is a separate baseline fix.
