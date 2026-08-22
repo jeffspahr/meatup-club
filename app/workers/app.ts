@@ -9,7 +9,10 @@ import {
 } from "../app/lib/event-email-delivery.server";
 import { logErrorEvent, logInfoEvent } from "../app/lib/observability.server";
 import { maybeEnsureResendEmailSetup } from "../app/lib/resend-setup.server";
-import { sendScheduledSmsReminders } from "../app/lib/sms.server";
+import {
+  maybeCheckTwilioProviderHealth,
+  sendScheduledSmsReminders,
+} from "../app/lib/sms.server";
 import type { CloudflareEnv } from "../app/env";
 
 // In dev, Vite resolves the virtual module to live source so HMR-aware asset
@@ -42,6 +45,10 @@ export default {
     try {
       const scheduledWork = Promise.all([
         sendScheduledSmsReminders({
+          db: env.DB,
+          env,
+        }),
+        maybeCheckTwilioProviderHealth({
           db: env.DB,
           env,
         }),

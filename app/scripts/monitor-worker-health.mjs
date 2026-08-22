@@ -145,6 +145,21 @@ async function smokeOnce(appOrigin, wwwOrigin, timeoutMs) {
     }
   }
 
+  const smsHealthUrl = new URL("/api/health/sms", appOrigin);
+  const smsHealthResponse = await requestWithTimeout(smsHealthUrl, timeoutMs);
+  if (smsHealthResponse.status !== 200) {
+    throw new Error("SMS provider health check failed");
+  }
+  let smsHealth;
+  try {
+    smsHealth = await smsHealthResponse.json();
+  } catch {
+    throw new Error("SMS provider health returned invalid JSON");
+  }
+  if (smsHealth?.service !== "sms" || smsHealth?.status !== "healthy") {
+    throw new Error("SMS provider health returned an unhealthy result");
+  }
+
   const wwwUrl = new URL("/", wwwOrigin);
   const response = await requestWithTimeout(wwwUrl, timeoutMs);
   const location = response.headers.get("location");
@@ -156,7 +171,7 @@ async function smokeOnce(appOrigin, wwwOrigin, timeoutMs) {
   }
 }
 
-async function smokeWithRetries({ appOrigin, wwwOrigin, attempts, delayMs, timeoutMs }) {
+export async function smokeWithRetries({ appOrigin, wwwOrigin, attempts, delayMs, timeoutMs }) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {

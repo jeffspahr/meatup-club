@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildSmsReminderMessage,
   buildSmsResponse,
+  checkTwilioProviderHealth,
+  getTwilioConfigurationStatus,
+  isSmsProviderHealthFresh,
+  maybeCheckTwilioProviderHealth,
   normalizePhoneNumber,
   parseSmsReply,
   parseTwilioMessageStatus,
@@ -14,12 +18,15 @@ import {
   verifyTwilioSignature,
 } from "./sms.server";
 
+const TEST_ACCOUNT_SID = `AC${"1".repeat(32)}`;
+
 type MockDbOptions = {
   events?: Array<Record<string, unknown>>;
   recipients?: Array<Record<string, unknown>>;
+  providerHealth?: Record<string, unknown> | null;
 };
 
-function createMockDb({ events = [], recipients = [] }: MockDbOptions = {}) {
+function createMockDb({ events = [], recipients = [], providerHealth = null }: MockDbOptions = {}) {
   const recipientQueryCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
   const insertCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
 
@@ -51,7 +58,9 @@ function createMockDb({ events = [], recipients = [] }: MockDbOptions = {}) {
     });
 
     return {
-      first: vi.fn(async () => null),
+      first: vi.fn(async () =>
+        normalizedSql.includes("FROM sms_provider_health") ? providerHealth : null
+      ),
       all,
       run: vi.fn(async () => {
         insertCalls.push({ sql: normalizedSql, bindArgs: [] });
@@ -192,7 +201,8 @@ describe("sms delivery and reminder flows", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Missing Twilio credentials.",
+      error: "Twilio configuration is missing: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER.",
+      errorCode: "CONFIG_MISSING",
     });
     expect(global.fetch).not.toHaveBeenCalled();
   });
@@ -202,7 +212,7 @@ describe("sms delivery and reminder flows", () => {
       to: "+15551234567",
       body: "Test reminder",
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
       },
@@ -219,9 +229,9 @@ describe("sms delivery and reminder flows", () => {
     const headers = new Headers(requestInit?.headers as HeadersInit);
     const body = new URLSearchParams(String(requestInit?.body));
 
-    expect(url).toBe("https://api.twilio.com/2010-04-01/Accounts/AC123/Messages.json");
+    expect(url).toBe(`https://api.twilio.com/2010-04-01/Accounts/${TEST_ACCOUNT_SID}/Messages.json`);
     expect(headers.get("Authorization")).toBe(
-      `Basic ${Buffer.from("AC123:secret").toString("base64")}`
+      `Basic ${Buffer.from(`${TEST_ACCOUNT_SID}:secret`).toString("base64")}`
     );
     expect(body.get("To")).toBe("+15551234567");
     expect(body.get("From")).toBe("+15557654321");
@@ -240,7 +250,7 @@ describe("sms delivery and reminder flows", () => {
       to: "+15551234567",
       body: "Test reminder",
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
       },
@@ -250,6 +260,26 @@ describe("sms delivery and reminder flows", () => {
       success: false,
       error: "Invalid destination number",
       errorCode: "21211",
+    });
+  });
+
+  it("returns a stable network error when Twilio cannot be reached", async () => {
+    global.fetch = vi.fn().mockRejectedValueOnce(new TypeError("connection reset"));
+
+    const result = await sendSms({
+      to: "+15551234567",
+      body: "Test reminder",
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+      },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Twilio could not be reached.",
+      errorCode: "NETWORK_ERROR",
     });
   });
 
@@ -316,7 +346,7 @@ describe("sms delivery and reminder flows", () => {
     await sendScheduledSmsReminders({
       db: db as never,
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
         APP_TIMEZONE: "UTC",
@@ -366,7 +396,7 @@ describe("sms delivery and reminder flows", () => {
     await sendScheduledSmsReminders({
       db: db as never,
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
         APP_TIMEZONE: "UTC",
@@ -382,9 +412,49 @@ describe("sms delivery and reminder flows", () => {
     ).toEqual([78, 9, "24h"]);
   });
 
-  it("returns an explicit error for adhoc reminders when credentials are missing", async () => {
+  it("persists scheduled delivery failures when Twilio configuration is missing", async () => {
+    const db = createMockDb({
+      events: [
+        {
+          id: 79,
+          restaurant_name: "Prime Steakhouse",
+          event_date: "2026-04-02",
+          event_time: "12:00",
+          status: "upcoming",
+        },
+      ],
+      recipients: [
+        { id: 10, phone_number: "+15551234567", rsvp_status: "yes" },
+      ],
+    });
+
+    await sendScheduledSmsReminders({
+      db: db as never,
+      env: { APP_TIMEZONE: "UTC" },
+      now: new Date("2026-04-01T12:05:00Z"),
+    });
+
+    expect(db.insertCalls).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO sms_deliveries"),
+        bindArgs: expect.arrayContaining([79, 10, "24h"]),
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("UPDATE sms_deliveries"),
+        bindArgs: expect.arrayContaining(["failed", "CONFIG_MISSING"]),
+      }),
+    ]));
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("persists and returns configuration failures for eligible adhoc recipients", async () => {
+    const db = createMockDb({
+      recipients: [
+        { id: 12, phone_number: "+15551234567", rsvp_status: "yes" },
+      ],
+    });
     const result = await sendAdhocSmsReminder({
-      db: createMockDb() as never,
+      db: db as never,
       env: {},
       event: {
         id: 88,
@@ -396,8 +466,23 @@ describe("sms delivery and reminder flows", () => {
 
     expect(result).toEqual({
       sent: 0,
-      errors: ["Twilio credentials are missing."],
+      errors: [
+        "Member 12: Twilio configuration is missing: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER.",
+      ],
     });
+    expect(db.insertCalls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sql: expect.stringContaining("INSERT INTO sms_deliveries"),
+          bindArgs: expect.arrayContaining([88, 12]),
+        }),
+        expect.objectContaining({
+          sql: expect.stringContaining("UPDATE sms_deliveries"),
+          bindArgs: expect.arrayContaining(["failed", "CONFIG_MISSING"]),
+        }),
+      ])
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("supports specific-scope adhoc reminders with no user id by selecting nobody", async () => {
@@ -406,7 +491,7 @@ describe("sms delivery and reminder flows", () => {
     const result = await sendAdhocSmsReminder({
       db: db as never,
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
         APP_TIMEZONE: "UTC",
@@ -461,7 +546,7 @@ describe("sms delivery and reminder flows", () => {
     const result = await sendAdhocSmsReminder({
       db: db as never,
       env: {
-        TWILIO_ACCOUNT_SID: "AC123",
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
         TWILIO_AUTH_TOKEN: "secret",
         TWILIO_FROM_NUMBER: "+15557654321",
         APP_TIMEZONE: "UTC",
@@ -504,5 +589,151 @@ describe("sms delivery and reminder flows", () => {
         bindArgs: expect.arrayContaining(["delivered", 50]),
       })
     );
+  });
+
+  it("identifies missing and malformed Twilio bindings without exposing values", () => {
+    const status = getTwilioConfigurationStatus({
+      TWILIO_ACCOUNT_SID: "not-an-account-sid",
+      TWILIO_AUTH_TOKEN: "   ",
+      TWILIO_FROM_NUMBER: "888-857-6328",
+    });
+
+    expect(status).toEqual({
+      valid: false,
+      missingBindings: ["TWILIO_AUTH_TOKEN"],
+      invalidBindings: ["TWILIO_ACCOUNT_SID", "TWILIO_FROM_NUMBER"],
+    });
+  });
+
+  it("authenticates with Twilio and reports an active account as healthy", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ sid: TEST_ACCOUNT_SID, status: "active" }),
+    } as Response);
+
+    const health = await checkTwilioProviderHealth({
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+18885550123",
+      },
+      now: new Date("2026-08-22T18:00:00.000Z"),
+    });
+
+    expect(health).toEqual({
+      status: "healthy",
+      errorCode: null,
+      checkedAt: "2026-08-22T18:00:00.000Z",
+      lastHealthyAt: "2026-08-22T18:00:00.000Z",
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      `https://api.twilio.com/2010-04-01/Accounts/${TEST_ACCOUNT_SID}.json`,
+      expect.objectContaining({ headers: expect.any(Object) })
+    );
+  });
+
+  it("classifies rejected credentials without logging either credential", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({ code: 20003, message: "Authentication Error" }),
+    } as Response);
+
+    const health = await checkTwilioProviderHealth({
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "never-log-this-token",
+        TWILIO_FROM_NUMBER: "+18885550123",
+      },
+    });
+
+    expect(health).toEqual(expect.objectContaining({
+      status: "authentication_failed",
+      errorCode: "20003",
+    }));
+    const logged = JSON.stringify(consoleErrorSpy.mock.calls);
+    expect(logged).not.toContain(TEST_ACCOUNT_SID);
+    expect(logged).not.toContain("never-log-this-token");
+    expect(logged).not.toContain("+18885550123");
+  });
+
+  it("reports a suspended Twilio account", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ sid: TEST_ACCOUNT_SID, status: "suspended" }),
+    } as Response);
+
+    const health = await checkTwilioProviderHealth({
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+18885550123",
+      },
+    });
+
+    expect(health).toEqual(expect.objectContaining({
+      status: "account_suspended",
+      errorCode: "ACCOUNT_SUSPENDED",
+    }));
+  });
+
+  it("reuses a fresh stored provider check without contacting Twilio", async () => {
+    const db = createMockDb({
+      providerHealth: {
+        status: "healthy",
+        error_code: null,
+        checked_at: "2026-08-22T17:30:00.000Z",
+        last_healthy_at: "2026-08-22T17:30:00.000Z",
+      },
+    });
+
+    const health = await maybeCheckTwilioProviderHealth({
+      db: db as never,
+      env: {},
+      now: new Date("2026-08-22T18:00:00.000Z"),
+      minimumIntervalMs: 60 * 60 * 1000,
+    });
+
+    expect(health.status).toBe("healthy");
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(isSmsProviderHealthFresh(health, new Date("2026-08-22T18:00:00.000Z"))).toBe(true);
+  });
+
+  it("persists a fresh health result when the cached check is stale", async () => {
+    const db = createMockDb({
+      providerHealth: {
+        status: "healthy",
+        error_code: null,
+        checked_at: "2026-08-20T18:00:00.000Z",
+        last_healthy_at: "2026-08-20T18:00:00.000Z",
+      },
+    });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ sid: TEST_ACCOUNT_SID, status: "active" }),
+    } as Response);
+
+    await maybeCheckTwilioProviderHealth({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+18885550123",
+      },
+      now: new Date("2026-08-22T18:00:00.000Z"),
+    });
+
+    expect(db.insertCalls).toContainEqual(expect.objectContaining({
+      sql: expect.stringContaining("INSERT INTO sms_provider_health"),
+      bindArgs: [
+        "healthy",
+        null,
+        "2026-08-22T18:00:00.000Z",
+        "2026-08-22T18:00:00.000Z",
+      ],
+    }));
   });
 });

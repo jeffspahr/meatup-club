@@ -68,6 +68,11 @@ describe("production smoke script", () => {
   it("accepts non-empty HTML responses and a www redirect to the apex", async () => {
     const apexOrigin = await listen(
       createServer((request, response) => {
+        if (request.url === "/api/health/sms") {
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end('{"service":"sms","status":"healthy"}');
+          return;
+        }
         if (request.url === "/" || request.url === "/verification") {
           response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
           response.end("<!doctype html><html><body>available</body></html>");
@@ -93,6 +98,11 @@ describe("production smoke script", () => {
     let homeRequests = 0;
     const apexOrigin = await listen(
       createServer((request, response) => {
+        if (request.url === "/api/health/sms") {
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end('{"service":"sms","status":"healthy"}');
+          return;
+        }
         if (request.url === "/") {
           homeRequests += 1;
           if (homeRequests === 1) {
@@ -134,6 +144,30 @@ describe("production smoke script", () => {
     await expect(runSmoke(apexOrigin, wwwOrigin, 2)).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining("Production smoke check failed after all retry attempts."),
+    });
+  });
+
+  it("fails when the SMS provider health endpoint is unhealthy", async () => {
+    const apexOrigin = await listen(
+      createServer((request, response) => {
+        if (request.url === "/api/health/sms") {
+          response.writeHead(503, { "content-type": "application/json" });
+          response.end('{"service":"sms","status":"unhealthy"}');
+          return;
+        }
+        response.writeHead(200, { "content-type": "text/html" });
+        response.end("<html><body>available</body></html>");
+      })
+    );
+    const wwwOrigin = await listen(
+      createServer((_request, response) => {
+        response.writeHead(301, { location: `${apexOrigin}/` }).end();
+      })
+    );
+
+    await expect(runSmoke(apexOrigin, wwwOrigin)).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("expected healthy SMS status"),
     });
   });
 });

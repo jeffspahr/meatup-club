@@ -14,6 +14,7 @@ export default [
   route("api/places/search", "routes/api.places.search.tsx"),
   route("api/places/details", "routes/api.places.details.tsx"),
   route("api/places/photo", "routes/api.places.photo.tsx"),
+  route("api/health/sms", "routes/api.health.sms.tsx"),
   route("api/admin/setup-resend", "routes/api.admin.setup-resend.tsx"),
   route("api/polls", "routes/api.polls.tsx"),
   route("api/webhooks/email-delivery", "routes/api.webhooks.email-delivery.tsx"),

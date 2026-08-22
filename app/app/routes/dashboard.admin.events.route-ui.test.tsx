@@ -11,7 +11,7 @@ import {
   getAppTimeZone,
   isEventInPastInTimeZone,
 } from "../lib/dateUtils";
-import { sendAdhocSmsReminder } from "../lib/sms.server";
+import { maybeCheckTwilioProviderHealth, sendAdhocSmsReminder } from "../lib/sms.server";
 
 let navigationState: { state: string; formData: FormData | null } = {
   state: "idle",
@@ -43,6 +43,7 @@ vi.mock("../lib/activity.server", () => ({
 }));
 
 vi.mock("../lib/sms.server", () => ({
+  maybeCheckTwilioProviderHealth: vi.fn(),
   sendAdhocSmsReminder: vi.fn(),
 }));
 
@@ -238,6 +239,12 @@ describe("dashboard.admin.events loader and UI", () => {
       activePoll: null,
     });
     vi.mocked(sendAdhocSmsReminder).mockResolvedValue({ sent: 2, errors: [] });
+    vi.mocked(maybeCheckTwilioProviderHealth).mockResolvedValue({
+      status: "healthy",
+      errorCode: null,
+      checkedAt: "2026-05-01T12:00:00.000Z",
+      lastHealthyAt: "2026-05-01T12:00:00.000Z",
+    });
   });
 
   it("loads events with display statuses, vote leaders, and RSVP member lookup data", async () => {
@@ -340,6 +347,13 @@ describe("dashboard.admin.events loader and UI", () => {
               smsMembers: [],
               eventMembersById: {},
               smsDeliveriesByEventId: {},
+              smsProviderHealth: {
+                status: "healthy",
+                errorCode: null,
+                checkedAt: "2026-05-01T12:00:00.000Z",
+                lastHealthyAt: "2026-05-01T12:00:00.000Z",
+              },
+              appTimeZone: "America/New_York",
             },
             actionData: { success: "Saved successfully." },
           } as unknown) as Route.ComponentProps)}
@@ -420,6 +434,13 @@ describe("dashboard.admin.events loader and UI", () => {
                   },
                 ],
               },
+              smsProviderHealth: {
+                status: "healthy",
+                errorCode: null,
+                checkedAt: "2026-05-01T12:00:00.000Z",
+                lastHealthyAt: "2026-05-01T12:00:00.000Z",
+              },
+              appTimeZone: "America/New_York",
             },
             actionData: undefined,
           } as unknown) as Route.ComponentProps)}
@@ -539,9 +560,8 @@ describe("dashboard.admin.events loader and UI", () => {
     );
   });
 
-  it("validates SMS reminder recipients and returns background success when waitUntil is available", async () => {
+  it("validates SMS reminder recipients and returns the accepted count", async () => {
     const db = createMockDb();
-    const waitUntil = vi.fn();
 
     const invalidScope = await action({
       request: createRequest({
@@ -571,13 +591,13 @@ describe("dashboard.admin.events loader and UI", () => {
             DB: db,
             TWILIO_ACCOUNT_SID: "sid",
           },
-          ctx: { waitUntil },
+          ctx: { waitUntil: vi.fn() },
         },
       } as never,
       params: {},
     } as never);
 
-    expect(success).toEqual({ success: "SMS reminder sending in the background." });
+    expect(success).toEqual({ success: "Twilio accepted 2 SMS reminders." });
     expect(sendAdhocSmsReminder).toHaveBeenCalledWith({
       db,
       env: expect.objectContaining({ DB: db, TWILIO_ACCOUNT_SID: "sid" }),
@@ -586,7 +606,6 @@ describe("dashboard.admin.events loader and UI", () => {
       recipientScope: "specific",
       recipientUserId: 7,
     });
-    expect(waitUntil).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces SMS reminder failures in the synchronous path", async () => {
@@ -607,6 +626,6 @@ describe("dashboard.admin.events loader and UI", () => {
       params: {},
     } as never);
 
-    expect(result).toEqual({ error: "Some SMS messages failed: Twilio outage" });
+    expect(result).toEqual({ error: "SMS send failed. Twilio accepted 1. Twilio outage" });
   });
 });
