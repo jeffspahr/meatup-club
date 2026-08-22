@@ -1,4 +1,4 @@
-name: Test Suite
+name: Application CI
 
 on:
   push:
@@ -8,46 +8,46 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: application-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Typecheck, Tests, and Coverage
+  verify:
+    name: Verify application
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: America/New_York
+    defaults:
+      run:
+        working-directory: app
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '22'
+          node-version-file: 'app/.node-version'
           cache: 'npm'
           cache-dependency-path: 'app/package-lock.json'
 
       - name: Install dependencies
-        run: |
-          cd app
-          npm ci
+        run: npm ci
 
-      - name: Typecheck
-        run: |
-          cd app
-          npm run typecheck
-
-      - name: Run tests
-        run: |
-          cd app
-          npm run test:run
-
-      - name: Enforce coverage thresholds
-        run: |
-          cd app
-          npm run test:coverage
+      - name: Verify application
+        run: npm run verify
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v7
         if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
-          path: app/coverage/
-          retention-days: 30
+          path: app/coverage
+          if-no-files-found: warn
+          retention-days: 7
