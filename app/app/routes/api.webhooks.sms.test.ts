@@ -62,7 +62,10 @@ function createMockDb({
         return user;
       }
 
-      if (normalizedSql === "SELECT event_id FROM sms_reminders WHERE user_id = ? ORDER BY sent_at DESC LIMIT 1") {
+      if (
+        normalizedSql ===
+        "SELECT sr.event_id FROM sms_reminders sr JOIN events e ON e.id = sr.event_id WHERE sr.user_id = ? AND e.status = 'upcoming' AND e.event_date >= ? ORDER BY sr.sent_at DESC LIMIT 1"
+      ) {
         return latestReminder;
       }
 
@@ -245,7 +248,7 @@ describe("api.webhooks.sms", () => {
     expect(await getSmsBody(response)).toContain("opted out of Meatup SMS");
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP WHERE id = ?",
+        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
         bindArgs: [7],
       },
     ]);
@@ -275,7 +278,7 @@ describe("api.webhooks.sms", () => {
     );
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP WHERE id = ?",
+        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
         bindArgs: [7],
       },
     ]);
@@ -306,7 +309,7 @@ describe("api.webhooks.sms", () => {
     );
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL WHERE id = ?",
+        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
         bindArgs: [7],
       },
     ]);

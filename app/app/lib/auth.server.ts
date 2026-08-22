@@ -15,6 +15,7 @@ export type AuthUser = {
   phone_number: string | null;
   sms_opt_in: number;
   sms_opt_out_at: string | null;
+  sms_opt_out_source: "profile" | "sms" | null;
 };
 
 export type GoogleTokens = {

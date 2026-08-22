@@ -265,7 +265,7 @@ describe("dashboard._index loader", () => {
     });
 
     const result = await loader({
-      request: new Request("http://localhost/dashboard"),
+      request: new Request("http://localhost/dashboard?event=5"),
       context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
       params: {},
     } as never);
@@ -276,6 +276,7 @@ describe("dashboard._index loader", () => {
       topRestaurants: unknown;
       upcomingEvents: Array<{ id: number; userRsvp: { status: string } | null }>;
       pastEvents: Array<{ id: number; restaurant_name: string }>;
+      targetEventId: number | null;
     };
 
     expect(typed.isAdmin).toBe(true);
@@ -295,5 +296,6 @@ describe("dashboard._index loader", () => {
     expect(typed.pastEvents[0]).toEqual(
       expect.objectContaining({ id: 6, restaurant_name: "Past Grill" })
     );
+    expect(typed.targetEventId).toBe(5);
   });
 });

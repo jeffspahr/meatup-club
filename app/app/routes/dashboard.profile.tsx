@@ -36,6 +36,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     const rawPhone = String(formData.get('phone_number') || '').trim();
     const wantsSms = formData.get('sms_opt_in') === 'on';
     const normalizedPhone = rawPhone ? normalizePhoneNumber(rawPhone) : null;
+    const hasCarrierOptOut = Boolean(
+      user.sms_opt_out_at && user.sms_opt_out_source !== 'profile'
+    );
 
     if (rawPhone && !normalizedPhone) {
       return { error: 'Please enter a valid US phone number (e.g. 555-123-4567).' };
@@ -43,6 +46,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     if (wantsSms && !normalizedPhone) {
       return { error: 'SMS consent requires a valid phone number.' };
+    }
+
+    if (wantsSms && hasCarrierOptOut) {
+      return {
+        error: 'Reply START to (888) 857-6328 to re-enable SMS after opting out by text.',
+      };
     }
 
     if (normalizedPhone) {
@@ -65,10 +74,15 @@ export async function action({ request, context }: Route.ActionArgs) {
             sms_opt_out_at = CASE
               WHEN ? = 1 THEN NULL
               ELSE COALESCE(sms_opt_out_at, CURRENT_TIMESTAMP)
+            END,
+            sms_opt_out_source = CASE
+              WHEN ? = 1 THEN NULL
+              WHEN ? = 1 THEN COALESCE(sms_opt_out_source, 'sms')
+              ELSE 'profile'
             END
         WHERE id = ?
       `)
-      .bind(normalizedPhone, smsOptIn, smsOptIn, user.id)
+      .bind(normalizedPhone, smsOptIn, smsOptIn, smsOptIn, hasCarrierOptOut ? 1 : 0, user.id)
       .run();
 
     return { success: 'SMS preferences updated successfully' };
@@ -79,6 +93,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
 export default function ProfilePage({ loaderData, actionData }: Route.ComponentProps) {
   const { user } = loaderData;
+  const hasCarrierOptOut = Boolean(
+    user.sms_opt_out_at && user.sms_opt_out_source !== 'profile'
+  );
 
   return (
     <main className="page-main">
@@ -181,12 +198,17 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
           Meatup.Club.
         </p>
 
-        {user.sms_opt_out_at && (
+        {hasCarrierOptOut ? (
           <Alert variant="warning" className="mb-4">
-            You are currently opted out of SMS. If you opted out by text, reply START to
-            (888) 857-6328 to re-enable carrier delivery, then confirm your preference below.
+            You opted out by text. Reply START to (888) 857-6328 to re-enable reminders;
+            Twilio will confirm the change and Meatup.Club will update automatically.
           </Alert>
-        )}
+        ) : user.sms_opt_out_at ? (
+          <Alert variant="warning" className="mb-4">
+            SMS reminders are disabled in your profile. Check the consent box below to re-enable
+            them.
+          </Alert>
+        ) : null}
 
         <Form method="post" className="space-y-4">
           <input type="hidden" name="_action" value="update_sms" />
@@ -209,11 +231,13 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
             />
           </div>
 
-          <label className="flex items-start gap-3 cursor-pointer">
+          <label className={`flex items-start gap-3 ${hasCarrierOptOut ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
               name="sms_opt_in"
               defaultChecked={user.sms_opt_in === 1}
+              disabled={hasCarrierOptOut}
+              aria-describedby={hasCarrierOptOut ? 'sms-carrier-opt-out-help' : undefined}
               className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <div>
@@ -224,6 +248,11 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
               <div className="text-sm text-muted-foreground">
                 Reminder and RSVP update messages only. No marketing texts.
               </div>
+              {hasCarrierOptOut ? (
+                <div id="sms-carrier-opt-out-help" className="mt-1 text-sm text-muted-foreground">
+                  Text START before this option becomes available again.
+                </div>
+              ) : null}
             </div>
           </label>
 

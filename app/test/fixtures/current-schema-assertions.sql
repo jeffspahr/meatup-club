@@ -6,19 +6,25 @@ INSERT INTO schema_verification (passed)
 SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM pragma_foreign_key_check) THEN 1 ELSE 0 END;
 
 INSERT INTO schema_verification (passed)
-SELECT CASE WHEN COUNT(*) = 4 THEN 1 ELSE 0 END
+SELECT CASE WHEN COUNT(*) = 5 THEN 1 ELSE 0 END
 FROM sqlite_schema
 WHERE type = 'table'
   AND name IN (
     'users',
     'events',
     'event_email_deliveries',
-    'provider_webhooks'
+    'provider_webhooks',
+    'sms_deliveries'
   );
 
 INSERT INTO schema_verification (passed)
 SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
 FROM pragma_table_info('events')
 WHERE name = 'created_by';
+
+INSERT INTO schema_verification (passed)
+SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
+FROM pragma_table_info('users')
+WHERE name = 'sms_opt_out_source';
 
 DROP TABLE schema_verification;

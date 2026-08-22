@@ -194,6 +194,57 @@ describe("dashboard._index UI", () => {
     expect(screen.getAllByText("You're in").length).toBeGreaterThan(0);
   });
 
+  it("expands the event selected by a direct reminder link", () => {
+    window.localStorage.setItem("hasVisitedDashboard", "true");
+
+    const event = (id: number, restaurantName: string) => ({
+      id,
+      restaurant_name: restaurantName,
+      restaurant_address: "1 Main St",
+      event_date: "2026-09-20",
+      event_time: "19:00",
+      status: "upcoming",
+      calendar_sequence: 0,
+      created_by: 1,
+      creator_name: "Member",
+      creator_email: "member@example.com",
+      canEdit: false,
+      creatorLabel: "Created by Member",
+      userRsvp: null,
+      allRsvps: [],
+      notResponded: [],
+    });
+
+    renderDashboard({
+      user: {
+        id: 5,
+        name: "Member",
+        email: "member@example.com",
+        phone_number: "+15551234567",
+      },
+      isAdmin: false,
+      activePoll: null,
+      topRestaurants: [],
+      dateSuggestions: [],
+      dateVotes: [],
+      restaurantSuggestions: [],
+      previousPolls: [],
+      upcomingEvents: [event(21, "First House"), event(22, "Linked House")],
+      pastEvents: [],
+      restaurants: [],
+      targetEventId: 22,
+    } as unknown as Route.ComponentProps["loaderData"]);
+
+    expect(screen.getByRole("button", { name: "Open details for First House" })).toHaveAttribute(
+      "aria-expanded",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Hide details for Linked House" })).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+  });
+
   it("renders the restaurants table and opens the detail modal on row click", async () => {
     window.localStorage.setItem("hasVisitedDashboard", "true");
     fetcherState.data = null;

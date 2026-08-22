@@ -24,6 +24,41 @@ Remove the unmaintained Terraform layer without changing or deleting live Cloudf
 - `npx wrangler deploy --dry-run` passed and assembled the Worker with the D1, queue, assets, runtime-variable, and cron configuration.
 - All repository-root workflow/config YAML parsed and `git diff --check` passed.
 
+## SMS Completion (2026-08-22)
+
+### Goal
+Close the remaining production SMS gaps after toll-free approval and Advanced Opt-Out enablement.
+
+### Acceptance Criteria
+- [x] Profile enrollment never falsely claims to clear a carrier-level toll-free STOP block; re-opt-in guidance uses START where required.
+- [x] Outbound Twilio Message SIDs and subsequent delivery statuses are persisted without storing message bodies.
+- [x] Twilio delivery callbacks are signature-verified and idempotent.
+- [x] Reminder links identify the exact event and the member events page honors that target.
+- [x] Plain Y/YES/N/NO replies remain supported and target the latest eligible upcoming reminded event, never a stale/cancelled event.
+- [x] Scheduled and ad-hoc reminders retain recipient scopes, consent checks, and duplicate protection.
+- [x] Targeted tests, full tests, typecheck, D1 verification, build, and lint pass.
+- [ ] Changes are committed with DCO, pushed, deployed by GitHub Actions, and smoke-tested live.
+
+### Active Tasks
+- [x] Reconcile the live implementation from current `origin/main` and current Twilio configuration.
+- [x] Confirm Twilio toll-free re-opt-in and status-callback contracts from official documentation.
+- [x] Implement the smallest safe schema, server, route, and UI changes.
+- [x] Add focused regression coverage.
+- [x] Run complete verification.
+- [ ] Commit, push, verify deployment, and run the live reply/status test.
+
+### Working Notes
+- Work is isolated in `/private/tmp/meatup-club-sms-completion`; the original worktree remains dirty and untouched.
+- US toll-free carrier STOP blocks cannot be cleared by the Consent Management API; a member who previously texted STOP must text START.
+- Twilio Advanced Opt-Out is enabled with YES removed from provider opt-in keywords, so Y/YES/N/NO remain application RSVP commands.
+- Twilio status callbacks report transitions after the initial accepted/queued response; the initial status and Message SID must be captured from the send response.
+
+### Results
+- Added consent-source tracking so profile opt-outs can be reversed in profile while carrier-level STOP blocks require texting START.
+- Added privacy-safe SMS delivery records, signed Twilio status callbacks, and per-recipient delivery visibility on the admin event page.
+- Reminder links now target and expand the exact upcoming event; replies select only the latest eligible upcoming reminded event.
+- Verification passed: ESLint, secret scan, TypeScript, 580 coverage tests, D1 canonical/forward migration checks, production build, four Chromium E2E tests, and `git diff --check`.
+
 ## CI/Test Roadmap Completion (2026-08-22)
 
 ### Goal

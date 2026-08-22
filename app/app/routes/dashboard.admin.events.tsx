@@ -30,7 +30,12 @@ import VoteLeadersCard from "../components/VoteLeadersCard";
 import { EventRestaurantFields } from "../components/EventRestaurantFields";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPastInTimeZone } from "../lib/dateUtils";
-import { sendAdhocSmsReminder, type SmsEvent, type SmsRecipientScope } from "../lib/sms.server";
+import {
+  sendAdhocSmsReminder,
+  type SmsDeliveryStatus,
+  type SmsEvent,
+  type SmsRecipientScope,
+} from "../lib/sms.server";
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from "../components/ui";
 import type { VoteWinner, DateWinner } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
@@ -50,6 +55,17 @@ interface AdminEventRow {
 
 interface SmsMemberRow {
   id: number;
+  name: string | null;
+  email: string;
+}
+
+interface SmsDeliveryRow {
+  event_id: number;
+  user_id: number;
+  reminder_type: string;
+  status: SmsDeliveryStatus;
+  error_code: string | null;
+  updated_at: string;
   name: string | null;
   email: string;
 }
@@ -134,6 +150,31 @@ function getCalendarDeliveryBadge(member: EventMembersRow): {
   }
 }
 
+function getSmsDeliveryBadge(status: SmsDeliveryStatus): {
+  label: string;
+  variant: "accent" | "success" | "danger" | "warning" | "muted";
+} {
+  switch (status) {
+    case "delivered":
+    case "read":
+      return { label: "Delivered", variant: "success" };
+    case "failed":
+    case "undelivered":
+    case "canceled":
+      return { label: "Failed", variant: "danger" };
+    case "sent":
+      return { label: "Sent", variant: "accent" };
+    case "queued":
+    case "sending":
+    case "accepted":
+    case "scheduled":
+      return { label: "In progress", variant: "warning" };
+    case "creating":
+    default:
+      return { label: "Pending", variant: "muted" };
+  }
+}
+
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
   const db = context.cloudflare.env.DB;
@@ -159,6 +200,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     activeMembersResult,
     deliveryHistory,
     voteLeaders,
+    smsDeliveriesResult,
   ] = await Promise.all([
     db
       .prepare(`
@@ -190,11 +232,33 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .all(),
     listEventEmailRecipientDeliveryHistory(db),
     getActivePollLeaders(db),
+    db
+      .prepare(`
+        SELECT
+          d.event_id,
+          d.user_id,
+          d.reminder_type,
+          d.status,
+          d.error_code,
+          d.updated_at,
+          u.name,
+          u.email
+        FROM sms_deliveries d
+        JOIN users u ON u.id = d.user_id
+        ORDER BY d.created_at DESC
+        LIMIT 250
+      `)
+      .all(),
   ]);
 
   const smsMembers = (smsMembersResult.results || []) as unknown as SmsMemberRow[];
   const rsvpRows = (rsvpRowsResult.results || []) as unknown as RsvpLookupRow[];
   const activeMembers = (activeMembersResult.results || []) as unknown as ActiveMemberRow[];
+  const smsDeliveries = (smsDeliveriesResult.results || []) as unknown as SmsDeliveryRow[];
+  const smsDeliveriesByEventId: Record<number, SmsDeliveryRow[]> = {};
+  for (const delivery of smsDeliveries) {
+    (smsDeliveriesByEventId[delivery.event_id] ||= []).push(delivery);
+  }
   const rsvpLookup = new Map<string, RsvpLookupRow>();
   for (const row of rsvpRows) {
     const key = `${row.event_id}:${row.user_id}`;
@@ -245,6 +309,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     topDate,
     smsMembers,
     eventMembersById,
+    smsDeliveriesByEventId,
   };
 }
 
@@ -769,7 +834,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function AdminEventsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { events, topRestaurant, topDate, smsMembers, eventMembersById } = loaderData;
+  const {
+    events,
+    topRestaurant,
+    topDate,
+    smsMembers,
+    eventMembersById,
+    smsDeliveriesByEventId,
+  } = loaderData;
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [smsScopeByEvent, setSmsScopeByEvent] = useState<Record<number, string>>({});
   const [createData, setCreateData] = useState({
@@ -1236,6 +1308,41 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 Send SMS Reminder
                               </Button>
                             </Form>
+                            {(smsDeliveriesByEventId[event.id] || []).length > 0 ? (
+                              <details className="mt-4 rounded-xl border border-border/70 bg-muted/20 p-3">
+                                <summary className="cursor-pointer text-sm font-semibold text-foreground">
+                                  SMS delivery status ({smsDeliveriesByEventId[event.id].length})
+                                </summary>
+                                <ul className="mt-3 space-y-2">
+                                  {smsDeliveriesByEventId[event.id].map((delivery) => {
+                                    const badge = getSmsDeliveryBadge(delivery.status);
+                                    return (
+                                      <li
+                                        key={`${delivery.user_id}:${delivery.reminder_type}`}
+                                        className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                                      >
+                                        <span className="text-foreground">
+                                          {delivery.name || delivery.email}
+                                          <span className="ml-2 text-xs text-muted-foreground">
+                                            {delivery.reminder_type.startsWith('adhoc:')
+                                              ? 'Ad hoc'
+                                              : delivery.reminder_type}
+                                          </span>
+                                        </span>
+                                        <span className="flex items-center gap-2">
+                                          <Badge variant={badge.variant}>{badge.label}</Badge>
+                                          {delivery.error_code ? (
+                                            <span className="text-xs text-danger">
+                                              Error {delivery.error_code}
+                                            </span>
+                                          ) : null}
+                                        </span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </details>
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex gap-2">

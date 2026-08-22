@@ -16,6 +16,7 @@ export interface CloudflareEnv {
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_FROM_NUMBER?: string;
+  APP_BASE_URL?: string;
   APP_TIMEZONE?: string;
   DEV_AUTH_BYPASS_EMAIL?: string;
 }

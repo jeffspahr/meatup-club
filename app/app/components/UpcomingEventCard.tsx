@@ -52,6 +52,7 @@ export function UpcomingEventCard({
 
   return (
     <Card
+      id={`event-${event.id}`}
       hover
       role="article"
       aria-labelledby={titleId}

@@ -19,6 +19,7 @@ export default [
   route("api/webhooks/email-delivery", "routes/api.webhooks.email-delivery.tsx"),
   route("api/webhooks/email-rsvp", "routes/api.webhooks.email-rsvp.tsx"),
   route("api/webhooks/sms", "routes/api.webhooks.sms.tsx"),
+  route("api/webhooks/sms-status", "routes/api.webhooks.sms-status.tsx"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard._index.tsx"),
     route("about", "routes/dashboard.about.tsx"),

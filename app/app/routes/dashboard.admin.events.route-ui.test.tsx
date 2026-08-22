@@ -63,6 +63,7 @@ type MockDbOptions = {
   smsMembers?: Array<Record<string, unknown>>;
   rsvpRows?: Array<Record<string, unknown>>;
   activeMembers?: Array<Record<string, unknown>>;
+  smsDeliveries?: Array<Record<string, unknown>>;
   eventForLookup?: Record<string, unknown> | null;
   eventForDelete?: Record<string, unknown> | null;
 };
@@ -72,6 +73,7 @@ function createMockDb({
   smsMembers = [],
   rsvpRows = [],
   activeMembers = [],
+  smsDeliveries = [],
   eventForLookup = {
     id: 42,
     restaurant_name: "Prime Steakhouse",
@@ -138,6 +140,10 @@ function createMockDb({
 
       if (normalizedSql === "SELECT id, name, email FROM users WHERE status = ? ORDER BY name ASC, email ASC") {
         return { results: activeMembers };
+      }
+
+      if (normalizedSql.includes("FROM sms_deliveries d") && normalizedSql.includes("JOIN users u")) {
+        return { results: smsDeliveries };
       }
 
       if (normalizedSql.includes("FROM event_email_deliveries") && normalizedSql.includes("latest_delivery_type")) {
@@ -280,6 +286,18 @@ describe("dashboard.admin.events loader and UI", () => {
         { id: 10, name: "Alice", email: "alice@example.com" },
         { id: 11, name: "Bob", email: "bob@example.com" },
       ],
+      smsDeliveries: [
+        {
+          event_id: 1,
+          user_id: 10,
+          reminder_type: "24h",
+          status: "delivered",
+          error_code: null,
+          updated_at: "2026-05-19 18:30:00",
+          name: "Alice",
+          email: "alice@example.com",
+        },
+      ],
     });
 
     const result = await loader({
@@ -299,6 +317,9 @@ describe("dashboard.admin.events loader and UI", () => {
       expect.objectContaining({ id: 1, displayStatus: "upcoming" }),
     ]);
     expect(result.smsMembers).toEqual([{ id: 10, name: "Alice", email: "alice@example.com" }]);
+    expect(result.smsDeliveriesByEventId[1]).toEqual([
+      expect.objectContaining({ user_id: 10, status: "delivered" }),
+    ]);
     expect(result.eventMembersById[1]).toEqual([
       expect.objectContaining({ id: 10, rsvp_status: "yes", admin_override: 1 }),
       expect.objectContaining({ id: 11, rsvp_status: null, admin_override: 0 }),
@@ -318,6 +339,7 @@ describe("dashboard.admin.events loader and UI", () => {
               topDate: null,
               smsMembers: [],
               eventMembersById: {},
+              smsDeliveriesByEventId: {},
             },
             actionData: { success: "Saved successfully." },
           } as unknown) as Route.ComponentProps)}
@@ -384,6 +406,20 @@ describe("dashboard.admin.events loader and UI", () => {
                   },
                 ],
               },
+              smsDeliveriesByEventId: {
+                42: [
+                  {
+                    event_id: 42,
+                    user_id: 7,
+                    reminder_type: "adhoc:11111111-1111-4111-8111-111111111111",
+                    status: "delivered",
+                    error_code: null,
+                    updated_at: "2026-05-19 18:30:00",
+                    name: "Pat Member",
+                    email: "pat@example.com",
+                  },
+                ],
+              },
             },
             actionData: undefined,
           } as unknown) as Route.ComponentProps)}
@@ -398,6 +434,7 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(formatTimeForDisplay).toHaveBeenCalledWith("18:00");
     expect(screen.getAllByText("Admin override")).toHaveLength(2);
     expect(screen.getByText("Current RSVP: yes")).toBeInTheDocument();
+    expect(screen.getByText("SMS delivery status (1)")).toBeInTheDocument();
 
     const recipientScope = document.querySelector('select[name="recipient_scope"]');
     expect(recipientScope).not.toBeNull();

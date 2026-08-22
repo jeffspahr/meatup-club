@@ -6,6 +6,7 @@ type SmsEnv = {
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_FROM_NUMBER?: string;
+  APP_BASE_URL?: string;
   APP_TIMEZONE?: string;
 };
 
@@ -32,6 +33,38 @@ const YES_KEYWORDS = new Set(["y", "yes"]);
 const NO_KEYWORDS = new Set(["n", "no"]);
 
 export type SmsReplyType = "yes" | "no" | "opt_out" | "opt_in" | "help";
+export type SmsDeliveryStatus =
+  | "creating"
+  | "accepted"
+  | "scheduled"
+  | "queued"
+  | "sending"
+  | "sent"
+  | "delivered"
+  | "undelivered"
+  | "failed"
+  | "canceled"
+  | "read";
+
+export type SmsSendResult =
+  | { success: true; messageSid: string; status: SmsDeliveryStatus }
+  | { success: false; error: string; errorCode?: string };
+
+const SMS_STATUS_RANK: Record<SmsDeliveryStatus, number> = {
+  creating: 0,
+  accepted: 10,
+  scheduled: 10,
+  queued: 20,
+  sending: 30,
+  sent: 40,
+  delivered: 50,
+  undelivered: 50,
+  failed: 50,
+  canceled: 50,
+  read: 60,
+};
+
+const TWILIO_MESSAGE_SID_PATTERN = /^SM[a-fA-F0-9]{32}$/;
 
 export function normalizePhoneNumber(input: string): string | null {
   if (!input) {
@@ -109,18 +142,27 @@ export function parseTwilioOptOutType(value: string | null): SmsReplyType | null
   }
 }
 
+export function parseTwilioMessageStatus(value: string | null): SmsDeliveryStatus | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized && normalized in SMS_STATUS_RANK
+    ? (normalized as SmsDeliveryStatus)
+    : null;
+}
+
 export function buildSmsReminderMessage({
   event,
   timeZone,
   rsvpStatus,
   now,
   customMessage,
+  appBaseUrl,
 }: {
   event: SmsEvent;
   timeZone: string;
   rsvpStatus?: string | null;
   now?: Date;
   customMessage?: string | null;
+  appBaseUrl?: string;
 }): string {
   const messageNow = now || new Date();
   const { dateLabel, timeLabel, relativeLabel } = formatEventDateTimeForSms(
@@ -133,7 +175,9 @@ export function buildSmsReminderMessage({
   const messageBody = customMessage
     ? `Meatup.Club: ${customMessage.trim()} ${baseTemplate.replace("Meatup.Club: ", "")}`
     : baseTemplate;
-  const base = `${messageBody} Your RSVP: ${statusLabel}. Details: https://meatup.club/dashboard`;
+  const baseUrl = normalizeAppBaseUrl(appBaseUrl);
+  const eventUrl = `${baseUrl}/dashboard?event=${event.id}#event-${event.id}`;
+  const base = `${messageBody} Your RSVP: ${statusLabel}. Details: ${eventUrl}`;
   return appendSmsInstructions(base);
 }
 
@@ -141,11 +185,13 @@ export async function sendSms({
   to,
   body,
   env,
+  statusCallbackUrl,
 }: {
   to: string;
   body: string;
   env: SmsEnv;
-}): Promise<{ success: boolean; error?: string }> {
+  statusCallbackUrl?: string;
+}): Promise<SmsSendResult> {
   const accountSid = env.TWILIO_ACCOUNT_SID;
   const authToken = env.TWILIO_AUTH_TOKEN;
   const fromNumber = env.TWILIO_FROM_NUMBER;
@@ -158,6 +204,9 @@ export async function sendSms({
   params.set("To", to);
   params.set("From", fromNumber);
   params.set("Body", body);
+  if (statusCallbackUrl) {
+    params.set("StatusCallback", statusCallbackUrl);
+  }
 
   const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
   const response = await fetch(
@@ -172,12 +221,66 @@ export async function sendSms({
     }
   );
 
+  const responseText = await response.text();
+  const payload = parseTwilioResponse(responseText);
+
   if (!response.ok) {
-    const errorText = await response.text();
-    return { success: false, error: errorText };
+    const errorCode = asOptionalString(payload.code);
+    const error = asOptionalString(payload.message) || `Twilio request failed (${response.status}).`;
+    return { success: false, error, errorCode };
   }
 
-  return { success: true };
+  const messageSid = asOptionalString(payload.sid);
+  const status = parseTwilioMessageStatus(asOptionalString(payload.status) ?? null);
+  if (!messageSid || !TWILIO_MESSAGE_SID_PATTERN.test(messageSid) || !status) {
+    return { success: false, error: "Twilio returned an invalid message response." };
+  }
+
+  return { success: true, messageSid, status };
+}
+
+export async function recordSmsDeliveryStatus({
+  db,
+  deliveryId,
+  messageSid,
+  status,
+  errorCode,
+}: {
+  db: D1Database;
+  deliveryId: string;
+  messageSid?: string | null;
+  status: SmsDeliveryStatus;
+  errorCode?: string | null;
+}): Promise<boolean> {
+  const result = await db
+    .prepare(`
+      UPDATE sms_deliveries
+      SET provider_message_sid = COALESCE(provider_message_sid, ?),
+          status = ?,
+          status_rank = ?,
+          error_code = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND (provider_message_sid IS NULL OR provider_message_sid = ?)
+        AND (
+          status_rank < ?
+          OR (status_rank = ? AND status = ?)
+        )
+    `)
+    .bind(
+      messageSid || null,
+      status,
+      SMS_STATUS_RANK[status],
+      errorCode || null,
+      deliveryId,
+      messageSid || null,
+      SMS_STATUS_RANK[status],
+      SMS_STATUS_RANK[status],
+      status
+    )
+    .run();
+
+  return Number(result?.meta?.changes ?? 0) > 0;
 }
 
 export async function sendScheduledSmsReminders({
@@ -249,17 +352,27 @@ export async function sendScheduledSmsReminders({
           timeZone,
           rsvpStatus,
           now,
+          appBaseUrl: env.APP_BASE_URL,
         });
-        const result = await sendSms({ to, body, env });
+        const result = await sendTrackedSms({
+          db,
+          env,
+          eventId: event.id,
+          userId: recipient.id,
+          reminderType: target.type,
+          to,
+          body,
+        });
         if (result.success) {
-          await db
-            .prepare(
-              "INSERT OR IGNORE INTO sms_reminders (event_id, user_id, reminder_type) VALUES (?, ?, ?)"
-            )
-            .bind(event.id, recipient.id, target.type)
-            .run();
+          await recordAcceptedReminder(db, event.id, recipient.id, target.type);
         } else {
-          console.error(`SMS reminder failed for ${to}: ${result.error}`);
+          console.error({
+            event: "sms_reminder_failed",
+            eventId: event.id,
+            userId: recipient.id,
+            reminderType: target.type,
+            errorCode: result.errorCode || null,
+          });
         }
       }
     }
@@ -301,7 +414,7 @@ export async function sendAdhocSmsReminder({
     .bind(event.id, ...recipientQuery.bindings)
     .all();
 
-  const reminderType = `adhoc:${Date.now()}`;
+  const reminderType = `adhoc:${crypto.randomUUID()}`;
   let sent = 0;
   const errors: string[] = [];
 
@@ -313,18 +426,22 @@ export async function sendAdhocSmsReminder({
       timeZone,
       rsvpStatus,
       customMessage,
+      appBaseUrl: env.APP_BASE_URL,
     });
-    const result = await sendSms({ to, body: message, env });
+    const result = await sendTrackedSms({
+      db,
+      env,
+      eventId: event.id,
+      userId: recipient.id,
+      reminderType,
+      to,
+      body: message,
+    });
     if (result.success) {
       sent += 1;
-      await db
-        .prepare(
-          "INSERT OR IGNORE INTO sms_reminders (event_id, user_id, reminder_type) VALUES (?, ?, ?)"
-        )
-        .bind(event.id, recipient.id, reminderType)
-        .run();
+      await recordAcceptedReminder(db, event.id, recipient.id, reminderType);
     } else {
-      errors.push(`${to}: ${result.error}`);
+      errors.push(`Member ${recipient.id}: ${result.error}`);
     }
   }
 
@@ -394,6 +511,98 @@ function isWithinWindow(diffMs: number, targetMs: number, windowMs: number): boo
 
 function appendSmsInstructions(message: string): string {
   return `${message} Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out.`;
+}
+
+async function sendTrackedSms({
+  db,
+  env,
+  eventId,
+  userId,
+  reminderType,
+  to,
+  body,
+}: {
+  db: D1Database;
+  env: SmsEnv;
+  eventId: number;
+  userId: number;
+  reminderType: string;
+  to: string;
+  body: string;
+}): Promise<SmsSendResult> {
+  const deliveryId = crypto.randomUUID();
+  await db
+    .prepare(`
+      INSERT INTO sms_deliveries (
+        id, event_id, user_id, reminder_type, status, status_rank
+      ) VALUES (?, ?, ?, ?, 'creating', 0)
+    `)
+    .bind(deliveryId, eventId, userId, reminderType)
+    .run();
+
+  const callbackUrl = new URL("/api/webhooks/sms-status", normalizeAppBaseUrl(env.APP_BASE_URL));
+  callbackUrl.searchParams.set("delivery_id", deliveryId);
+  const result = await sendSms({
+    to,
+    body,
+    env,
+    statusCallbackUrl: callbackUrl.toString(),
+  });
+
+  if (result.success) {
+    await recordSmsDeliveryStatus({
+      db,
+      deliveryId,
+      messageSid: result.messageSid,
+      status: result.status,
+    });
+    return result;
+  }
+
+  await recordSmsDeliveryStatus({
+    db,
+    deliveryId,
+    status: "failed",
+    errorCode: result.errorCode,
+  });
+  return result;
+}
+
+async function recordAcceptedReminder(
+  db: D1Database,
+  eventId: number,
+  userId: number,
+  reminderType: string
+): Promise<void> {
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO sms_reminders (event_id, user_id, reminder_type) VALUES (?, ?, ?)"
+    )
+    .bind(eventId, userId, reminderType)
+    .run();
+}
+
+function normalizeAppBaseUrl(value?: string): string {
+  return (value?.trim() || "https://meatup.club").replace(/\/$/, "");
+}
+
+function parseTwilioResponse(value: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
 }
 
 function buildRecipientScopeQuery(

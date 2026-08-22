@@ -124,6 +124,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const db = context.cloudflare.env.DB;
   const isAdmin = user.is_admin === 1;
   const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const requestedEventId = Number(new URL(request.url).searchParams.get('event'));
 
   // Phase 1: queries that don't depend on each other.
   const [
@@ -328,6 +329,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     upcomingEvents: upcomingEvents as EventCard[],
     pastEvents,
     restaurants,
+    targetEventId:
+      Number.isInteger(requestedEventId) &&
+      upcomingEvents.some((event) => event.id === requestedEventId)
+        ? requestedEventId
+        : null,
   };
 }
 
@@ -650,6 +656,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
     upcomingEvents,
     pastEvents,
     restaurants,
+    targetEventId,
   } = loaderData;
   const [showSmsPrompt, setShowSmsPrompt] = useState(false);
   const [showAddRestaurant, setShowAddRestaurant] = useState(false);
@@ -659,7 +666,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   const [createEventData, setCreateEventData] = useState<EventFormState>(EMPTY_EVENT_FORM);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [expandedEventId, setExpandedEventId] = useState<number | null>(
-    upcomingEvents.length === 1 ? upcomingEvents[0].id : null
+    targetEventId ?? (upcomingEvents.length === 1 ? upcomingEvents[0].id : null)
   );
   const [editEventData, setEditEventData] = useState<{ id: number } & EventFormState>({
     id: 0,
