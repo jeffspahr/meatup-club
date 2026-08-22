@@ -30,7 +30,7 @@ Make restaurant voting reliable on a fresh iPhone/Safari page load even before R
 - Unified save/remove behavior under the existing `vote_restaurant` intent, validated positive integer IDs against the active poll's available restaurants, and retained activity logging for both paths.
 - Replaced DELETE-then-INSERT with a single `ON CONFLICT(poll_id, user_id) DO UPDATE` statement and exercised cast, replacement, persistence, and removal against local D1.
 - Added an iPhone 17 WebKit project with JavaScript disabled, removed the Chromium reload/retry workaround, and updated CI to install both browsers.
-- Full `npm run verify` passed: lint, secret scan, typecheck, 79 files/612 tests with coverage, D1 schema/migrations, production build, and six browser journeys. A final expanded Chromium journey also passed after adding the conflict-path assertion.
+- Full `npm run verify` passed on the latest main: lint, secret scan, typecheck, 80 files/625 tests with coverage, D1 schema/migrations, production build, and six browser journeys.
 
 ## Triage GitHub Issue #256 (2026-08-22)
 
