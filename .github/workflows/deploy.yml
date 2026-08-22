@@ -76,3 +76,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: app
           command: deploy
+
+      - name: Smoke test production
+        if: steps.current_main.outputs.deploy == 'true'
+        run: npm run smoke:production

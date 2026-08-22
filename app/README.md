@@ -1,6 +1,6 @@
 # Meatup.Club - React Router (Remix) Version
 
-A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pages, and D1 database.
+A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Workers, and D1 database.
 
 ## Features
 
@@ -17,7 +17,7 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 ## Tech Stack
 
 - **Framework**: React Router 7 (formerly Remix)
-- **Runtime**: Cloudflare Pages (Edge)
+- **Runtime**: Cloudflare Workers
 - **Database**: Cloudflare D1 (SQLite)
 - **Auth**: Google OAuth
 - **Email**: Resend (with inbound routing for calendar RSVP sync)
@@ -26,9 +26,9 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24
 - Cloudflare account
-- Wrangler CLI installed globally (`npm install -g wrangler`)
+- Project dependencies installed (`npm ci` provides the pinned Wrangler CLI)
 - Google OAuth credentials
 
 ## Local Development Setup
@@ -62,20 +62,20 @@ A quarterly steakhouse meetup club app built with React Router 7, Cloudflare Pag
 
    Create a new D1 database:
    ```bash
-   wrangler d1 create meatup-club-db
+   npx wrangler d1 create meatup-club-db
    ```
 
    Update `wrangler.toml` with your database ID.
 
    Apply the canonical schema (from `app/`):
    ```bash
-   wrangler d1 execute meatup-club-db --file=../schema.sql
+   npx wrangler d1 execute meatup-club-db --local --file=../schema.sql
    ```
 
    For existing environments, apply only post-baseline migrations from
    `./migrations`:
    ```bash
-   wrangler d1 migrations apply meatup-club-db --remote
+   npx wrangler d1 migrations apply meatup-club-db --remote
    ```
 
 5. **Run development server**
@@ -141,9 +141,9 @@ See `../schema.sql` for the production-aligned baseline and `./migrations/README
 
 1. **Configure secrets**
    ```bash
-   wrangler pages secret put GOOGLE_CLIENT_ID
-   wrangler pages secret put GOOGLE_CLIENT_SECRET
-   wrangler pages secret put SESSION_SECRET
+   npx wrangler secret put GOOGLE_CLIENT_ID --name meatup-club
+   npx wrangler secret put GOOGLE_CLIENT_SECRET --name meatup-club
+   npx wrangler secret put SESSION_SECRET --name meatup-club
    ```
 
 2. **Deploy**
