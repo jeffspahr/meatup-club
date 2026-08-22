@@ -102,6 +102,10 @@ body {
   padding-right: 1rem;
 }
 
+.page-main.page-main-wide {
+  max-width: none;
+}
+
 @media (min-width: 640px) {
   .page-main {
     padding-left: 1.5rem;

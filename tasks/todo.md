@@ -1,5 +1,41 @@
 # Active Backlog (2026-02-23)
 
+## Member Table Width (2026-08-22)
+
+### Goal
+Use the available desktop admin workspace for Member Management instead of forcing the table into a narrow internal scroller.
+
+### Acceptance Criteria
+- [x] Member Management expands beyond the default 72rem page cap on wide screens.
+- [x] The member table fills the available card width and shows all columns without desktop scrolling at the reported viewport.
+- [x] Horizontal scrolling remains contained within the card on narrow screens.
+- [x] Focused tests, lint, typecheck, build, and visual measurements pass.
+
+### Active Tasks
+- [x] Reproduce the width constraint and identify the page and table caps.
+- [x] Add the page-specific wide layout and regression coverage.
+- [x] Verify at wide and narrow viewports.
+- [ ] Publish through the normal deployment workflow.
+
+### Working Notes
+- The default `.page-main` max-width is correct for content pages but too restrictive for this seven-column admin table.
+- Work is isolated in `/private/tmp/meatup-member-table-width` from current `origin/main`; unrelated changes in the primary checkout remain untouched.
+
+### Results
+- Added a page-specific wide layout modifier so Member Management uses the full admin workspace without changing content-oriented pages.
+- Made the member table fill its card while retaining its minimum readable width and contained mobile overflow.
+- Added UI regression assertions for the wide page modifier, full-width table, and overflow boundary.
+
+### Verification
+- `fnm exec --using=v24.14.0 npm run test:run -- app/routes/dashboard.admin.members.route-ui.test.tsx` (4 passed)
+- `npm run test:run` (626 passed)
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+- At a 2048px viewport, the admin content expanded to 1800px and the 1736px table had no internal horizontal overflow.
+- At a 390px viewport, the 1287px table scrolled within its 350px card while the document remained viewport-width.
+- `git diff --check`
+
 ## Member SMS Status (2026-08-22)
 
 ### Goal
