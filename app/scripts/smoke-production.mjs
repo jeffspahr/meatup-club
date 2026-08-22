@@ -96,9 +96,23 @@ async function verifyWwwRedirect() {
   }
 }
 
+async function verifySmsHealth() {
+  const url = new URL("/api/health/sms", origin);
+  const response = await request(url);
+  if (response.status !== 200) {
+    throw new Error(`${url} returned HTTP ${response.status}; expected healthy SMS status`);
+  }
+
+  const payload = await response.json();
+  if (payload?.service !== "sms" || payload?.status !== "healthy") {
+    throw new Error(`${url} returned an invalid SMS health response`);
+  }
+}
+
 async function verifyProduction() {
   await verifyHtml("/");
   await verifyHtml("/verification");
+  await verifySmsHealth();
   await verifyWwwRedirect();
 }
 

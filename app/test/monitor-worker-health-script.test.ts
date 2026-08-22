@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { parseWorkerErrors } from "../scripts/monitor-worker-health.mjs";
+import { parseWorkerErrors, smokeWithRetries } from "../scripts/monitor-worker-health.mjs";
 
 const scriptPath = fileURLToPath(
   new URL("../scripts/monitor-worker-health.mjs", import.meta.url)
@@ -46,7 +46,12 @@ function runMonitor(env: Record<string, string>): Promise<{ stdout: string; stde
 
 async function healthyOrigins() {
   const app = await listen(
-    createServer((_request, response) => {
+    createServer((request, response) => {
+      if (request.url === "/api/health/sms") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end('{"service":"sms","status":"healthy"}');
+        return;
+      }
       response.writeHead(200, { "content-type": "text/html" }).end("<p>ok</p>");
     })
   );
@@ -93,6 +98,34 @@ describe("Worker metrics parsing", () => {
         data: { viewer: { accounts: [{ workersInvocationsAdaptive: [{ sum: {} }] }] } },
       })
     ).toThrow("invalid error count");
+  });
+});
+
+describe("Worker synthetic health", () => {
+  it("reports the application unhealthy when SMS provider health fails", async () => {
+    const app = await listen(
+      createServer((request, response) => {
+        if (request.url === "/api/health/sms") {
+          response.writeHead(503, { "content-type": "application/json" });
+          response.end('{"service":"sms","status":"unhealthy"}');
+          return;
+        }
+        response.writeHead(200, { "content-type": "text/html" }).end("<p>ok</p>");
+      })
+    );
+    const www = await listen(
+      createServer((_request, response) => {
+        response.writeHead(301, { location: `${app}/` }).end();
+      })
+    );
+
+    await expect(smokeWithRetries({
+      appOrigin: app,
+      wwwOrigin: www,
+      attempts: 1,
+      delayMs: 1,
+      timeoutMs: 1000,
+    })).resolves.toEqual(expect.objectContaining({ healthy: false, attempts: 1 }));
   });
 });
 

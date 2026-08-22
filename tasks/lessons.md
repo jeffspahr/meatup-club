@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
+
 - 2026-02-21: Initialized lessons log for remediation tracking.
 - 2026-02-21: Route-action DB mocks must support both `prepare().first/run/all` and `prepare().bind().first/run/all`; otherwise tests can miss real query shapes and fail with mock-only type errors.
 - 2026-02-23: When introducing stricter shared DB types, update dependent tests and typed query result casts in the same change; otherwise typecheck breaks on mock shape mismatches and `unknown` row types.

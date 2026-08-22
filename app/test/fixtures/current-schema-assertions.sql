@@ -6,7 +6,7 @@ INSERT INTO schema_verification (passed)
 SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM pragma_foreign_key_check) THEN 1 ELSE 0 END;
 
 INSERT INTO schema_verification (passed)
-SELECT CASE WHEN COUNT(*) = 5 THEN 1 ELSE 0 END
+SELECT CASE WHEN COUNT(*) = 6 THEN 1 ELSE 0 END
 FROM sqlite_schema
 WHERE type = 'table'
   AND name IN (
@@ -14,7 +14,8 @@ WHERE type = 'table'
     'events',
     'event_email_deliveries',
     'provider_webhooks',
-    'sms_deliveries'
+    'sms_deliveries',
+    'sms_provider_health'
   );
 
 INSERT INTO schema_verification (passed)
