@@ -102,7 +102,7 @@ npx wrangler d1 execute meatup-club-db --local --command "INSERT OR IGNORE INTO 
 ```
 
 Restart `npm run dev` after changing `.env`. Do not configure
-`DEV_AUTH_BYPASS_EMAIL` in Cloudflare, Terraform, GitHub Actions, or production
+`DEV_AUTH_BYPASS_EMAIL` in Cloudflare, GitHub Actions, or production
 secrets. Cloudflare local development should use either `.env` or `.dev.vars`,
 not both; this project documents `.env` for local setup.
 

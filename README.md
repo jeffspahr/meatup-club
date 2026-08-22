@@ -14,7 +14,7 @@ Private web app for organizing quarterly steakhouse meetups.
 ## Repository Layout
 
 - `app/` - Runtime application, tests, post-baseline migrations, Worker entrypoint
-- `terraform/` - Cloudflare infrastructure as code
+- `.github/workflows/` - Required CI and gated Wrangler deployment
 - `schema.sql` - Canonical fresh-install D1 schema
 
 ## Start Here
