@@ -8,6 +8,7 @@ import {
   toStagedEventEmailBatchFromQueryResult,
 } from "../lib/event-email-delivery.server";
 import { sendPollOpenSmsNotification } from "../lib/sms.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -177,12 +178,10 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: { DB: db, APP_BASE_URL: "https://meatup.club" },
           ctx: { waitUntil: vi.fn() },
-        },
-      } as any,
+        } as never),
     } as any);
 
     expect(result).toEqual({ success: "Twilio accepted 2 poll SMS notifications." });
@@ -213,7 +212,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: createMockDb({}) } } } as any,
+      context: createLoadContext({ env: { DB: createMockDb({}) } } as never),
     } as any);
 
     expect(result).toEqual({
@@ -232,7 +231,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: oversized,
       }),
-      context: { cloudflare: { env: { DB: createMockDb({}) } } } as any,
+      context: createLoadContext({ env: { DB: createMockDb({}) } } as never),
     } as any);
     expect(oversizedResult).toEqual({
       error: "Custom SMS note must be 240 characters or fewer",
@@ -247,7 +246,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: inactive,
       }),
-      context: { cloudflare: { env: { DB: createMockDb({ activePoll: null }) } } } as any,
+      context: createLoadContext({ env: { DB: createMockDb({ activePoll: null }) } } as never),
     } as any);
     expect(inactiveResult).toEqual({ error: "Poll is not active or does not exist" });
     expect(sendPollOpenSmsNotification).not.toHaveBeenCalled();
@@ -270,7 +269,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } } as any,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } as never),
     } as any);
 
     expect(result).toEqual({ error: "Selected date not found in this poll" });
@@ -291,7 +290,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } } as any,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } as never),
     } as any);
 
     expect(response).toBeInstanceOf(Response);
@@ -322,7 +321,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } } as any,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "UTC" }, ctx: { waitUntil: vi.fn() } } as never),
     } as any);
 
     expect(response).toBeInstanceOf(Response);
@@ -364,7 +363,7 @@ describe("dashboard.admin.polls close action", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as any,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never),
     } as any);
 
     expect(response).toBeInstanceOf(Response);

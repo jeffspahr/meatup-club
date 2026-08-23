@@ -3,6 +3,7 @@ import type { Route } from "./+types/accept-invite";
 import { getUser } from "../lib/auth.server";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { Alert } from "../components/ui";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await getUser(request, context);
@@ -30,7 +31,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { error: "Only invited users can accept invitations" };
   }
 
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   // Update user status to active
   await db

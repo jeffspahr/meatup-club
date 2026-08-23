@@ -1,8 +1,10 @@
-import type { AppLoadContext } from "react-router";
+import type { RouterContextProvider } from "react-router";
+import type { CloudflareEnv } from "../env";
 import { Webhook } from "svix";
 import { upsertRsvp } from "../lib/rsvps.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { logErrorEvent, logInfoEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface ResendEmailReceivedPayload {
   type: string;
@@ -34,12 +36,18 @@ interface EventAliasRow {
  * Webhook handler for inbound emails from Resend
  * Parses calendar RSVP responses and updates the database
  */
-export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
-  const db = context.cloudflare.env.DB;
+export async function action({
+  request,
+  context,
+}: {
+  request: Request;
+  context: Readonly<RouterContextProvider>;
+}) {
+  const db = getCloudflareContext(context).env.DB;
 
   try {
     // Verify webhook signature
-    const webhookSecret = context.cloudflare.env.RESEND_WEBHOOK_SECRET;
+    const webhookSecret = getCloudflareContext(context).env.RESEND_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
       logErrorEvent("resend_rsvp_webhook_secret_missing");
@@ -203,7 +211,10 @@ export async function action({ request, context }: { request: Request; context: 
   }
 }
 
-async function resolveCanonicalEventId(db: AppLoadContext["cloudflare"]["env"]["DB"], eventId: number): Promise<number> {
+async function resolveCanonicalEventId(
+  db: CloudflareEnv["DB"],
+  eventId: number
+): Promise<number> {
   try {
     const alias = await db
       .prepare('SELECT canonical_event_id FROM event_aliases WHERE alias_event_id = ?')

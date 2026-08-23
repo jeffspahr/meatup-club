@@ -8,6 +8,7 @@ import {
 } from "../lib/auth.server";
 import { ensureUser, isUserActive } from "../lib/db.server";
 import { logActivity } from "../lib/activity.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/session.server", () => ({
   getSession: vi.fn(),
@@ -68,7 +69,7 @@ describe("auth.google.callback route", () => {
     await expect(
       loader({
         request: createCookieRequest("http://localhost/auth/google/callback?state=expected-state"),
-        context: { cloudflare: { env: { DB: {} } } } as never,
+        context: createLoadContext({ env: { DB: {} } } as never) as never,
         params: {},
       } as never)
     ).rejects.toThrow("Missing code or state parameter");
@@ -80,7 +81,7 @@ describe("auth.google.callback route", () => {
         request: createCookieRequest(
           "http://localhost/auth/google/callback?code=code-123&state=wrong-state"
         ),
-        context: { cloudflare: { env: { DB: {} } } } as never,
+        context: createLoadContext({ env: { DB: {} } } as never) as never,
         params: {},
       } as never)
     ).rejects.toThrow("Invalid state parameter");
@@ -94,7 +95,7 @@ describe("auth.google.callback route", () => {
 
     const response = await loader({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -144,7 +145,7 @@ describe("auth.google.callback route", () => {
       request: createCookieRequest(
         "http://localhost/auth/google/callback?code=code-123&state=expected-state"
       ),
-      context: { cloudflare: { env: { DB: { marker: true } } } } as never,
+      context: createLoadContext({ env: { DB: { marker: true } } } as never) as never,
       params: {},
     } as never);
 

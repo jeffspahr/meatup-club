@@ -3,6 +3,7 @@ import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface PlacesSearchResponse {
   places?: Array<{
@@ -16,7 +17,7 @@ interface PlacesSearchResponse {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const input = url.searchParams.get("input")?.trim();
-  const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
+  const apiKey = getCloudflareContext(context).env.GOOGLE_PLACES_API_KEY;
 
   if (!input) {
     return Response.json({ error: "Input is required" }, { status: 400 });
@@ -45,12 +46,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const identifier = `user:${user.id}:ip:${ip}`;
   const rateLimit = await enforceRateLimit({
-    db: context.cloudflare.env.DB,
+    db: getCloudflareContext(context).env.DB,
     scope: "places.search",
     identifier,
     limit: 30,
     windowSeconds: 60,
-    ctx: context.cloudflare.ctx,
+    ctx: getCloudflareContext(context).ctx,
   });
 
   if (!rateLimit.allowed) {

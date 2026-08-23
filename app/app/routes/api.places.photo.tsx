@@ -3,6 +3,7 @@ import { getUser } from "../lib/auth.server";
 import { withCache } from "../lib/cache.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 const MAX_PHOTO_NAME_LENGTH = 1024;
 
@@ -11,7 +12,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const name = url.searchParams.get("name")?.trim();
   const maxHeightPx = url.searchParams.get("maxHeightPx") || "400";
   const maxWidthPx = url.searchParams.get("maxWidthPx") || "400";
-  const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
+  const apiKey = getCloudflareContext(context).env.GOOGLE_PLACES_API_KEY;
 
   if (!name) {
     return Response.json({ error: "Photo name is required" }, { status: 400 });
@@ -49,12 +50,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const identifier = `user:${user.id}:ip:${ip}`;
   const rateLimit = await enforceRateLimit({
-    db: context.cloudflare.env.DB,
+    db: getCloudflareContext(context).env.DB,
     scope: "places.photo",
     identifier,
     limit: 120,
     windowSeconds: 60,
-    ctx: context.cloudflare.ctx,
+    ctx: getCloudflareContext(context).ctx,
   });
 
   if (!rateLimit.allowed) {
@@ -92,8 +93,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
             const freshResponse = await fetchPhoto(freshName, maxHeightPx, maxWidthPx, apiKey);
             if (freshResponse.ok) {
               // Update the stored photo_url in the background
-              const db = context.cloudflare.env.DB;
-              context.cloudflare.ctx.waitUntil(
+              const db = getCloudflareContext(context).env.DB;
+              getCloudflareContext(context).ctx.waitUntil(
                 db.prepare('UPDATE restaurants SET photo_url = ? WHERE photo_url LIKE ?')
                   .bind(
                     `/api/places/photo?${new URLSearchParams({ name: freshName, maxHeightPx, maxWidthPx }).toString()}`,

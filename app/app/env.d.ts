@@ -1,4 +1,5 @@
 import type { D1Database, Queue } from "@cloudflare/workers-types";
+import type { RouterContextProvider } from "react-router";
 import type { EventEmailQueueMessage } from "./lib/event-email-delivery.server";
 
 /**
@@ -21,11 +22,15 @@ export interface CloudflareEnv {
   DEV_AUTH_BYPASS_EMAIL?: string;
 }
 
+export interface CloudflareLoadContext {
+  env: CloudflareEnv;
+  ctx: ExecutionContext;
+}
+
 declare module "react-router" {
-  interface AppLoadContext {
-    cloudflare: {
-      env: CloudflareEnv;
-      ctx: ExecutionContext;
-    };
+  interface ServerEntryModule {
+    createLoadContext(
+      cloudflare: CloudflareLoadContext
+    ): RouterContextProvider;
   }
 }

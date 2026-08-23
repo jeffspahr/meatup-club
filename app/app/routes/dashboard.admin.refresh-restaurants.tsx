@@ -10,6 +10,7 @@ import {
 } from "../lib/places.server";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
+import { getCloudflareContext } from "~/lib/router-context";
 
 type MapperColumn = keyof RestaurantFieldsFromPlace;
 
@@ -37,8 +38,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
-  const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
+  const db = getCloudflareContext(context).env.DB;
+  const apiKey = getCloudflareContext(context).env.GOOGLE_PLACES_API_KEY;
 
   const restaurants = await db
     .prepare(`

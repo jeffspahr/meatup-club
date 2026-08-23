@@ -8,6 +8,7 @@ import {
   parseTwilioOptOutType,
   verifyTwilioSignature,
 } from "../lib/sms.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/webhook-idempotency.server", () => ({
   reserveWebhookDelivery: vi.fn(),
@@ -150,14 +151,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest(),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -173,14 +172,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ sid: "SM_DUPLICATE_123" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -195,14 +192,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest(),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -215,14 +210,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest(),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -237,14 +230,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "START", optOutType: "START" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -262,14 +253,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "STOP" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -301,14 +290,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "STOP", optOutType: "STOP" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -343,14 +330,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "START", optOutType: "START" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -386,14 +371,12 @@ describe("api.webhooks.sms", () => {
 
     await action({
       request: createRequest({ body: "START", sid: "SM_PREFILLED", optOutType: "START" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -423,14 +406,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "YES", optOutType: "START" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -450,14 +431,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "HELP" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -472,14 +451,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "HELP", optOutType: "HELP" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -496,14 +473,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest(),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -518,14 +493,12 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest(),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -542,15 +515,13 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "YES" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
             APP_TIMEZONE: "America/New_York",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -572,15 +543,13 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "NO" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
             APP_TIMEZONE: "America/New_York",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -601,15 +570,13 @@ describe("api.webhooks.sms", () => {
 
     const response = await action({
       request: createRequest({ body: "YES" }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_AUTH_TOKEN: "token",
             APP_TIMEZONE: "America/New_York",
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 

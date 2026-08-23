@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./api.admin.setup-resend";
 import { requireAdmin } from "../lib/auth.server";
 import { ensureResendEmailSetup } from "../lib/resend-setup.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -34,11 +35,9 @@ describe("api.admin.setup-resend route", () => {
       request: new Request("http://localhost/api/admin/setup-resend", {
         method: "POST",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {},
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(requireAdmin).toHaveBeenCalled();
@@ -61,11 +60,9 @@ describe("api.admin.setup-resend route", () => {
       request: new Request("http://localhost/api/admin/setup-resend", {
         method: "POST",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: { RESEND_API_KEY: "resend-key" },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(requireAdmin).toHaveBeenCalled();
@@ -94,11 +91,9 @@ describe("api.admin.setup-resend route", () => {
       request: new Request("http://localhost/api/admin/setup-resend", {
         method: "POST",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: { RESEND_API_KEY: "resend-key" },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(response.status).toBe(500);

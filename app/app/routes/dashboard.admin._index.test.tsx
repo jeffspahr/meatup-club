@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminPage, { loader } from "./dashboard.admin._index";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -22,7 +23,7 @@ describe("dashboard.admin._index route", () => {
   it("requires admin access in the loader", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 

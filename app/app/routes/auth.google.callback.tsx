@@ -1,4 +1,5 @@
 import type { Route } from "./+types/auth.google.callback";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   // Import server-only modules inside loader to prevent client bundling
@@ -30,7 +31,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const googleUser = await getGoogleUserInfo(tokens.access_token);
 
   // Ensure user exists in database
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const userId = await ensureUser(
     db,
     googleUser.email,

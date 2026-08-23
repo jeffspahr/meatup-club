@@ -1,17 +1,11 @@
+import { getCloudflareContext } from "~/lib/router-context";
+import type { RouterContextProvider } from "react-router";
 /**
  * Cloudflare Cache API wrapper.
  *
  * Eliminates the repeated cache-check / fetch / cache-put boilerplate
  * that was duplicated across the three Google Places API routes.
  */
-
-interface CacheContext {
-  cloudflare: {
-    ctx: {
-      waitUntil(promise: Promise<unknown>): void;
-    };
-  };
-}
 
 interface CloudflareCacheStorage extends CacheStorage {
   default: Cache;
@@ -27,7 +21,7 @@ interface CloudflareCacheStorage extends CacheStorage {
  */
 export async function withCache(
   request: Request,
-  context: CacheContext,
+  context: Readonly<RouterContextProvider>,
   fetcher: () => Promise<Response>,
   cacheControl: string
 ): Promise<Response> {
@@ -53,7 +47,7 @@ export async function withCache(
       headers,
     });
 
-    context.cloudflare.ctx.waitUntil(cache.put(cacheKey, cacheable));
+    getCloudflareContext(context).ctx.waitUntil(cache.put(cacheKey, cacheable));
   }
 
   return response;

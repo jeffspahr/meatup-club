@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminMembersPage, { loader } from "./dashboard.admin.members";
 import type { Route } from "./+types/dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 let navigationState: { state: string; formData: FormData | null } = {
   state: "idle",
@@ -93,7 +94,7 @@ describe("dashboard.admin.members loader and UI", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/members"),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

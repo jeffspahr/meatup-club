@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action, loader } from "./accept-invite";
 import { getUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   getUser: vi.fn(),
@@ -43,7 +44,7 @@ describe("accept-invite route", () => {
     await expectRedirectThrown(
       loader({
         request: new Request("http://localhost/accept-invite"),
-        context: { cloudflare: { env: {} } } as never,
+        context: createLoadContext({ env: {} } as never) as never,
         params: {},
       } as never),
       "/login"
@@ -60,7 +61,7 @@ describe("accept-invite route", () => {
     await expectRedirectThrown(
       loader({
         request: new Request("http://localhost/accept-invite"),
-        context: { cloudflare: { env: {} } } as never,
+        context: createLoadContext({ env: {} } as never) as never,
         params: {},
       } as never),
       "/dashboard"
@@ -76,7 +77,7 @@ describe("accept-invite route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/accept-invite"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 
@@ -95,7 +96,7 @@ describe("accept-invite route", () => {
     await expectRedirectThrown(
       action({
         request: new Request("http://localhost/accept-invite", { method: "POST" }),
-        context: { cloudflare: { env: {} } } as never,
+        context: createLoadContext({ env: {} } as never) as never,
         params: {},
       } as never),
       "/login"
@@ -112,7 +113,7 @@ describe("accept-invite route", () => {
 
     const result = await action({
       request: new Request("http://localhost/accept-invite", { method: "POST" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -130,7 +131,7 @@ describe("accept-invite route", () => {
 
     const response = await action({
       request: new Request("http://localhost/accept-invite", { method: "POST" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

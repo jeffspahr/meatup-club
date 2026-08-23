@@ -29,9 +29,8 @@ const requestHandler = createRequestHandler(build, "production");
 export default {
   async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext) {
     try {
-      return await requestHandler(request, {
-        cloudflare: { env, ctx },
-      });
+      const loadContext = build.entry.module.createLoadContext({ env, ctx });
+      return await requestHandler(request, loadContext);
     } catch (error) {
       logErrorEvent("worker_fetch_failed", error);
       return new Response("Internal Server Error", { status: 500 });

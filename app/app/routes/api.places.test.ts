@@ -4,6 +4,7 @@ import { loader as photoLoader } from "./api.places.photo";
 import { loader as searchLoader } from "./api.places.search";
 import { getUser } from "../lib/auth.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   getUser: vi.fn(),
@@ -43,8 +44,7 @@ function createContext(options: {
   };
 
   return {
-    context: {
-      cloudflare: {
+    context: createLoadContext({
         env: {
           DB: db,
           GOOGLE_PLACES_API_KEY: options.apiKey ?? "test-places-api-key",
@@ -52,8 +52,7 @@ function createContext(options: {
         ctx: {
           waitUntil,
         },
-      },
-    } as never,
+      } as never) as never,
     db,
     runCalls,
     waitUntil,

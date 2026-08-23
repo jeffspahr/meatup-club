@@ -10,6 +10,7 @@ import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
 import { upsertRsvp } from "../lib/rsvps.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface SmsWebhookUserRow {
   id: number;
@@ -26,7 +27,7 @@ interface UpcomingEventRow {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const env = context.cloudflare.env;
+  const env = getCloudflareContext(context).env;
   const db = env.DB;
 
   const formData = await request.formData();

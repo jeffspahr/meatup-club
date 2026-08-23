@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnalyticsPage, { loader } from "./dashboard.admin.analytics";
 import { requireActiveUser } from "../lib/auth.server";
 import { getActivityStats, getAllActivity } from "../lib/activity.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -43,7 +44,7 @@ describe("dashboard.admin.analytics route", () => {
     await expect(
       loader({
         request: new Request("http://localhost/dashboard/admin/analytics"),
-        context: { cloudflare: { env: { DB: {} } } } as never,
+        context: createLoadContext({ env: { DB: {} } } as never) as never,
         params: {},
       } as never)
     ).rejects.toMatchObject({ status: 403 });
@@ -62,7 +63,7 @@ describe("dashboard.admin.analytics route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/analytics?page=2"),
-      context: { cloudflare: { env: { DB: { marker: true } } } } as never,
+      context: createLoadContext({ env: { DB: { marker: true } } } as never) as never,
       params: {},
     } as never);
 

@@ -12,6 +12,10 @@ import {
 } from "./auth.server";
 import { commitSession, destroySession, getSession } from "./session.server";
 import { getUserByEmail } from "./db.server";
+import {
+  createLoadContext,
+  getCloudflareContext,
+} from "~/lib/router-context";
 
 vi.mock("./session.server", () => ({
   getSession: vi.fn(),
@@ -52,22 +56,11 @@ const baseUser = {
   sms_opt_out_at: null,
 };
 
-const baseContext: {
-  cloudflare: {
-    env: {
-      DB: {
-        marker: string;
-      };
-      DEV_AUTH_BYPASS_EMAIL?: string;
-    };
-  };
-} = {
-  cloudflare: {
+const baseContext = createLoadContext({
     env: {
       DB: { marker: "db" },
     },
-  },
-};
+  } as never);
 
 function createCookieRequest(url: string) {
   return {
@@ -135,7 +128,7 @@ describe("auth.server", () => {
 
     expect(getSession).toHaveBeenCalledWith("__session=abc");
     expect(getUserByEmail).toHaveBeenCalledWith(
-      baseContext.cloudflare.env.DB,
+      getCloudflareContext(baseContext).env.DB,
       "member@example.com"
     );
     expect(user).toEqual(baseUser);
@@ -161,14 +154,12 @@ describe("auth.server", () => {
 
     const user = await getUser(
       createCookieRequest("http://localhost/dashboard"),
-      {
-        cloudflare: {
+      createLoadContext({
           env: {
-            ...baseContext.cloudflare.env,
+            ...getCloudflareContext(baseContext).env,
             DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
           },
-        },
-      } as never
+        } as never) as never
     );
 
     expect(user).toBeNull();
@@ -189,19 +180,17 @@ describe("auth.server", () => {
 
     const user = await getUser(
       createCookieRequest("http://localhost/dashboard"),
-      {
-        cloudflare: {
+      createLoadContext({
           env: {
-            ...baseContext.cloudflare.env,
+            ...getCloudflareContext(baseContext).env,
             DEV_AUTH_BYPASS_EMAIL: " dev@localhost ",
           },
-        },
-      } as never
+        } as never) as never
     );
 
     expect(user).toEqual(devUser);
     expect(getUserByEmail).toHaveBeenCalledWith(
-      baseContext.cloudflare.env.DB,
+      getCloudflareContext(baseContext).env.DB,
       "dev@localhost"
     );
     expect(getSession).not.toHaveBeenCalled();
@@ -214,19 +203,17 @@ describe("auth.server", () => {
 
     const user = await getUser(
       createCookieRequest("http://localhost/dashboard"),
-      {
-        cloudflare: {
+      createLoadContext({
           env: {
-            ...baseContext.cloudflare.env,
+            ...getCloudflareContext(baseContext).env,
             DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
           },
-        },
-      } as never
+        } as never) as never
     );
 
     expect(user).toBeNull();
     expect(getUserByEmail).toHaveBeenCalledWith(
-      baseContext.cloudflare.env.DB,
+      getCloudflareContext(baseContext).env.DB,
       "dev@localhost"
     );
     expect(getSession).toHaveBeenCalledWith("__session=abc");
@@ -238,14 +225,12 @@ describe("auth.server", () => {
 
     const user = await getUser(
       createCookieRequest("https://meatup.club/dashboard"),
-      {
-        cloudflare: {
+      createLoadContext({
           env: {
-            ...baseContext.cloudflare.env,
+            ...getCloudflareContext(baseContext).env,
             DEV_AUTH_BYPASS_EMAIL: "dev@localhost",
           },
-        },
-      } as never
+        } as never) as never
     );
 
     expect(user).toBeNull();

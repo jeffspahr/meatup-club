@@ -4,6 +4,7 @@ import {
   maybeCheckTwilioProviderHealth,
 } from "../lib/sms.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 const MAXIMUM_HEALTH_AGE_MS = 26 * 60 * 60 * 1000;
 const MINIMUM_PROVIDER_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -11,8 +12,8 @@ const MINIMUM_PROVIDER_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 export async function loader({ context }: Route.LoaderArgs): Promise<Response> {
   try {
     const health = await maybeCheckTwilioProviderHealth({
-      db: context.cloudflare.env.DB,
-      env: context.cloudflare.env,
+      db: getCloudflareContext(context).env.DB,
+      env: getCloudflareContext(context).env,
       minimumIntervalMs: MINIMUM_PROVIDER_CHECK_INTERVAL_MS,
     });
     const healthy = health.status === "healthy"

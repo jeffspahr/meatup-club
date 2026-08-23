@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action, loader } from "./logout";
 import { getUser, logout } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   getUser: vi.fn(),
@@ -34,7 +35,7 @@ describe("logout route", () => {
 
     const response = await loader({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -60,7 +61,7 @@ describe("logout route", () => {
 
     const response = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -80,7 +81,7 @@ describe("logout route", () => {
 
     await action({
       request: new Request("http://localhost/logout", { method: "POST" }),
-      context: { cloudflare: { env: { DB: { marker: true } } } } as never,
+      context: createLoadContext({ env: { DB: { marker: true } } } as never) as never,
       params: {},
     } as never);
 

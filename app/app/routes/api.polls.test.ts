@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action, loader } from "./api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -181,7 +182,7 @@ describe("api.polls route", () => {
 
     const response = await loader({
       request: createRequest(),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -201,7 +202,7 @@ describe("api.polls route", () => {
 
     const response = await action({
       request: createRequest({ _action: "create" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -223,7 +224,7 @@ describe("api.polls route", () => {
 
     const response = await action({
       request: createRequest({ _action: "create", title: "May Poll" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -253,7 +254,7 @@ describe("api.polls route", () => {
 
     const response = await action({
       request: createRequest({ _action: "close" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -276,7 +277,7 @@ describe("api.polls route", () => {
         poll_id: "1",
         create_event: "true",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -301,7 +302,7 @@ describe("api.polls route", () => {
         poll_id: "1",
         winning_date_id: "17",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -340,7 +341,7 @@ describe("api.polls route", () => {
         winning_date_id: "17",
         create_event: "true",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -390,7 +391,7 @@ describe("api.polls route", () => {
         winning_date_id: "17",
         create_event: "true",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -423,7 +424,7 @@ describe("api.polls route", () => {
         _action: "close",
         poll_id: "1",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

@@ -44,6 +44,7 @@ import type { VoteWinner, DateWinner } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface AdminEventRow {
   id: number;
@@ -246,13 +247,13 @@ function formatSmsHealthTimestamp(value: string, timeZone: string): string {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   // Fetch all events
   const eventsResult = await db
     .prepare('SELECT * FROM events ORDER BY event_date DESC')
     .all();
-  const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const appTimeZone = getAppTimeZone(getCloudflareContext(context).env.APP_TIMEZONE);
   const events = (eventsResult.results || []) as unknown as AdminEventRow[];
   const eventsWithDisplayStatus = events.map((event) => ({
     ...event,
@@ -321,7 +322,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       .all(),
     maybeCheckTwilioProviderHealth({
       db,
-      env: context.cloudflare.env,
+      env: getCloudflareContext(context).env,
       minimumIntervalMs: 6 * 60 * 60 * 1000,
     }).catch((error): SmsProviderHealth => {
       logErrorEvent("twilio_health_check_failed", error);
@@ -404,12 +405,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const admin = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const actionType = formData.get('_action');
   const queueContext = {
     db,
-    queue: context.cloudflare.env.EMAIL_DELIVERY_QUEUE,
+    queue: getCloudflareContext(context).env.EMAIL_DELIVERY_QUEUE,
   };
 
   if (actionType === 'create') {
@@ -539,7 +540,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       request,
     });
 
-    const resendApiKey = context.cloudflare.env.RESEND_API_KEY || "";
+    const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY || "";
     if (resendApiKey) {
       const { sendRsvpOverrideEmail } = await import('../lib/email.server');
       const emailPromise = sendRsvpOverrideEmail({
@@ -562,8 +563,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { success: false, error: error.message };
       });
 
-      if (context.cloudflare.ctx?.waitUntil) {
-        context.cloudflare.ctx.waitUntil(emailPromise);
+      if (getCloudflareContext(context).ctx?.waitUntil) {
+        getCloudflareContext(context).ctx.waitUntil(emailPromise);
       } else {
         await emailPromise;
       }
@@ -895,7 +896,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const result = await sendAdhocSmsReminder({
       db,
-      env: context.cloudflare.env,
+      env: getCloudflareContext(context).env,
       event: event as SmsEvent,
       customMessage: messageType === 'custom' ? customMessage : null,
       recipientScope: recipientScope as SmsRecipientScope,

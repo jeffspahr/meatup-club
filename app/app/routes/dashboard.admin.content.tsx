@@ -7,10 +7,11 @@ import ReactMarkdown from 'react-markdown';
 import type { ContentItem } from "../lib/types";
 import { Alert, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   const contentResult = await db
     .prepare('SELECT * FROM site_content ORDER BY id ASC')
@@ -23,7 +24,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const user = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const action = formData.get('_action');
 

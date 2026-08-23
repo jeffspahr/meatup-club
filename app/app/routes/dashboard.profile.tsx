@@ -4,6 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { normalizePhoneNumber } from "../lib/sms.server";
 import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
 import { PageHeader, Card, UserAvatar, Badge, Alert, Button } from "~/components/ui";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -12,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const user = await requireActiveUser(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const actionType = formData.get('_action');
 

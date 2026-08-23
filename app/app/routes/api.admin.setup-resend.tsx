@@ -1,7 +1,8 @@
-import type { AppLoadContext } from "react-router";
+import type { RouterContextProvider } from "react-router";
 import { requireAdmin } from "../lib/auth.server";
 import { ensureResendEmailSetup } from "../lib/resend-setup.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 /**
  * Admin endpoint to configure Resend delivery tracking.
@@ -11,11 +12,11 @@ export async function action({
   context,
 }: {
   request: Request;
-  context: AppLoadContext;
+  context: Readonly<RouterContextProvider>;
 }) {
   await requireAdmin(request, context);
 
-  const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+  const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
   if (!resendApiKey) {
     return Response.json(
       {
@@ -28,7 +29,7 @@ export async function action({
 
   try {
     const details = await ensureResendEmailSetup({
-      db: context.cloudflare.env.DB,
+      db: getCloudflareContext(context).env.DB,
       resendApiKey,
     });
 

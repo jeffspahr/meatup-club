@@ -5,6 +5,7 @@ import { action as rsvpAction } from "./api.webhooks.email-rsvp";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/provider-webhooks.server", () => ({
   getProviderWebhookConfig: vi.fn(),
@@ -88,9 +89,7 @@ describe("Svix webhook contracts", () => {
         secret,
         messageId: "msg_rsvp_contract",
       }),
-      context: {
-        cloudflare: { env: { DB: db, RESEND_WEBHOOK_SECRET: secret } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, RESEND_WEBHOOK_SECRET: secret } } as never) as never,
     });
 
     expect(response.status).toBe(200);
@@ -108,9 +107,7 @@ describe("Svix webhook contracts", () => {
         secret: syntheticSigningSecret("wrong-rsvp"),
         messageId: "msg_rsvp_invalid_contract",
       }),
-      context: {
-        cloudflare: { env: { DB: db, RESEND_WEBHOOK_SECRET: configuredSecret } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, RESEND_WEBHOOK_SECRET: configuredSecret } } as never) as never,
     });
 
     expect(response.status).toBe(401);
@@ -128,9 +125,7 @@ describe("Svix webhook contracts", () => {
         messageId: "msg_rsvp_stale_contract",
         timestamp: new Date(Date.now() - 6 * 60 * 1000),
       }),
-      context: {
-        cloudflare: { env: { DB: db, RESEND_WEBHOOK_SECRET: secret } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, RESEND_WEBHOOK_SECRET: secret } } as never) as never,
     });
 
     expect(response.status).toBe(401);
@@ -152,7 +147,7 @@ describe("Svix webhook contracts", () => {
         secret,
         messageId: "msg_delivery_contract",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     });
 
     expect(response.status).toBe(200);
@@ -185,7 +180,7 @@ describe("Svix webhook contracts", () => {
         secret: syntheticSigningSecret("wrong-delivery"),
         messageId: "msg_delivery_invalid_contract",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     });
 
     expect(response.status).toBe(401);
@@ -205,7 +200,7 @@ describe("Svix webhook contracts", () => {
         secret,
         messageId: "msg_delivery_malformed_contract",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     });
 
     expect(response.status).toBe(401);
@@ -229,7 +224,7 @@ describe("Svix webhook contracts", () => {
         secret,
         messageId: "msg_delivery_duplicate_contract",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     });
 
     expect(response.status).toBe(200);

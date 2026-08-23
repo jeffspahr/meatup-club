@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -168,7 +169,7 @@ describe("dashboard.admin.polls action coverage", () => {
 
     const result = await action({
       request: createRequest({ _action: "create", title: "Summer Poll" }),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -181,7 +182,7 @@ describe("dashboard.admin.polls action coverage", () => {
   ])("validates create input for %o", async (formEntries, expectedError) => {
     const result = await action({
       request: createRequest(formEntries),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -193,7 +194,7 @@ describe("dashboard.admin.polls action coverage", () => {
 
     const result = await action({
       request: createRequest({ _action: "create", title: "Summer Poll" }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -215,7 +216,7 @@ describe("dashboard.admin.polls action coverage", () => {
   ])("validates close input for %o", async (formEntries, expectedError) => {
     const result = await action({
       request: createRequest(formEntries),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -227,7 +228,7 @@ describe("dashboard.admin.polls action coverage", () => {
 
     const result = await action({
       request: createRequest({ _action: "close", poll_id: "1", event_time: "18:00" }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -239,7 +240,7 @@ describe("dashboard.admin.polls action coverage", () => {
 
     const response = await action({
       request: createRequest({ _action: "close", poll_id: "1" }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -262,7 +263,7 @@ describe("dashboard.admin.polls action coverage", () => {
         create_event: "true",
         event_time: "18:00",
       }),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -284,7 +285,7 @@ describe("dashboard.admin.polls action coverage", () => {
         winning_restaurant_id: "10",
         event_time: "18:00",
       }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -303,7 +304,7 @@ describe("dashboard.admin.polls action coverage", () => {
         create_event: "true",
         event_time: "18:00",
       }),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -324,7 +325,7 @@ describe("dashboard.admin.polls action coverage", () => {
         send_invites: "true",
         event_time: "18:00",
       }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -346,7 +347,7 @@ describe("dashboard.admin.polls action coverage", () => {
         create_event: "true",
         event_time: "18:00",
       }),
-      context: { cloudflare: { env: { DB: db }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: db }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 
@@ -368,16 +369,14 @@ describe("dashboard.admin.polls action coverage", () => {
         send_invites: "true",
         event_time: "19:30",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             APP_TIMEZONE: "America/New_York",
             EMAIL_DELIVERY_QUEUE: queue,
           },
           ctx: {},
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -391,7 +390,7 @@ describe("dashboard.admin.polls action coverage", () => {
   it("returns an invalid action error for unknown actions", async () => {
     const result = await action({
       request: createRequest({ _action: "archive" }),
-      context: { cloudflare: { env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() }, ctx: { waitUntil: vi.fn() } } as never) as never,
       params: {},
     } as never);
 

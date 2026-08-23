@@ -13,6 +13,7 @@ import { sendAnnouncementEmails } from "../lib/email.server";
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
+import { getCloudflareContext } from "~/lib/router-context";
 
 const announcementPreviewMarkdownComponents: Components = {
   h1: ({ children }) => <h1 className="text-2xl font-bold mb-3 text-foreground">{children}</h1>,
@@ -66,7 +67,7 @@ function parseRecipientUserIds(formData: FormData): number[] {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const admin = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   return {
     admin: {
@@ -81,8 +82,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const admin = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
-  const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+  const db = getCloudflareContext(context).env.DB;
+  const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
   const formData = await request.formData();
   const actionType = formData.get("_action");
 

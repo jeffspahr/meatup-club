@@ -19,6 +19,7 @@ import { ClipboardDocumentCheckIcon, PaperAirplaneIcon } from "@heroicons/react/
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 import {
   sendPollOpenSmsNotification,
   type PollSmsRecipientScope,
@@ -38,7 +39,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     return redirect('/dashboard');
   }
 
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   // Get vote leaders from shared utility
   const { activePoll, topRestaurant, topDate } = await getActivePollLeaders(db);
@@ -135,7 +136,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return { error: 'Only admins can manage polls' };
   }
 
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const action = formData.get('_action');
 
@@ -174,7 +175,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const result = await sendPollOpenSmsNotification({
       db,
-      env: context.cloudflare.env,
+      env: getCloudflareContext(context).env,
       poll,
       customMessage: customMessage || null,
       recipientScope: recipientScope as PollSmsRecipientScope,
@@ -331,7 +332,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Event-specific validation
     if (createEvent && selectedDate) {
-      const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+      const appTimeZone = getAppTimeZone(getCloudflareContext(context).env.APP_TIMEZONE);
       if (isDateInPastInTimeZone(selectedDate.suggested_date as string, appTimeZone)) {
         return { error: 'Cannot create event for a date in the past' };
       }
@@ -457,7 +458,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         await enqueueStagedEventEmailBatch(
           {
             db,
-            queue: context.cloudflare.env.EMAIL_DELIVERY_QUEUE,
+            queue: getCloudflareContext(context).env.EMAIL_DELIVERY_QUEUE,
           },
           stagedInviteBatch
         );

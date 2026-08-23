@@ -3,6 +3,7 @@ import { action } from "./dashboard.admin.announcements";
 import { requireAdmin } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
 import { sendAnnouncementEmails } from "../lib/email.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -99,14 +100,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Subject is required" });
@@ -122,14 +121,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Message is required" });
@@ -146,13 +143,11 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "RESEND_API_KEY is not configured" });
@@ -169,14 +164,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Choose at least one active member" });
@@ -200,14 +193,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "Sent announcement to 1 active member." });
@@ -229,14 +220,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "Sent announcement to 2 active members." });
@@ -273,14 +262,12 @@ describe("dashboard.admin.announcements action", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "Sent announcement to 1 active member." });

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminSetupPage, { action, loader } from "./dashboard.admin.setup";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -39,7 +40,7 @@ describe("dashboard.admin.setup route", () => {
   it("requires admin access in the loader", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/setup"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
     } as never);
 
     expect(requireAdmin).toHaveBeenCalled();
@@ -65,7 +66,7 @@ describe("dashboard.admin.setup route", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
     } as never);
 
     expect(requireAdmin).toHaveBeenCalledWith(request, expect.anything());
@@ -88,7 +89,7 @@ describe("dashboard.admin.setup route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Invalid action" });
