@@ -12,14 +12,6 @@ Keep this file limited to current engineering follow-ups. GitHub issues are the 
 
 Voting from the original report was fixed and deployed in PR #273. Historical SMS delivery cannot be reconstructed because the report predates per-message delivery tracking; current production evidence is required before changing behavior.
 
-### Remove or repair dormant Husky integration
-
-- [ ] Decide whether the local pre-commit hook provides value beyond required Application CI.
-- [ ] Prefer removing Husky, its `prepare` script, and `.husky/pre-commit` if the hook is intentionally redundant; otherwise make installation reliable from `app/` and Git worktrees.
-- [ ] Verify a clean Node 24 install and the selected commit workflow.
-
-PR #281 removed unused `lint-staged` and identified this separately: the hook file remains, but clean installs in isolated worktrees report that `.git` cannot be found.
-
 ## Deferred Upgrades
 
 ### TypeScript 7
