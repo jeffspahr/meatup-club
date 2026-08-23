@@ -40,7 +40,7 @@
     "@cloudflare/vite-plugin": "^1.53.0",
     "@playwright/test": "^1.62.1",
     "@react-router/dev": "7.18.2",
-    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
