@@ -42,7 +42,7 @@ export function DoodleView({
   // grid pops in. Filtering depends on the user's local timezone, which we
   // can only resolve client-side.
   if (!isMounted) {
-    return <div className="min-h-[12rem]" aria-hidden />;
+    return <div className="min-h-48" aria-hidden />;
   }
 
   // Filter dates based on user's local timezone (client-side only)
@@ -187,7 +187,7 @@ export function DoodleView({
                             onClick={() => onVoteToggle(date.id, hasVoted)}
                             aria-label={`${hasVoted ? "Remove your vote for" : "Vote for"} ${dateLabel}`}
                             aria-pressed={hasVoted}
-                            className={`flex min-h-12 w-full items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset ${
+                            className={`flex min-h-12 w-full items-center justify-center transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset ${
                               hasVoted
                                 ? 'hover:bg-green-200/80 dark:hover:bg-green-900/50'
                                 : 'hover:bg-muted'

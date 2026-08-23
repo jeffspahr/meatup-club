@@ -335,7 +335,7 @@ describe("dashboard.admin.members loader and UI", () => {
     const main = screen.getByRole("main");
     const table = screen.getByRole("table");
     expect(main).toHaveClass("page-main-wide");
-    expect(table).toHaveClass("w-full", "min-w-[72rem]");
+    expect(table).toHaveClass("w-full", "min-w-6xl");
     expect(table.parentElement).toHaveClass("overflow-x-auto");
   });
 });

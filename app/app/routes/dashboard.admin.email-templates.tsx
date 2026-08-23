@@ -238,7 +238,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Default Invitation"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -254,7 +254,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="You're invited to join Meatup.Club!"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -270,7 +270,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, html_body: e.target.value })}
                 rows={15}
                 placeholder="HTML email template..."
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent font-mono text-sm"
               />
             </div>
 
@@ -286,7 +286,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 onChange={(e) => setFormData({ ...formData, text_body: e.target.value })}
                 rows={10}
                 placeholder="Plain text email template..."
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent font-mono text-sm"
               />
             </div>
 
@@ -298,7 +298,7 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 checked={formData.is_default}
                 onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
                 value="true"
-                className="w-4 h-4 text-accent border-border rounded focus:ring-accent"
+                className="w-4 h-4 text-accent border-border rounded-sm focus:ring-accent"
               />
               <label htmlFor="is_default" className="ml-2 text-sm text-foreground">
                 Set as default template
@@ -386,13 +386,13 @@ export default function AdminEmailTemplatesPage({ loaderData, actionData }: Rout
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground mb-1">HTML Preview:</h4>
                   <div
-                    className="border border-border rounded p-3 bg-muted max-h-64 overflow-auto text-xs"
+                    className="border border-border rounded-sm p-3 bg-muted max-h-64 overflow-auto text-xs"
                     dangerouslySetInnerHTML={{ __html: template.html_body }}
                   />
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-muted-foreground mb-1">Plain Text:</h4>
-                  <pre className="border border-border rounded p-3 bg-muted max-h-64 overflow-auto text-xs whitespace-pre-wrap">
+                  <pre className="border border-border rounded-sm p-3 bg-muted max-h-64 overflow-auto text-xs whitespace-pre-wrap">
                     {template.text_body}
                   </pre>
                 </div>

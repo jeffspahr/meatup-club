@@ -39,7 +39,7 @@ export function RestaurantVotePicker({
           id="restaurant-vote"
           name="suggestion_id"
           defaultValue={currentVoteId}
-          className="flex-1 min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 min-w-[16rem] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
         >
           <option value="">— No vote —</option>
           {sorted.map((s) => (

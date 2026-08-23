@@ -25,7 +25,7 @@ function PublicLink({ href }: { href: string }) {
 export default function VerificationPage() {
   return (
     <main className="page-main">
-        <div className="rounded-[2rem] border border-accent/20 bg-accent/[0.04] px-6 py-8 shadow-sm sm:px-8">
+        <div className="rounded-4xl border border-accent/20 bg-accent/4 px-6 py-8 shadow-xs sm:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
             Meatup.Club
           </p>
@@ -50,7 +50,7 @@ export default function VerificationPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.35fr_1fr]">
-          <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
+          <section className="rounded-4xl border border-border bg-card px-6 py-7 shadow-xs sm:px-8">
             <h2 className="section-heading">Business identity</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Meatup.Club is an invite-only dining club application used to coordinate member
@@ -67,7 +67,7 @@ export default function VerificationPage() {
             </dl>
           </section>
 
-          <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
+          <section className="rounded-4xl border border-border bg-card px-6 py-7 shadow-xs sm:px-8">
             <h2 className="section-heading">Public review links</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               All of the following pages are public and available without authentication.
@@ -82,7 +82,7 @@ export default function VerificationPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
+          <section className="rounded-4xl border border-border bg-card px-6 py-7 shadow-xs sm:px-8">
             <h2 className="section-heading">SMS program details</h2>
             <ul className="mt-5 space-y-3 text-sm leading-6 text-muted-foreground">
               <li>
@@ -120,7 +120,7 @@ export default function VerificationPage() {
             </ul>
           </section>
 
-          <section className="rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
+          <section className="rounded-4xl border border-border bg-card px-6 py-7 shadow-xs sm:px-8">
             <h2 className="section-heading">Authentication boundary</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Meatup.Club is invite-only, so the member dashboard and profile settings require
@@ -128,7 +128,7 @@ export default function VerificationPage() {
               information or consent terms. The business identity, SMS program details, privacy
               policy, terms, and opt-in documentation are all public on the links above.
             </p>
-            <div className="mt-5 rounded-2xl border border-accent/20 bg-accent/[0.04] px-4 py-4 text-sm leading-6 text-muted-foreground">
+            <div className="mt-5 rounded-2xl border border-accent/20 bg-accent/4 px-4 py-4 text-sm leading-6 text-muted-foreground">
               Reviewers who need business or consent information should use this page,
               <span className="font-medium text-foreground"> /privacy</span>,
               <span className="font-medium text-foreground"> /terms</span>, and
@@ -138,7 +138,7 @@ export default function VerificationPage() {
           </section>
         </div>
 
-        <section className="mt-8 rounded-[2rem] border border-border bg-card px-6 py-7 shadow-sm sm:px-8">
+        <section className="mt-8 rounded-4xl border border-border bg-card px-6 py-7 shadow-xs sm:px-8">
           <h2 className="section-heading">How consent is collected</h2>
           <ol className="mt-5 list-decimal space-y-3 pl-6 text-sm leading-6 text-muted-foreground">
             <li>Members sign in to their invite-only Meatup.Club account.</li>
@@ -178,7 +178,7 @@ export default function VerificationPage() {
                   <input
                     type="checkbox"
                     disabled
-                    className="mt-1 h-4 w-4 rounded border-border text-accent"
+                    className="mt-1 h-4 w-4 rounded-sm border-border text-accent"
                   />
                   <div>
                     <p className="text-sm font-medium leading-6 text-foreground">
@@ -196,7 +196,7 @@ export default function VerificationPage() {
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-accent/20 bg-accent/[0.04] px-5 py-5">
+            <div className="rounded-[1.75rem] border border-accent/20 bg-accent/4 px-5 py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                 Consent notes
               </p>

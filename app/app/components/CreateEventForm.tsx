@@ -46,7 +46,7 @@ export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
               onChange={(event) =>
                 onChange({ ...formData, eventDate: event.target.value })
               }
-              className="w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full rounded-md border border-border px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -65,7 +65,7 @@ export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
               onChange={(event) =>
                 onChange({ ...formData, eventTime: event.target.value })
               }
-              className="w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full rounded-md border border-border px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-accent"
             />
           </div>
         </div>
@@ -77,7 +77,7 @@ export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
             type="checkbox"
             value="true"
             defaultChecked={true}
-            className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+            className="h-4 w-4 rounded-sm border-border text-accent focus:ring-accent"
           />
           Send calendar invites to all active members
         </label>

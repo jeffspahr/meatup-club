@@ -59,11 +59,11 @@ export function UpcomingEventCard({
       className={`overflow-hidden p-0 ${isExpanded ? "xl:col-span-2" : "h-full"}`}
     >
       <div
-        className={`flex flex-col bg-accent/[0.04] p-5 sm:p-6 ${isExpanded ? "" : "h-full"}`}
+        className={`flex flex-col bg-accent/4 p-5 sm:p-6 ${isExpanded ? "" : "h-full"}`}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="min-w-24 rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-center shadow-sm">
+            <div className="min-w-24 rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-center shadow-xs">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
                 {formatDateForDisplay(event.event_date, { month: "short" })}
               </p>
@@ -148,25 +148,25 @@ export function UpcomingEventCard({
         </div>
 
         <div className="mt-auto grid grid-cols-2 gap-3 pt-5 xl:grid-cols-4">
-          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-xs">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Going
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{counts.yes}</p>
           </div>
-          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-xs">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Maybe
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{counts.maybe}</p>
           </div>
-          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-xs">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Out
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">{counts.no}</p>
           </div>
-          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-background/70 p-3 shadow-xs">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Pending
             </p>
@@ -217,7 +217,7 @@ export function UpcomingEventCard({
                           key={option}
                           className={`cursor-pointer select-none rounded-md px-4 py-2 font-medium transition-all ${
                             event.userRsvp?.status === option
-                              ? "bg-accent text-background shadow-sm"
+                              ? "bg-accent text-background shadow-xs"
                               : "border border-border bg-card text-foreground hover:border-accent/50 hover:bg-muted active:scale-95 active:shadow-inner"
                           }`}
                         >
@@ -256,7 +256,7 @@ export function UpcomingEventCard({
                         defaultValue={event.userRsvp?.comments || ""}
                         placeholder="Any notes about your attendance"
                         rows={3}
-                        className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
                       />
                       <Button type="submit" size="sm">
                         Update Comments

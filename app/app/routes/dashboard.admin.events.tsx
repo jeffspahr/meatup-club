@@ -1155,7 +1155,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   onChange={(event) =>
                     setCreateData((current) => ({ ...current, event_date: event.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -1174,7 +1174,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                   onChange={(event) =>
                     setCreateData((current) => ({ ...current, event_time: event.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>
@@ -1186,7 +1186,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                 type="checkbox"
                 value="true"
                 defaultChecked={true}
-                className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
+                className="h-4 w-4 text-accent focus:ring-accent border-border rounded-sm"
               />
               <label htmlFor="send_invites" className="ml-2 block text-sm text-foreground">
                 Send calendar invites to all active members
@@ -1251,7 +1251,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             onChange={(e) =>
                               setEditData({ ...editData, event_date: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                           />
                         </div>
 
@@ -1266,7 +1266,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             onChange={(e) =>
                               setEditData({ ...editData, event_time: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                           />
                         </div>
                       </div>
@@ -1287,7 +1287,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             onChange={(e) =>
                               setEditData({ ...editData, status: e.target.checked ? 'cancelled' : 'upcoming' })
                             }
-                            className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
+                            className="h-4 w-4 text-accent focus:ring-accent border-border rounded-sm"
                           />
                           Mark as cancelled
                         </label>
@@ -1300,7 +1300,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                           type="checkbox"
                           value="true"
                           defaultChecked={true}
-                          className="h-4 w-4 text-accent focus:ring-accent border-border rounded"
+                          className="h-4 w-4 text-accent focus:ring-accent border-border rounded-sm"
                         />
                         <label htmlFor="send_updates" className="ml-2 block text-sm text-foreground">
                           Send calendar updates to all active members
@@ -1367,7 +1367,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 </label>
                                 <select
                                   name="message_type"
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                   defaultValue="default"
                                 >
                                   <option value="default">Use default reminder template</option>
@@ -1380,7 +1380,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 </label>
                                 <select
                                   name="recipient_scope"
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                   value={smsScopeByEvent[event.id] || 'all'}
                                   onChange={(eventScope) =>
                                     setSmsScopeByEvent((prev) => ({
@@ -1404,7 +1404,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                   </label>
                                   <select
                                     name="recipient_user_id"
-                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                     defaultValue=""
                                   >
                                     <option value="">Select a member</option>
@@ -1424,7 +1424,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                   name="custom_message"
                                   rows={3}
                                   placeholder="Add a custom note (RSVP + opt-out instructions are appended automatically)."
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                 />
                               </div>
                               <Button type="submit" size="sm">
@@ -1558,7 +1558,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                         type="checkbox"
                                         name="recipient_user_ids"
                                         value={member.id}
-                                        className="mt-1 h-4 w-4 text-accent focus:ring-accent border-border rounded"
+                                        className="mt-1 h-4 w-4 text-accent focus:ring-accent border-border rounded-sm"
                                       />
                                       <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -1621,7 +1621,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                   <select
                                     name="status"
                                     defaultValue={member.rsvp_status || 'maybe'}
-                                    className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                    className="px-3 py-2 border border-border rounded-md text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
                                   >
                                     <option value="yes">Yes</option>
                                     <option value="no">No</option>

@@ -100,7 +100,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             className={`border rounded p-3 text-left transition-all ${
               filterType === 'all'
                 ? 'border-accent bg-accent/5 ring-2 ring-accent'
-                : 'border-muted hover:border-border hover:shadow-sm'
+                : 'border-muted hover:border-border hover:shadow-xs'
             }`}
           >
             <div className="text-xs text-muted-foreground mb-1">All Activities</div>
@@ -117,7 +117,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
               className={`border rounded p-3 text-left transition-all ${
                 filterType === item.action_type
                   ? 'border-accent bg-accent/5 ring-2 ring-accent'
-                  : 'border-muted hover:border-border hover:shadow-sm'
+                  : 'border-muted hover:border-border hover:shadow-xs'
               }`}
             >
               <div className="text-xs text-muted-foreground mb-1">
@@ -223,7 +223,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {details ? (
                           typeof details === 'object' ? (
-                            <pre className="text-xs bg-muted p-2 rounded max-w-md overflow-x-auto">
+                            <pre className="text-xs bg-muted p-2 rounded-sm max-w-md overflow-x-auto">
                               {JSON.stringify(details, null, 2)}
                             </pre>
                           ) : (
@@ -253,7 +253,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             {page > 1 && (
               <a
                 href={`/dashboard/admin/analytics?page=${page - 1}`}
-                className="px-4 py-2 border border-border rounded hover:bg-muted text-sm font-medium"
+                className="px-4 py-2 border border-border rounded-sm hover:bg-muted text-sm font-medium"
               >
                 Previous
               </a>
@@ -261,7 +261,7 @@ export default function AdminAnalyticsPage({ loaderData }: Route.ComponentProps)
             {activities.length === 50 && (
               <a
                 href={`/dashboard/admin/analytics?page=${page + 1}`}
-                className="px-4 py-2 border border-border rounded hover:bg-muted text-sm font-medium"
+                className="px-4 py-2 border border-border rounded-sm hover:bg-muted text-sm font-medium"
               >
                 Next
               </a>

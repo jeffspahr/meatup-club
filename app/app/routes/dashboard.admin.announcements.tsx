@@ -43,7 +43,7 @@ const announcementPreviewMarkdownComponents: Components = {
   strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
   code: ({ children }) => (
-    <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.95em] text-foreground">
+    <code className="rounded-sm bg-accent/10 px-1.5 py-0.5 font-mono text-[0.95em] text-foreground">
       {children}
     </code>
   ),
@@ -292,7 +292,7 @@ export default function AdminAnnouncementsPage({
                 value={subject}
                 onChange={(event) => setSubject(event.target.value)}
                 placeholder="Postmortem: Calendar invite delivery issue"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -335,7 +335,7 @@ export default function AdminAnnouncementsPage({
                   value={messageText}
                   onChange={(event) => setMessageText(event.target.value)}
                   placeholder="Hi MeatUp members,..."
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent font-mono text-sm"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent font-mono text-sm"
                 />
               )}
 

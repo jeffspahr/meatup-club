@@ -1166,7 +1166,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
                         tabIndex={0}
                         role="button"
                         aria-label={`View details for ${r.name}`}
-                        className="hover:bg-muted/20 focus:bg-muted/20 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+                        className="hover:bg-muted/20 focus:bg-muted/20 cursor-pointer transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
                       >
                         <td className="px-4 py-3 font-medium text-foreground">{r.name}</td>
                         <td className="px-4 py-3 text-muted-foreground">
@@ -1357,9 +1357,9 @@ export function HydrateFallback() {
   return (
     <main className="dashboard-preview page-main">
       <div className="mb-8 card-shell p-8 animate-pulse">
-        <div className="h-4 w-40 bg-muted rounded mb-4" />
-        <div className="h-10 w-64 bg-muted rounded mb-3" />
-        <div className="h-5 w-80 bg-muted rounded" />
+        <div className="h-4 w-40 bg-muted rounded-sm mb-4" />
+        <div className="h-10 w-64 bg-muted rounded-sm mb-3" />
+        <div className="h-5 w-80 bg-muted rounded-sm" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card-shell h-36 animate-pulse bg-muted/40" />

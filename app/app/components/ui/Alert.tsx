@@ -23,7 +23,7 @@ const variantClasses: Record<AlertVariant, string> = {
 export function Alert({ variant = "error", icon, className = "", children }: AlertProps) {
   return (
     <div className={`border rounded-lg px-4 py-3 flex items-start gap-3 ${variantClasses[variant]} ${className}`}>
-      {icon && <span className="w-5 h-5 flex-shrink-0 mt-0.5">{icon}</span>}
+      {icon && <span className="w-5 h-5 shrink-0 mt-0.5">{icon}</span>}
       <div className="flex-1">{children}</div>
     </div>
   );

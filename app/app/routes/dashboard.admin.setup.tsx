@@ -79,7 +79,7 @@ export default function AdminSetupPage({ actionData }: { actionData: SetupAction
         <Alert variant="info" className="mb-6">
           <h3 className="font-semibold mb-2">What this does:</h3>
           <ul className="text-sm space-y-1 list-disc list-inside">
-            <li>Verifies the <code className="bg-accent/20 px-1 rounded">mail.meatup.club</code> sending domain exists in Resend</li>
+            <li>Verifies the <code className="bg-accent/20 px-1 rounded-sm">mail.meatup.club</code> sending domain exists in Resend</li>
             <li>Registers the delivery-status webhook used to track provider handoff and delivery events</li>
             <li>Stores the delivery webhook signing secret in the app database for webhook verification</li>
             <li>Leaves the existing inbound RSVP webhook configuration unchanged</li>
@@ -91,7 +91,7 @@ export default function AdminSetupPage({ actionData }: { actionData: SetupAction
             <h3 className="font-semibold mb-2 flex items-center gap-1"><CheckIcon className="w-5 h-5 inline" /> Success!</h3>
             <p className="text-sm mb-2">{actionData.message}</p>
             {actionData.details && (
-              <div className="bg-muted border border-border rounded p-3 text-xs font-mono mt-2">
+              <div className="bg-muted border border-border rounded-sm p-3 text-xs font-mono mt-2">
                 <div><strong>Delivery webhook:</strong> {typeof actionData.details === "string" ? "-" : actionData.details.deliveryWebhookUrl}</div>
                 <div><strong>Delivery events:</strong> {typeof actionData.details === "string" ? "-" : actionData.details.deliveryWebhookEvents?.join(", ")}</div>
                 <div><strong>Domain:</strong> {typeof actionData.details === "string" ? "-" : actionData.details.domain}</div>
@@ -105,7 +105,7 @@ export default function AdminSetupPage({ actionData }: { actionData: SetupAction
             <h3 className="font-semibold mb-2 flex items-center gap-1"><XMarkIcon className="w-5 h-5 inline" /> Error</h3>
             <p className="text-sm mb-2">{actionData.error}</p>
             {actionData.details && (
-              <pre className="bg-muted border border-border rounded p-3 text-xs overflow-x-auto mt-2">
+              <pre className="bg-muted border border-border rounded-sm p-3 text-xs overflow-x-auto mt-2">
                 {JSON.stringify(actionData.details, null, 2)}
               </pre>
             )}
