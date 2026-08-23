@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildSmsReminderMessage,
+  buildPollOpenSmsMessage,
   buildSmsResponse,
   checkTwilioProviderHealth,
   getTwilioConfigurationStatus,
@@ -12,7 +13,9 @@ import {
   parseTwilioMessageStatus,
   parseTwilioOptOutType,
   recordSmsDeliveryStatus,
+  recordPollSmsDeliveryStatus,
   sendAdhocSmsReminder,
+  sendPollOpenSmsNotification,
   sendScheduledSmsReminders,
   sendSms,
   verifyTwilioSignature,
@@ -196,6 +199,20 @@ describe("sms delivery and reminder flows", () => {
     expect(message).toContain(
       "Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out."
     );
+  });
+
+  it("builds concise poll-open copy with a direct link and no RSVP instructions", () => {
+    const message = buildPollOpenSmsMessage({
+      poll: { id: 14, title: "Fall Steakhouse Poll" },
+      customMessage: "Please vote by Friday.",
+      appBaseUrl: "https://meatup.club/",
+    });
+
+    expect(message).toBe(
+      "Meatup.Club (888-857-MEAT): Please vote by Friday. Voting is open for Fall Steakhouse Poll. Choose a restaurant and date: https://meatup.club/dashboard#poll-14 Reply HELP for help. Reply STOP to opt out."
+    );
+    expect(message).not.toContain("RSVP");
+    expect(message).not.toContain("YES or NO");
   });
 
   it("returns an error without calling Twilio when credentials are missing", async () => {
@@ -579,6 +596,65 @@ describe("sms delivery and reminder flows", () => {
     expect(String(reminderInsert?.bindArgs[2])).toMatch(/^adhoc:[0-9a-f-]{36}$/);
   });
 
+  it("tracks poll-open messages and targets members with no poll activity", async () => {
+    const db = createMockDb({
+      recipients: [{ id: 4, phone_number: "+15550000004" }],
+    });
+
+    const result = await sendPollOpenSmsNotification({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+        APP_BASE_URL: "https://meatup.club",
+      },
+      poll: { id: 14, title: "Fall Steakhouse Poll" },
+      recipientScope: "not_voted",
+    });
+
+    expect(result).toEqual({ sent: 1, matched: 1, errors: [] });
+    expect(db.recipientQueryCalls[0]?.sql).toContain("FROM restaurant_votes");
+    expect(db.recipientQueryCalls[0]?.sql).toContain("FROM date_votes");
+    expect(db.recipientQueryCalls[0]?.bindArgs).toEqual([14, 14]);
+    expect(db.insertCalls).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO poll_sms_deliveries"),
+        bindArgs: expect.arrayContaining([14, 4]),
+      }),
+      expect.objectContaining({
+        sql: expect.stringContaining("UPDATE poll_sms_deliveries"),
+        bindArgs: expect.arrayContaining(["queued", 20]),
+      }),
+    ]));
+
+    const [, requestInit] = vi.mocked(global.fetch).mock.calls[0];
+    const requestBody = new URLSearchParams(String(requestInit?.body));
+    expect(requestBody.get("Body")).toContain("https://meatup.club/dashboard#poll-14");
+    expect(requestBody.get("StatusCallback")).toMatch(
+      /delivery_kind=poll/
+    );
+  });
+
+  it("selects nobody for an invalid specific poll recipient", async () => {
+    const db = createMockDb();
+
+    const result = await sendPollOpenSmsNotification({
+      db: db as never,
+      env: {
+        TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+        TWILIO_AUTH_TOKEN: "secret",
+        TWILIO_FROM_NUMBER: "+15557654321",
+      },
+      poll: { id: 14, title: "Fall Steakhouse Poll" },
+      recipientScope: "specific",
+    });
+
+    expect(result).toEqual({ sent: 0, matched: 0, errors: [] });
+    expect(db.recipientQueryCalls[0]?.sql).toContain("AND 1 = 0");
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it("persists ranked delivery status updates", async () => {
     const db = createMockDb();
 
@@ -592,6 +668,25 @@ describe("sms delivery and reminder flows", () => {
     expect(recorded).toBe(true);
     expect(db.insertCalls.at(-1)).toEqual(
       expect.objectContaining({
+        bindArgs: expect.arrayContaining(["delivered", 50]),
+      })
+    );
+  });
+
+  it("persists ranked poll delivery status updates", async () => {
+    const db = createMockDb();
+
+    const recorded = await recordPollSmsDeliveryStatus({
+      db: db as never,
+      deliveryId: "11111111-1111-4111-8111-111111111111",
+      messageSid: `SM${"4".repeat(32)}`,
+      status: "delivered",
+    });
+
+    expect(recorded).toBe(true);
+    expect(db.insertCalls.at(-1)).toEqual(
+      expect.objectContaining({
+        sql: expect.stringContaining("UPDATE poll_sms_deliveries"),
         bindArgs: expect.arrayContaining(["delivered", 50]),
       })
     );

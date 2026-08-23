@@ -38,3 +38,8 @@
 - Failure mode: A new table and migration passed focused application tests but failed CI because the canonical-schema and migration fixtures assert exact table and migration counts.
 - Detection signal: `npm run test:d1` failed with `CHECK constraint failed: passed = 1` after all Vitest coverage checks passed.
 - Prevention rule: For every D1 schema addition, update and run both `current-schema-assertions.sql` and `migration-assertions.sql` via `npm run test:d1` before publishing.
+# 2026-08-22: Scope form assertions to the intended action
+
+- Failure mode: Adding a second form to a page broke a test that selected the first generic `_action` and `poll_id` inputs in document order.
+- Detection signal: Focused UI coverage expected `close` but received the new `send_poll_sms` action.
+- Prevention rule: On pages with multiple forms, locate the intended form by its action value, accessible name, or role before asserting sibling fields.

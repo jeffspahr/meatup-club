@@ -974,6 +974,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
       {/* Active Poll */}
       {activePoll ? (
         <Card
+          id={`poll-${activePoll.id}`}
           className="card-glow page-section sm:p-8 dashboard-section"
           style={{ '--section-delay': '120ms' } as CSSProperties}
         >
