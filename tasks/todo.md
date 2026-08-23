@@ -1,5 +1,42 @@
 # Active Backlog (2026-02-23)
 
+## Vite 7 Rolldown Rehearsal (2026-08-23)
+
+### Goal
+Exercise the application on Vite's Rolldown-backed distribution without changing the Vite major, isolating bundler compatibility from the later Vite 8 API upgrade.
+
+### Acceptance Criteria
+- [x] Replace only the Vite implementation with the compatible `rolldown-vite` package alias; keep the surrounding Vite plugins and application code stable unless compatibility requires a focused fix.
+- [x] Development startup, type generation, production build, Worker bundle, unit/integration coverage, D1 verification, and browser E2E checks pass under Node 24.
+- [x] Compare baseline and Rolldown build warnings and output sizes, documenting any material difference.
+- [x] Publish the verified change as an isolated pull request rather than pushing directly to `main`.
+
+### Active Tasks
+- [x] Create a clean branch and worktree from merged `origin/main`.
+- [x] Capture the Vite 7 baseline and confirm compatible Rolldown/plugin versions.
+- [x] Apply the smallest manifest and lockfile change.
+- [x] Run focused and full verification under Node 24.
+- [x] Commit, push, and open the pull request.
+
+### Working Notes
+- Work is isolated on `codex/vite7-rolldown-rehearsal` from the merged default branch.
+- Keep React Router 8, Cloudflare's Vite plugin, React plugin, and tsconfig-paths versions fixed during this rehearsal so failures can be attributed to the bundler swap.
+- `rolldown-vite@7.3.1` is intentionally pinned. Its package deprecation notice says it is a temporary Vite 7 migration aid and recommends moving to Vite 8 afterward.
+
+### Results
+- Replaced `vite@7.3.6` with the exact npm alias `vite@npm:rolldown-vite@7.3.1`; no Vite config, application code, or plugin versions changed.
+- Existing Vite emitted five SSR dynamic-import warnings and produced one large `1,059.76 kB` Worker chunk. Rolldown emitted none of those warnings and preserved the imports as separate chunks, with the largest Worker chunk reduced to `620.83 kB`.
+- Total raw output changed from `715,528` to `713,264` bytes for the client, `573,880` to `516,515` bytes for the server, and `1,798,863` to `1,622,720` bytes for the Worker bundle.
+- A clean local development server rendered `/` with HTTP 200 and redirected `/dashboard` to `/login` with HTTP 302.
+
+### Verification
+- `fnm exec --using=24 npm ci` (448 packages; zero vulnerabilities)
+- `fnm exec --using=24 npm run verify` (646 Vitest tests, D1 schema/migrations, production build, and 7 Playwright tests passed)
+- `fnm exec --using=24 npm run cf-typegen`
+- `fnm exec --using=24 npx wrangler deploy --dry-run --config dist/meatup_club/wrangler.json` (18 modules; 1,577.75 KiB raw / 316.79 KiB gzip upload)
+- `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
+- `fnm exec --using=24 npm run dev -- --host 127.0.0.1 --port 5187` plus local HTTP smoke checks
+
 ## Poll Open SMS Notifications (2026-08-22)
 
 ### Goal
