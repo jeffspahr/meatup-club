@@ -10,6 +10,16 @@ test("landing page presents the sign-in entry point", async ({ page }) => {
   );
 });
 
+test("root and trailing-slash data requests use the v8 URL format", async ({ request }) => {
+  for (const path of ["/_.data", "/terms/_.data"]) {
+    const response = await request.get(path);
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("text/x-script");
+    expect(JSON.parse(await response.text())).toEqual([{}]);
+  }
+});
+
 test("public compliance pages expose consistent policy navigation", async ({ page }) => {
   await page.goto("/verification");
 
