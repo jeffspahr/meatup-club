@@ -25,7 +25,6 @@ max_retries = 5
 dead_letter_queue = "meatup-club-email-delivery-dlq"
 
 [vars]
-NODE_VERSION = "20"
 APP_TIMEZONE = "America/New_York"
 APP_BASE_URL = "https://meatup.club"
 
