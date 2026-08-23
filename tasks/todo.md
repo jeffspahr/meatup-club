@@ -1,5 +1,48 @@
 # Active Backlog (2026-02-23)
 
+## Vite 8 Toolchain Upgrade (2026-08-23)
+
+### Goal
+Move the verified Rolldown rehearsal onto the supported Vite 8 toolchain while preserving React Router, Cloudflare Worker, test, and browser behavior.
+
+### Acceptance Criteria
+- [x] Upgrade Vite, the React plugin, Cloudflare's Vite plugin, and Wrangler as one peer-compatible set under Node 24, removing the redundant tsconfig-paths plugin.
+- [x] Keep application code unchanged and limit configuration changes to documented Vite 8 migrations.
+- [x] Clean install, lint, secret scan, typecheck, coverage, D1 verification, production build, browser E2E, Cloudflare type generation, deploy dry-run, and development startup pass.
+- [x] Compare Vite 8 warnings and bundle output against the merged Rolldown rehearsal.
+- [x] Publish the upgrade as an isolated pull request and confirm required CI.
+
+### Active Tasks
+- [x] Branch from merged `origin/main` and inspect the current toolchain/configuration.
+- [x] Confirm current compatible package versions and relevant Vite 8 breaking changes.
+- [x] Apply the smallest manifest, lockfile, and configuration update.
+- [x] Run full Node 24 verification and runtime smoke checks.
+- [x] Commit, push, open the pull request, and monitor CI.
+
+### Working Notes
+- The merged Rolldown rehearsal already proved the repository has no custom Rollup, esbuild, minification, or manual chunk configuration requiring an option-name migration.
+- Keep React Router 8.3.0 and Vitest behavior stable; both already declare Vite 8 peer compatibility.
+- Cloudflare's latest Vite plugin requires the matching latest Wrangler peer, so those packages move together.
+- Vite 8 reports `vite-tsconfig-paths` as redundant; native `resolve.tsconfigPaths` now owns alias resolution.
+
+### Results
+- Upgraded to Vite 8.2.2, `@vitejs/plugin-react` 6.1.0, `@cloudflare/vite-plugin` 1.53.1, and Wrangler 4.125.0. React Router remains 8.3.0 and the Vitest family remains resolved at 4.1.11.
+- Removed `vite-tsconfig-paths` and enabled Vite's native tsconfig path resolution. Updated Vitest's ESM config path from `__dirname` to `import.meta.dirname` for future native config loading.
+- No application code changed. The full suite and focused RSVP browser rerun passed; the one non-reproducing manifest-patch fetch error from the first full browser run was transient during the test's intentional reload.
+- Relative to the Vite 7 Rolldown rehearsal, raw output changed from `713,264` to `712,554` bytes for the client, `516,515` to `526,258` bytes for the server, and `1,622,720` to `1,878,199` bytes for the Worker bundle.
+- Vite 8 reports three ineffective dynamic-import warnings, versus none in the rehearsal and five in the original Vite 7 build. The dry-run upload remains modest at `1,829.69 KiB` raw / `373.16 KiB` gzip, with a local startup profile window of `34.1 ms`.
+
+### Verification
+- `fnm exec --using=24 npm ci` (438 packages; zero vulnerabilities)
+- `fnm exec --using=24 npm run verify` (646 Vitest tests, D1 schema/migrations, production build, and 7 Playwright tests passed)
+- Focused RSVP Playwright rerun passed without reproducing the transient manifest-patch message.
+- Final `npm run lint`, `npm run typecheck`, and `npm run test:coverage` passed after the config migration.
+- `fnm exec --using=24 npm run cf-typegen`
+- `fnm exec --using=24 npx wrangler deploy --dry-run --config dist/meatup_club/wrangler.json`
+- `fnm exec --using=24 npx wrangler check startup --config dist/meatup_club/wrangler.json`
+- `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
+- Vite 8 dev server returned HTTP 200 for `/`, HTTP 302 to `/login` for `/dashboard`, and HTTP 200 for `/@vite/client`.
+
 ## Vite 7 Rolldown Rehearsal (2026-08-23)
 
 ### Goal
