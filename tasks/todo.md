@@ -11,13 +11,13 @@ Move the project from TypeScript 5.9 to the maintained TypeScript 6 compatibilit
 - [x] Keep runtime application behavior and unrelated dependency versions unchanged.
 - [x] React Router type generation, TypeScript checking, ESLint, Vitest, Cloudflare-generated types, production builds, and browser E2E pass under Node 24.
 - [x] Compare TypeScript 5.9 and 6 diagnostics and typecheck duration.
-- [ ] Publish the isolated migration as a pull request and confirm required CI.
+- [x] Publish the isolated migration as a pull request and confirm required CI.
 
 ### Active Tasks
 - [x] Capture the TypeScript 5.9 configuration, diagnostics, and timing baseline.
 - [x] Upgrade the compiler package and apply the smallest documented configuration migration.
 - [x] Run clean Node 24 verification and Cloudflare artifact checks.
-- [ ] Commit, push, open the pull request, and monitor CI.
+- [x] Commit, push, open the pull request, and monitor CI.
 
 ### Working Notes
 - Work is isolated on `codex/upgrade-typescript-6` from merged Tailwind 4 `origin/main`.
@@ -39,6 +39,7 @@ Move the project from TypeScript 5.9 to the maintained TypeScript 6 compatibilit
 - `fnm exec --using=24 npx wrangler deploy --dry-run --config dist/meatup_club/wrangler.json` (1,829.76 KiB raw / 373.15 KiB gzip)
 - `fnm exec --using=24 npx wrangler check startup --config dist/meatup_club/wrangler.json` (39.0ms active local startup time)
 - `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
+- GitHub Verify application CI passed on pull request #292.
 
 ## Tailwind CSS 4 Upgrade (2026-08-23)
 
