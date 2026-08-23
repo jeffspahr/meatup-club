@@ -1,5 +1,46 @@
 # Active Backlog (2026-02-23)
 
+## Poll Open SMS Notifications (2026-08-22)
+
+### Goal
+Let administrators notify SMS-eligible members when an active poll is open, with a direct voting link and durable delivery tracking.
+
+### Acceptance Criteria
+- [x] The active-poll admin card offers a concise SMS notification form.
+- [x] Admins can target all SMS-eligible members, members with no poll activity, or one specific SMS-eligible member.
+- [x] The default message identifies Meatup.Club, names the poll, links directly to it, and includes HELP/STOP instructions without RSVP reply copy.
+- [x] Admins may add a bounded custom note while required compliance copy remains app-controlled.
+- [x] Closed or unknown polls cannot be messaged, and zero-recipient sends return an actionable result.
+- [x] Every attempted send has durable delivery state updated through the signed Twilio callback.
+- [ ] Focused tests, full verification, production migration, deployment, and smoke checks pass.
+
+### Active Tasks
+- [x] Inspect the poll admin flow and existing event SMS recipient/send patterns.
+- [x] Define the minimal recipient, copy, link, and tracking behavior.
+- [x] Add poll SMS schema, sender, callback support, and admin UI.
+- [x] Add regression coverage for copy, targeting, validation, and failures.
+- [ ] Run verification and publish through the normal deployment workflow.
+
+### Working Notes
+- Work is isolated in `/private/tmp/meatup-poll-sms` from current `origin/main`; unrelated changes in the primary checkout remain untouched.
+- A user is eligible only when active, linked to a phone number, opted in, and not opted out.
+- "No poll activity" means the member has neither a restaurant vote nor a date vote in the selected poll.
+- Poll notifications need their own delivery table because existing SMS delivery rows require an event foreign key.
+
+### Results
+- Added a compact active-poll SMS form with all eligible, no-activity, and specific-member recipient modes plus a 240-character optional note.
+- Added poll-open copy with the vanity number, active poll title, direct dashboard anchor, and automatic HELP/STOP instructions.
+- Added poll-specific delivery rows and routed signed Twilio status callbacks to the correct delivery table without changing event delivery behavior.
+- Added a stable poll anchor on the member dashboard so notification links land at the voting card.
+
+### Verification
+- Focused poll SMS, callback, admin route, and dashboard UI tests: 66 passed.
+- `fnm exec --using=v24.14.0 npm run verify` passed.
+- Full coverage suite: 641 passed (80% statements, 80.47% lines).
+- D1 canonical schema and all seven forward migrations passed fixture verification.
+- Production build and all 6 browser E2E tests passed.
+- Local interactive visual QA was blocked at the Google OAuth boundary; DOM interaction coverage verified the compact form and recipient-mode transition.
+
 ## SMS Prefill and Consent Audit (2026-08-22)
 
 ### Goal

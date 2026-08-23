@@ -7,6 +7,7 @@ import {
   enqueueStagedEventEmailBatch,
   toStagedEventEmailBatchFromQueryResult,
 } from "../lib/event-email-delivery.server";
+import { sendPollOpenSmsNotification } from "../lib/sms.server";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -19,8 +20,12 @@ vi.mock("../lib/event-email-delivery.server", () => ({
   toStagedEventEmailBatchFromQueryResult: vi.fn(),
 }));
 
+vi.mock("../lib/sms.server", () => ({
+  sendPollOpenSmsNotification: vi.fn(),
+}));
+
 function createMockDb({
-  activePoll = { id: 1 },
+  activePoll = { id: 1, title: "Summer Poll" },
   restaurant = { id: 10, name: "Prime", address: "123 Main", vote_count: 2 },
   date = { id: 20, suggested_date: "2099-06-10", vote_count: 3 },
   closeChanges = 1,
@@ -39,6 +44,10 @@ function createMockDb({
     const isSelectStatement = normalizedSql.startsWith("SELECT");
 
     const firstForArgs = async () => {
+      if (normalizedSql.includes("SELECT id, title FROM polls WHERE id = ? AND status = 'active'")) {
+        return activePoll;
+      }
+
       if (normalizedSql.includes("SELECT id FROM polls WHERE id = ? AND status = 'active'")) {
         return activePoll;
       }
@@ -148,6 +157,100 @@ describe("dashboard.admin.polls close action", () => {
       deliveryType,
     }));
     vi.mocked(enqueueStagedEventEmailBatch).mockResolvedValue(undefined);
+    vi.mocked(sendPollOpenSmsNotification).mockResolvedValue({
+      sent: 2,
+      matched: 2,
+      errors: [],
+    });
+  });
+
+  it("sends a poll-open SMS to eligible members with no poll activity", async () => {
+    const db = createMockDb({});
+    const formData = new FormData();
+    formData.set("_action", "send_poll_sms");
+    formData.set("poll_id", "1");
+    formData.set("recipient_scope", "not_voted");
+    formData.set("custom_message", "Please vote by Friday.");
+
+    const result = await action({
+      request: new Request("http://localhost/dashboard/admin/polls", {
+        method: "POST",
+        body: formData,
+      }),
+      context: {
+        cloudflare: {
+          env: { DB: db, APP_BASE_URL: "https://meatup.club" },
+          ctx: { waitUntil: vi.fn() },
+        },
+      } as any,
+    } as any);
+
+    expect(result).toEqual({ success: "Twilio accepted 2 poll SMS notifications." });
+    expect(sendPollOpenSmsNotification).toHaveBeenCalledWith({
+      db,
+      env: expect.objectContaining({ APP_BASE_URL: "https://meatup.club" }),
+      poll: { id: 1, title: "Summer Poll" },
+      customMessage: "Please vote by Friday.",
+      recipientScope: "not_voted",
+      recipientUserId: null,
+    });
+  });
+
+  it("rejects poll SMS sends when no eligible member matches", async () => {
+    vi.mocked(sendPollOpenSmsNotification).mockResolvedValueOnce({
+      sent: 0,
+      matched: 0,
+      errors: [],
+    });
+    const formData = new FormData();
+    formData.set("_action", "send_poll_sms");
+    formData.set("poll_id", "1");
+    formData.set("recipient_scope", "specific");
+    formData.set("recipient_user_id", "99");
+
+    const result = await action({
+      request: new Request("http://localhost/dashboard/admin/polls", {
+        method: "POST",
+        body: formData,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb({}) } } } as any,
+    } as any);
+
+    expect(result).toEqual({
+      error: "No SMS-eligible members matched that recipient selection",
+    });
+  });
+
+  it("rejects poll SMS sends for inactive polls and oversized custom notes", async () => {
+    const oversized = new FormData();
+    oversized.set("_action", "send_poll_sms");
+    oversized.set("poll_id", "1");
+    oversized.set("custom_message", "x".repeat(241));
+
+    const oversizedResult = await action({
+      request: new Request("http://localhost/dashboard/admin/polls", {
+        method: "POST",
+        body: oversized,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb({}) } } } as any,
+    } as any);
+    expect(oversizedResult).toEqual({
+      error: "Custom SMS note must be 240 characters or fewer",
+    });
+
+    const inactive = new FormData();
+    inactive.set("_action", "send_poll_sms");
+    inactive.set("poll_id", "1");
+
+    const inactiveResult = await action({
+      request: new Request("http://localhost/dashboard/admin/polls", {
+        method: "POST",
+        body: inactive,
+      }),
+      context: { cloudflare: { env: { DB: createMockDb({ activePoll: null }) } } } as any,
+    } as any);
+    expect(inactiveResult).toEqual({ error: "Poll is not active or does not exist" });
+    expect(sendPollOpenSmsNotification).not.toHaveBeenCalled();
   });
 
   it("rejects winning dates that are not in the poll being closed", async () => {

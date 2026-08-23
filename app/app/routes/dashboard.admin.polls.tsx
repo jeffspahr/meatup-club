@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Form, Link, redirect } from "react-router";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/dashboard.admin.polls";
@@ -15,10 +15,21 @@ import VoteLeadersCard from "../components/VoteLeadersCard";
 import { getActivePollLeaders } from "../lib/polls.server";
 import { formatDateForDisplay, formatDateTimeForDisplay, getAppTimeZone, isDateInPastInTimeZone } from "../lib/dateUtils";
 import { Alert, Badge, Button, Card, PageHeader } from "../components/ui";
-import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline";
+import { ClipboardDocumentCheckIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
+import {
+  sendPollOpenSmsNotification,
+  type PollSmsRecipientScope,
+  type SmsPoll,
+} from "../lib/sms.server";
+
+type SmsMemberRow = {
+  id: number;
+  name: string | null;
+  email: string;
+};
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -70,6 +81,20 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     allDates = datesResult.results || [];
   }
 
+  const smsMembersResult = activePoll
+    ? await db
+        .prepare(`
+          SELECT id, name, email
+          FROM users
+          WHERE status = 'active'
+            AND sms_opt_in = 1
+            AND sms_opt_out_at IS NULL
+            AND phone_number IS NOT NULL
+          ORDER BY name ASC, email ASC
+        `)
+        .all()
+    : { results: [] };
+
   // Get recent closed polls
   const closedPolls = await db
     .prepare(`
@@ -98,6 +123,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     topDate,
     allRestaurants,
     allDates,
+    smsMembers: (smsMembersResult.results || []) as unknown as SmsMemberRow[],
     closedPolls: closedPolls.results || [],
   };
 }
@@ -112,6 +138,61 @@ export async function action({ request, context }: Route.ActionArgs) {
   const db = context.cloudflare.env.DB;
   const formData = await request.formData();
   const action = formData.get('_action');
+
+  if (action === 'send_poll_sms') {
+    const pollId = Number(formData.get('poll_id'));
+    const recipientScope = String(formData.get('recipient_scope') || 'all');
+    const recipientUserIdRaw = String(formData.get('recipient_user_id') || '').trim();
+    const recipientUserId = recipientUserIdRaw ? Number(recipientUserIdRaw) : null;
+    const customMessage = String(formData.get('custom_message') || '').trim();
+
+    if (!Number.isInteger(pollId) || pollId <= 0) {
+      return { error: 'Invalid poll ID' };
+    }
+
+    const validScopes = new Set(['all', 'not_voted', 'specific']);
+    if (!validScopes.has(recipientScope)) {
+      return { error: 'Invalid recipient selection' };
+    }
+
+    if (recipientScope === 'specific' && (!recipientUserId || !Number.isInteger(recipientUserId))) {
+      return { error: 'Select a specific recipient' };
+    }
+
+    if (customMessage.length > 240) {
+      return { error: 'Custom SMS note must be 240 characters or fewer' };
+    }
+
+    const poll = await db
+      .prepare("SELECT id, title FROM polls WHERE id = ? AND status = 'active'")
+      .bind(pollId)
+      .first<SmsPoll>();
+
+    if (!poll) {
+      return { error: 'Poll is not active or does not exist' };
+    }
+
+    const result = await sendPollOpenSmsNotification({
+      db,
+      env: context.cloudflare.env,
+      poll,
+      customMessage: customMessage || null,
+      recipientScope: recipientScope as PollSmsRecipientScope,
+      recipientUserId,
+    });
+
+    if (result.matched === 0) {
+      return { error: 'No SMS-eligible members matched that recipient selection' };
+    }
+
+    if (result.errors.length > 0) {
+      const acceptedSummary = result.sent > 0 ? ` Twilio accepted ${result.sent}.` : '';
+      return { error: `Poll SMS send failed.${acceptedSummary} ${result.errors[0]}` };
+    }
+
+    const notificationLabel = result.sent === 1 ? 'notification' : 'notifications';
+    return { success: `Twilio accepted ${result.sent} poll SMS ${notificationLabel}.` };
+  }
 
   if (action === 'create') {
     const title = String(formData.get('title') || '').trim();
@@ -405,8 +486,17 @@ function formatTime12h(time24: string): string {
 }
 
 export default function AdminPollsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { activePoll, topRestaurant, topDate, allRestaurants, allDates, closedPolls } = loaderData;
+  const {
+    activePoll,
+    topRestaurant,
+    topDate,
+    allRestaurants,
+    allDates,
+    smsMembers = [],
+    closedPolls,
+  } = loaderData;
   const canCreateEventFromWinners = Boolean(topRestaurant && topDate);
+  const [smsRecipientScope, setSmsRecipientScope] = useState('all');
 
   const handleCloseSubmit = (event: FormEvent<HTMLFormElement>) => {
     if (!activePoll) return;
@@ -473,6 +563,12 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
         </Alert>
       )}
 
+      {actionData && 'success' in actionData && actionData.success && (
+        <Alert variant="success" className="mb-6">
+          {actionData.success}
+        </Alert>
+      )}
+
       {/* Active Poll Section */}
       {activePoll ? (
         <Card className="mb-8">
@@ -496,6 +592,92 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
               variant="amber"
             />
           </div>
+
+          <section className="mb-6 rounded-xl border border-border bg-card/70 p-5 shadow-sm">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="icon-container mt-0.5" aria-hidden="true">
+                <PaperAirplaneIcon className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Announce voting by SMS</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Send a direct poll link to members who have opted into text messages.
+                </p>
+              </div>
+            </div>
+
+            <Form
+              method="post"
+              className={`grid gap-4 lg:items-end ${
+                smsRecipientScope === 'specific'
+                  ? 'lg:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_auto]'
+                  : 'lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]'
+              }`}
+            >
+              <input type="hidden" name="_action" value="send_poll_sms" />
+              <input type="hidden" name="poll_id" value={activePoll.id} />
+              <div>
+                <label htmlFor="poll_sms_recipient_scope" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Recipients
+                </label>
+                <select
+                  id="poll_sms_recipient_scope"
+                  name="recipient_scope"
+                  value={smsRecipientScope}
+                  onChange={(event) => setSmsRecipientScope(event.target.value)}
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="all">All SMS-opted members</option>
+                  <option value="not_voted">No poll activity yet</option>
+                  <option value="specific">Specific member</option>
+                </select>
+              </div>
+
+              {smsRecipientScope === 'specific' && (
+                <div>
+                  <label htmlFor="poll_sms_recipient_user" className="mb-1.5 block text-sm font-medium text-foreground">
+                    Specific member
+                  </label>
+                  <select
+                    id="poll_sms_recipient_user"
+                    name="recipient_user_id"
+                    defaultValue=""
+                    required
+                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <option value="">Select a member</option>
+                    {smsMembers.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name || member.email}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="poll_sms_custom_message" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Custom note <span className="font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <input
+                  id="poll_sms_custom_message"
+                  name="custom_message"
+                  type="text"
+                  maxLength={240}
+                  placeholder="Example: Please vote by Friday."
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+
+              <Button type="submit" disabled={smsMembers.length === 0}>
+                Send poll SMS
+              </Button>
+            </Form>
+
+            <p className="mt-3 text-xs text-muted-foreground">
+              The poll title, voting link, sender identity, and HELP/STOP instructions are added automatically.
+            </p>
+          </section>
 
           {/* Close Poll Form */}
           <Form method="post" onSubmit={handleCloseSubmit} className="bg-muted border border-border rounded-lg p-6">

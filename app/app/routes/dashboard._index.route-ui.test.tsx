@@ -135,6 +135,10 @@ describe("dashboard._index UI", () => {
     expect(screen.queryByText("Date Leader")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Dates" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Vote on Restaurants" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "May Poll" }).closest(".card-shell")).toHaveAttribute(
+      "id",
+      "poll-7"
+    );
     const restaurantVote = screen.getByRole("combobox", { name: "Your vote" });
     expect(restaurantVote).toHaveAttribute("name", "suggestion_id");
     expect(

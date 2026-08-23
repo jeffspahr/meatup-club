@@ -54,12 +54,14 @@ vi.mock("../components/VoteLeadersCard", () => ({
 type MockDbOptions = {
   restaurants?: Array<Record<string, unknown>>;
   dates?: Array<Record<string, unknown>>;
+  smsMembers?: Array<Record<string, unknown>>;
   closedPolls?: Array<Record<string, unknown>>;
 };
 
 function createMockDb({
   restaurants = [],
   dates = [],
+  smsMembers = [],
   closedPolls = [],
 }: MockDbOptions = {}) {
   const prepare = vi.fn((sql: string) => {
@@ -72,6 +74,10 @@ function createMockDb({
 
       if (normalizedSql.includes("FROM date_suggestions ds")) {
         return { results: dates };
+      }
+
+      if (normalizedSql.includes("FROM users") && normalizedSql.includes("sms_opt_in = 1")) {
+        return { results: smsMembers };
       }
 
       if (normalizedSql.includes("FROM polls p")) {
@@ -161,6 +167,9 @@ describe("dashboard.admin.polls loader and UI", () => {
         { id: 200, suggested_date: "2026-06-20", vote_count: 5 },
         { id: 201, suggested_date: "2026-06-27", vote_count: 3 },
       ],
+      smsMembers: [
+        { id: 4, name: "Alice", email: "alice@example.com" },
+      ],
       closedPolls: [
         {
           id: 9,
@@ -190,6 +199,9 @@ describe("dashboard.admin.polls loader and UI", () => {
     expect(loaderData.allDates).toEqual([
       expect.objectContaining({ id: 200, suggested_date: "2026-06-20" }),
       expect.objectContaining({ id: 201, suggested_date: "2026-06-27" }),
+    ]);
+    expect(loaderData.smsMembers).toEqual([
+      { id: 4, name: "Alice", email: "alice@example.com" },
     ]);
     expect(loaderData.closedPolls).toEqual([
       expect.objectContaining({ id: 9, title: "May Poll", event_id: 77 }),
@@ -226,6 +238,9 @@ describe("dashboard.admin.polls loader and UI", () => {
                 { id: 200, suggested_date: "2026-06-20", vote_count: 5 },
                 { id: 201, suggested_date: "2026-06-27", vote_count: 3 },
               ],
+              smsMembers: [
+                { id: 4, name: "Alice", email: "alice@example.com" },
+              ],
               closedPolls: [
                 {
                   id: 9,
@@ -248,6 +263,14 @@ describe("dashboard.admin.polls loader and UI", () => {
     expect(screen.getByText("June Poll")).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("formatted:2026-05-01T00:00:00.000Z"))).toBeInTheDocument();
     expect(screen.getByTestId("vote-leaders-card")).toHaveTextContent("amber");
+    expect(screen.getByText("Announce voting by SMS")).toBeInTheDocument();
+    expect(screen.getByLabelText("Recipients")).toHaveValue("all");
+    expect(screen.getByRole("button", { name: "Send poll SMS" })).toBeEnabled();
+    expect(document.querySelector('input[name="_action"][value="send_poll_sms"]')).not.toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Recipients"), { target: { value: "specific" } });
+    expect(screen.getByLabelText("Specific member")).toHaveTextContent("Alice");
+    expect(screen.getByLabelText(/Custom note/)).toHaveAttribute("maxLength", "240");
 
     const restaurantSelect = document.querySelector('select[name="winning_restaurant_id"]');
     const dateSelect = document.querySelector('select[name="winning_date_id"]');
@@ -298,8 +321,13 @@ describe("dashboard.admin.polls loader and UI", () => {
     expect(screen.getByTestId("vote-leaders-card")).toHaveTextContent("no-restaurant");
     expect(screen.getByText("No winners yet. Closing this poll will not create an event.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close Poll Without Winners" })).toBeInTheDocument();
-    expect(document.querySelector('input[name="_action"]')).toHaveValue("close");
-    expect(document.querySelector('input[name="poll_id"]')).toHaveValue("10");
+    expect(document.querySelector('input[name="_action"][value="close"]')).toHaveValue("close");
+    expect(
+      document
+        .querySelector('input[name="_action"][value="close"]')
+        ?.closest("form")
+        ?.querySelector('input[name="poll_id"]')
+    ).toHaveValue("10");
     expect(document.querySelector('select[name="winning_restaurant_id"]')).toBeNull();
     expect(document.querySelector('select[name="winning_date_id"]')).toBeNull();
     expect(screen.queryByLabelText("Create event from winners")).not.toBeInTheDocument();

@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.webhooks.sms-status";
 import {
   parseTwilioMessageStatus,
+  recordPollSmsDeliveryStatus,
   recordSmsDeliveryStatus,
   verifyTwilioSignature,
 } from "../lib/sms.server";
@@ -33,17 +34,26 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const deliveryId = new URL(request.url).searchParams.get("delivery_id")?.trim() || "";
+  const deliveryKind = new URL(request.url).searchParams.get("delivery_kind")?.trim() || "event";
   const messageSid = formData.get("MessageSid")?.toString().trim() || "";
   const status = parseTwilioMessageStatus(
     formData.get("MessageStatus")?.toString() || formData.get("SmsStatus")?.toString() || null
   );
   const errorCode = formData.get("ErrorCode")?.toString().trim() || null;
 
-  if (!DELIVERY_ID_PATTERN.test(deliveryId) || !MESSAGE_SID_PATTERN.test(messageSid) || !status) {
+  if (
+    !DELIVERY_ID_PATTERN.test(deliveryId) ||
+    !MESSAGE_SID_PATTERN.test(messageSid) ||
+    !status ||
+    (deliveryKind !== "event" && deliveryKind !== "poll")
+  ) {
     return new Response("Invalid callback payload", { status: 400 });
   }
 
-  const recorded = await recordSmsDeliveryStatus({
+  const recordStatus = deliveryKind === "poll"
+    ? recordPollSmsDeliveryStatus
+    : recordSmsDeliveryStatus;
+  const recorded = await recordStatus({
     db: context.cloudflare.env.DB,
     deliveryId,
     messageSid,

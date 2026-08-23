@@ -19,12 +19,23 @@ export type SmsEvent = {
   event_time?: string | null;
 };
 
+export type SmsPoll = {
+  id: number;
+  title: string;
+};
+
 export type SmsRecipientScope = "all" | "yes" | "no" | "maybe" | "pending" | "specific";
+export type PollSmsRecipientScope = "all" | "not_voted" | "specific";
 
 type SmsRecipientRow = {
   id: number;
   phone_number: string;
   rsvp_status: string | null;
+};
+
+type PollSmsRecipientRow = {
+  id: number;
+  phone_number: string;
 };
 
 const OPT_OUT_KEYWORDS = new Set(["stop", "stopall", "unsubscribe", "cancel", "end", "quit"]);
@@ -236,6 +247,24 @@ export function buildSmsReminderMessage({
   const eventUrl = `${baseUrl}/dashboard?event=${event.id}#event-${event.id}`;
   const base = `${messageBody} Your RSVP: ${statusLabel}. Details: ${eventUrl}`;
   return appendSmsInstructions(base);
+}
+
+export function buildPollOpenSmsMessage({
+  poll,
+  customMessage,
+  appBaseUrl,
+}: {
+  poll: SmsPoll;
+  customMessage?: string | null;
+  appBaseUrl?: string;
+}): string {
+  const customPrefix = customMessage?.trim() ? `${customMessage.trim()} ` : "";
+  const pollUrl = `${normalizeAppBaseUrl(appBaseUrl)}/dashboard#poll-${poll.id}`;
+  return (
+    `${SMS_BRAND_PREFIX} ${customPrefix}Voting is open for ${poll.title}. ` +
+    `Choose a restaurant and date: ${pollUrl} ` +
+    "Reply HELP for help. Reply STOP to opt out."
+  );
 }
 
 export async function sendSms({
@@ -536,6 +565,50 @@ export async function recordSmsDeliveryStatus({
   return Number(result?.meta?.changes ?? 0) > 0;
 }
 
+export async function recordPollSmsDeliveryStatus({
+  db,
+  deliveryId,
+  messageSid,
+  status,
+  errorCode,
+}: {
+  db: D1Database;
+  deliveryId: string;
+  messageSid?: string | null;
+  status: SmsDeliveryStatus;
+  errorCode?: string | null;
+}): Promise<boolean> {
+  const result = await db
+    .prepare(`
+      UPDATE poll_sms_deliveries
+      SET provider_message_sid = COALESCE(provider_message_sid, ?),
+          status = ?,
+          status_rank = ?,
+          error_code = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND (provider_message_sid IS NULL OR provider_message_sid = ?)
+        AND (
+          status_rank < ?
+          OR (status_rank = ? AND status = ?)
+        )
+    `)
+    .bind(
+      messageSid || null,
+      status,
+      SMS_STATUS_RANK[status],
+      errorCode || null,
+      deliveryId,
+      messageSid || null,
+      SMS_STATUS_RANK[status],
+      SMS_STATUS_RANK[status],
+      status
+    )
+    .run();
+
+  return Number(result?.meta?.changes ?? 0) > 0;
+}
+
 export async function sendScheduledSmsReminders({
   db,
   env,
@@ -696,6 +769,71 @@ export async function sendAdhocSmsReminder({
   return { sent, errors };
 }
 
+export async function sendPollOpenSmsNotification({
+  db,
+  env,
+  poll,
+  customMessage,
+  recipientScope = "all",
+  recipientUserId,
+}: {
+  db: D1Database;
+  env: SmsEnv;
+  poll: SmsPoll;
+  customMessage?: string | null;
+  recipientScope?: PollSmsRecipientScope;
+  recipientUserId?: number | null;
+}): Promise<{ sent: number; matched: number; errors: string[] }> {
+  const recipientQuery = buildPollRecipientScopeQuery(
+    recipientScope,
+    poll.id,
+    recipientUserId
+  );
+  const recipients = await db
+    .prepare(`
+      SELECT u.id, u.phone_number
+      FROM users u
+      WHERE u.status = 'active'
+        AND u.sms_opt_in = 1
+        AND u.sms_opt_out_at IS NULL
+        AND u.phone_number IS NOT NULL
+        ${recipientQuery.sql}
+      ORDER BY u.name ASC, u.email ASC
+    `)
+    .bind(...recipientQuery.bindings)
+    .all();
+
+  const matchedRecipients = (recipients.results || []) as PollSmsRecipientRow[];
+  const configuration = getTwilioConfigurationStatus(env);
+  if (!configuration.valid) {
+    logTwilioConfigurationError(configuration);
+  }
+
+  const messageType = `poll_open:${crypto.randomUUID()}`;
+  const body = buildPollOpenSmsMessage({ poll, customMessage, appBaseUrl: env.APP_BASE_URL });
+  let sent = 0;
+  const errors: string[] = [];
+
+  for (const recipient of matchedRecipients) {
+    const result = await sendTrackedPollSms({
+      db,
+      env,
+      pollId: poll.id,
+      userId: recipient.id,
+      messageType,
+      to: recipient.phone_number,
+      body,
+    });
+    if (result.success) {
+      sent += 1;
+    } else {
+      errors.push(`Member ${recipient.id}: ${result.error}`);
+    }
+  }
+
+  return { sent, matched: matchedRecipients.length, errors };
+}
+
 export function verifyTwilioSignature({
   url,
   params,
@@ -816,6 +954,62 @@ async function sendTrackedSms({
   return result;
 }
 
+async function sendTrackedPollSms({
+  db,
+  env,
+  pollId,
+  userId,
+  messageType,
+  to,
+  body,
+}: {
+  db: D1Database;
+  env: SmsEnv;
+  pollId: number;
+  userId: number;
+  messageType: string;
+  to: string;
+  body: string;
+}): Promise<SmsSendResult> {
+  const deliveryId = crypto.randomUUID();
+  await db
+    .prepare(`
+      INSERT INTO poll_sms_deliveries (
+        id, poll_id, user_id, message_type, status, status_rank
+      ) VALUES (?, ?, ?, ?, 'creating', 0)
+    `)
+    .bind(deliveryId, pollId, userId, messageType)
+    .run();
+
+  const callbackUrl = new URL("/api/webhooks/sms-status", normalizeAppBaseUrl(env.APP_BASE_URL));
+  callbackUrl.searchParams.set("delivery_id", deliveryId);
+  callbackUrl.searchParams.set("delivery_kind", "poll");
+  const result = await sendSms({
+    to,
+    body,
+    env,
+    statusCallbackUrl: callbackUrl.toString(),
+  });
+
+  if (result.success) {
+    await recordPollSmsDeliveryStatus({
+      db,
+      deliveryId,
+      messageSid: result.messageSid,
+      status: result.status,
+    });
+    return result;
+  }
+
+  await recordPollSmsDeliveryStatus({
+    db,
+    deliveryId,
+    status: "failed",
+    errorCode: result.errorCode,
+  });
+  return result;
+}
+
 async function recordAcceptedReminder(
   db: D1Database,
   eventId: number,
@@ -893,6 +1087,37 @@ function buildRecipientScopeQuery(
       return { sql: "AND r.status = ?", bindings: [scope] };
     case "pending":
       return { sql: "AND r.status IS NULL", bindings: [] };
+    case "specific":
+      if (!recipientUserId) {
+        return { sql: "AND 1 = 0", bindings: [] };
+      }
+      return { sql: "AND u.id = ?", bindings: [recipientUserId] };
+    case "all":
+    default:
+      return { sql: "", bindings: [] };
+  }
+}
+
+function buildPollRecipientScopeQuery(
+  scope: PollSmsRecipientScope,
+  pollId: number,
+  recipientUserId?: number | null
+): { sql: string; bindings: number[] } {
+  switch (scope) {
+    case "not_voted":
+      return {
+        sql: `
+          AND NOT EXISTS (
+            SELECT 1 FROM restaurant_votes rv
+            WHERE rv.poll_id = ? AND rv.user_id = u.id
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM date_votes dv
+            WHERE dv.poll_id = ? AND dv.user_id = u.id
+          )
+        `,
+        bindings: [pollId, pollId],
+      };
     case "specific":
       if (!recipientUserId) {
         return { sql: "AND 1 = 0", bindings: [] };
