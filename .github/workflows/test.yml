@@ -16,8 +16,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Verify application
+  quality:
+    name: Quality, unit tests, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: America/New_York
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: 'app/.node-version'
+          cache: 'npm'
+          cache-dependency-path: 'app/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint source
+        run: npm run lint
+
+      - name: Scan for committed secrets
+        run: npm run test:secrets
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run unit and integration tests
+        run: npm run test:coverage
+
+      - name: Verify D1 schema and migrations
+        run: npm run test:d1
+
+      - name: Build production application
+        run: npm run build
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-report
+          path: app/coverage
+          if-no-files-found: warn
+          retention-days: 30
+
+  browser:
+    name: Browser journeys (Chromium + iPhone WebKit)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -43,14 +94,31 @@ jobs:
       - name: Install browsers
         run: npx playwright install --with-deps chromium webkit
 
-      - name: Verify application
-        run: npm run verify
+      - name: Run browser journeys
+        run: npm run test:e2e
 
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: coverage-report
-          path: app/coverage
-          if-no-files-found: warn
-          retention-days: 30
+  verify:
+    name: Verify application
+    if: ${{ always() }}
+    needs:
+      - quality
+      - browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Confirm all verification lanes passed
+        shell: bash
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${QUALITY_RESULT}" == 'success' && "${BROWSER_RESULT}" == 'success' ]]; then
+            echo 'All application verification lanes passed.'
+            exit 0
+          fi
+
+          echo "::error::Application verification failed: quality=${QUALITY_RESULT}, browser=${BROWSER_RESULT}."
+          exit 1
