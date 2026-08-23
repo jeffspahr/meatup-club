@@ -4,19 +4,6 @@ Keep this file limited to current engineering follow-ups. GitHub issues are the 
 
 ## Current Follow-ups
 
-### Parallelize and clarify Application CI
-
-- [x] Run quality, unit/integration, schema, and production-build checks in one descriptive lane.
-- [x] Run Chromium and iPhone WebKit browser journeys in a parallel descriptive lane.
-- [x] Preserve `Verify application` as the required aggregate check and fail it unless both lanes pass.
-- [x] Keep the deployment workflow gated on successful `Application CI` for the exact current-main commit.
-- [x] Add deterministic workflow contract coverage and run the full verification gate.
-- [ ] Merge and confirm the parallel checks and gated production deployment succeed.
-
-Recent main timing was 2m47s: browser installation took 50s, browser journeys 35s, and the remaining chained verification about 63s. Two lanes improve failure visibility and should reduce wall time without duplicating setup once per individual command.
-
-Local verification passed: workflow YAML parsing, three workflow contract tests, the full quality lane (82 files / 649 tests, D1 checks, and production build), seven Chromium/WebKit journeys, and `git diff --check`.
-
 ### Resolve the remaining SMS report in issue #256
 
 - [ ] Obtain a current retry result and the expected event/reminder time from the reporter.
