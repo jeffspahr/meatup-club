@@ -1,5 +1,46 @@
 # Active Backlog (2026-02-23)
 
+## TypeScript 6 Compatibility Upgrade (2026-08-23)
+
+### Goal
+Move the project from TypeScript 5.9 to the maintained TypeScript 6 compatibility package, adopting the bridge behaviors required before a future native TypeScript 7 compiler migration.
+
+### Acceptance Criteria
+- [x] Resolve the TypeScript 6 compatibility package through the existing `typescript` dependency so typescript-eslint retains its supported compiler API.
+- [x] Remove TypeScript 6 deprecations used by this repository instead of suppressing them with `ignoreDeprecations`.
+- [x] Keep runtime application behavior and unrelated dependency versions unchanged.
+- [x] React Router type generation, TypeScript checking, ESLint, Vitest, Cloudflare-generated types, production builds, and browser E2E pass under Node 24.
+- [x] Compare TypeScript 5.9 and 6 diagnostics and typecheck duration.
+- [x] Publish the isolated migration as a pull request and confirm required CI.
+
+### Active Tasks
+- [x] Capture the TypeScript 5.9 configuration, diagnostics, and timing baseline.
+- [x] Upgrade the compiler package and apply the smallest documented configuration migration.
+- [x] Run clean Node 24 verification and Cloudflare artifact checks.
+- [x] Commit, push, open the pull request, and monitor CI.
+
+### Working Notes
+- Work is isolated on `codex/upgrade-typescript-6` from merged Tailwind 4 `origin/main`.
+- TypeScript 7.0 has no programmatic compiler API; keep typescript-eslint on the supported TypeScript 6 API through `@typescript/typescript6`.
+- The existing config already declares modern module resolution, strictness, target, module, and ambient types. Its deprecated `baseUrl` can be removed by making the `~/*` target explicitly relative.
+
+### Results
+- Replaced TypeScript 5.9.3 with the official `@typescript/typescript6` compatibility package. The package remains installed under the `typescript` name so React Router and typescript-eslint share the supported compiler API; the wrapper is 6.0.2 and its compiler is TypeScript 6.0.3.
+- Updated the typecheck script to the compatibility package's `tsc6` binary and removed the deprecated `baseUrl`; the existing `~/*` path target was already explicitly relative.
+- No application source or runtime behavior changed, and the lockfile changed only for the TypeScript compatibility wrapper and compiler.
+- TypeScript 7 remains deferred because its native compiler does not yet expose the programmatic API required by typescript-eslint. TypeScript 6 with `stableTypeOrdering` reports zero diagnostics, confirming the current source is ready for that future compiler transition.
+- Full typecheck time improved from 5.47s to 5.17s (about 5.5%). Compiler-only time improved from 4.11s to 3.50s (about 14.8%), with reported memory falling from 557,392K to 512,885K. Diagnostic-only stable type ordering completed in 4.17s, so it is not enabled for routine checks.
+
+### Verification
+- `fnm exec --using=24 npm ci` (388 packages; zero vulnerabilities)
+- `fnm exec --using=24 npm run verify` (lint, secret scan, TypeScript 6 checking, 646 coverage tests, D1 schema/migrations, production build, and 7 browser E2E tests passed)
+- `fnm exec --using=24 npx tsc6 --noEmit --stableTypeOrdering --extendedDiagnostics` (zero diagnostics)
+- `fnm exec --using=24 npm run cf-typegen`
+- `fnm exec --using=24 npx wrangler deploy --dry-run --config dist/meatup_club/wrangler.json` (1,829.76 KiB raw / 373.15 KiB gzip)
+- `fnm exec --using=24 npx wrangler check startup --config dist/meatup_club/wrangler.json` (39.0ms active local startup time)
+- `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
+- GitHub Verify application CI passed on pull request #292.
+
 ## Tailwind CSS 4 Upgrade (2026-08-23)
 
 ### Goal
