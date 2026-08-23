@@ -10,6 +10,7 @@ import type { Member } from "../lib/types";
 import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
+import { normalizePhoneNumber } from "../lib/sms.server";
 
 type MemberSmsStatus = {
   label: string;
@@ -111,9 +112,15 @@ export async function action({ request, context }: Route.ActionArgs) {
     const email = formData.get('email');
     const name = formData.get('name');
     const templateId = formData.get('template_id');
+    const rawPhone = String(formData.get('phone_number') || '').trim();
+    const normalizedPhone = rawPhone ? normalizePhoneNumber(rawPhone) : null;
 
     if (!email) {
       return { error: 'Email is required' };
+    }
+
+    if (rawPhone && !normalizedPhone) {
+      return { error: 'Please enter a valid US phone number (e.g. 555-123-4567).' };
     }
 
     try {
@@ -127,10 +134,20 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { error: 'User with this email already exists' };
       }
 
+      if (normalizedPhone) {
+        const existingPhoneUser = await db
+          .prepare('SELECT id FROM users WHERE phone_number = ?')
+          .bind(normalizedPhone)
+          .first();
+        if (existingPhoneUser) {
+          return { error: 'That phone number is already linked to another account.' };
+        }
+      }
+
       // Create invited user
       const result = await db
-        .prepare('INSERT INTO users (email, name, status) VALUES (?, ?, ?)')
-        .bind(email, name || null, 'invited')
+        .prepare('INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)')
+        .bind(email, name || null, 'invited', normalizedPhone)
         .run();
 
       // Send invitation email if Resend API key is configured
@@ -192,16 +209,61 @@ export async function action({ request, context }: Route.ActionArgs) {
     const user_id = formData.get('user_id');
     const name = formData.get('name');
     const is_admin = formData.get('is_admin') === 'true';
+    const phoneFieldPresent = formData.has('phone_number');
+    const rawPhone = String(formData.get('phone_number') || '').trim();
+    const normalizedPhone = rawPhone ? normalizePhoneNumber(rawPhone) : null;
 
     if (!user_id) {
       return { error: 'User ID is required' };
     }
 
+    if (rawPhone && !normalizedPhone) {
+      return { error: 'Please enter a valid US phone number (e.g. 555-123-4567).' };
+    }
+
     try {
-      await db
-        .prepare('UPDATE users SET name = ?, is_admin = ? WHERE id = ?')
-        .bind(name || null, is_admin ? 1 : 0, user_id)
-        .run();
+      const currentMember = await db
+        .prepare('SELECT phone_number FROM users WHERE id = ?')
+        .bind(user_id)
+        .first<{ phone_number: string | null }>();
+
+      if (!currentMember) {
+        return { error: 'Member not found' };
+      }
+
+      const desiredPhone = phoneFieldPresent ? normalizedPhone : currentMember.phone_number;
+
+      if (desiredPhone) {
+        const existingPhoneUser = await db
+          .prepare('SELECT id FROM users WHERE phone_number = ? AND id != ?')
+          .bind(desiredPhone, user_id)
+          .first();
+        if (existingPhoneUser) {
+          return { error: 'That phone number is already linked to another account.' };
+        }
+      }
+
+      const phoneChanged = desiredPhone !== currentMember.phone_number;
+      if (phoneChanged) {
+        await db
+          .prepare(`
+            UPDATE users
+            SET name = ?,
+                is_admin = ?,
+                phone_number = ?,
+                sms_opt_in = 0,
+                sms_opt_out_at = NULL,
+                sms_opt_out_source = NULL
+            WHERE id = ?
+          `)
+          .bind(name || null, is_admin ? 1 : 0, desiredPhone, user_id)
+          .run();
+      } else {
+        await db
+          .prepare('UPDATE users SET name = ?, is_admin = ? WHERE id = ?')
+          .bind(name || null, is_admin ? 1 : 0, user_id)
+          .run();
+      }
 
       return redirect('/dashboard/admin/members');
     } catch (err) {
@@ -274,6 +336,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     user_id: 0,
     name: '',
     is_admin: false,
+    phone_number: '',
   });
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -285,6 +348,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       user_id: member.id,
       name: member.name || '',
       is_admin: member.is_admin === 1,
+      phone_number: member.phone_number || '',
     });
   }
 
@@ -294,6 +358,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       user_id: 0,
       name: '',
       is_admin: false,
+      phone_number: '',
     });
   }
 
@@ -420,6 +485,27 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
             <div>
               <label
+                htmlFor="invite_phone_number"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                Mobile Number (Optional)
+              </label>
+              <input
+                id="invite_phone_number"
+                name="phone_number"
+                type="tel"
+                inputMode="tel"
+                placeholder="555-123-4567"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This only links the number. The member must opt in from their profile or text START
+                to 888-857-MEAT.
+              </p>
+            </div>
+
+            <div>
+              <label
                 htmlFor="template_id"
                 className="block text-sm font-medium text-foreground mb-1"
               >
@@ -492,12 +578,16 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                       <input type="hidden" name="_action" value="update" />
                       <input type="hidden" name="user_id" value={editData.user_id} />
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-4 md:grid-cols-3">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor={`edit_name_${member.id}`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Name
                           </label>
                           <input
+                            id={`edit_name_${member.id}`}
                             name="name"
                             type="text"
                             value={editData.name}
@@ -509,10 +599,38 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor={`edit_phone_number_${member.id}`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Mobile Number
+                          </label>
+                          <input
+                            id={`edit_phone_number_${member.id}`}
+                            name="phone_number"
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="555-123-4567"
+                            value={editData.phone_number}
+                            onChange={(e) =>
+                              setEditData({ ...editData, phone_number: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Changing this disables SMS until the member explicitly opts in again.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor={`edit_role_${member.id}`}
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Role
                           </label>
                           <select
+                            id={`edit_role_${member.id}`}
                             name="is_admin"
                             value={editData.is_admin ? 'true' : 'false'}
                             onChange={(e) =>

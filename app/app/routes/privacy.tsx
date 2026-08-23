@@ -88,7 +88,9 @@ export default function PrivacyPage() {
           <section>
             <h2 className="section-heading">Proof of Consumer Consent</h2>
             <p className="mt-3">
-              Consumers provide SMS consent directly within the authenticated profile settings page.
+              Consumers provide SMS consent directly through the authenticated profile settings
+              page or by texting START or UNSTOP from a number already linked to their member
+              account.
               Public documentation of the opt-in flow and exact consent language is available at{" "}
               <a
                 href="https://meatup.club/sms-consent"
@@ -116,7 +118,15 @@ export default function PrivacyPage() {
               replying STOP or disabling SMS in profile settings.
             </p>
             <p className="mt-3">
-              New enrollees actively opt in using that checkbox. They are not subscribed by default.
+              New enrollees actively opt in using one of these methods. They are not subscribed by
+              default.
+            </p>
+            <p className="mt-3">
+              As an alternative, an administrator may prefill a member&apos;s mobile number without
+              enabling SMS. After receiving the program disclosures outside SMS, the member may text
+              START or UNSTOP to 888-857-MEAT from that linked number. The inbound keyword, phone
+              number, timestamp, consent source, disclosure version, and Twilio Message SID are
+              retained as proof of consent. Prefilling a number alone never grants consent.
             </p>
           </section>
 

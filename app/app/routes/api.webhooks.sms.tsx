@@ -9,6 +9,7 @@ import {
 import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
 import { upsertRsvp } from "../lib/rsvps.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
 
 interface SmsWebhookUserRow {
   id: number;
@@ -52,7 +53,23 @@ export async function action({ request, context }: Route.ActionArgs) {
   const twilioOptOutType = parseTwilioOptOutType(
     formData.get("OptOutType")?.toString() ?? null
   );
-  if (messageSid) {
+  const fromRaw = formData.get("From")?.toString() || "";
+  const body = formData.get("Body")?.toString() || "";
+  const parsedBodyReply = parseSmsReply(body);
+  // YES and NO are Meatup RSVP commands. Give them precedence in case a
+  // Messaging Service was mistakenly configured to classify YES as START.
+  const replyType =
+    parsedBodyReply === "yes" || parsedBodyReply === "no"
+      ? parsedBodyReply
+      : twilioOptOutType ?? parsedBodyReply;
+  const twilioAlreadyReplied =
+    twilioOptOutType !== null && twilioOptOutType === replyType;
+  const isConsentCommand = replyType === "opt_in" || replyType === "opt_out";
+
+  // Consent commands are idempotent through the unique provider Message SID
+  // on sms_consent_events. Do not reserve them here: a failed consent batch
+  // must remain retryable so state and evidence cannot diverge.
+  if (messageSid && !isConsentCommand) {
     const isFirstDelivery = await reserveWebhookDelivery(db, "twilio", messageSid);
     if (!isFirstDelivery) {
       return twilioOptOutType
@@ -61,8 +78,6 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
   }
 
-  const fromRaw = formData.get("From")?.toString() || "";
-  const body = formData.get("Body")?.toString() || "";
   const from = normalizePhoneNumber(fromRaw);
 
   if (!from) {
@@ -84,31 +99,37 @@ export async function action({ request, context }: Route.ActionArgs) {
         );
   }
 
-  const parsedBodyReply = parseSmsReply(body);
-  // YES and NO are Meatup RSVP commands. Give them precedence in case a
-  // Messaging Service was mistakenly configured to classify YES as START.
-  const replyType =
-    parsedBodyReply === "yes" || parsedBodyReply === "no"
-      ? parsedBodyReply
-      : twilioOptOutType ?? parsedBodyReply;
-  const twilioAlreadyReplied =
-    twilioOptOutType !== null && twilioOptOutType === replyType;
-
   if (replyType === "opt_out") {
-    await db
-      .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?")
-      .bind(user.id)
-      .run();
+    await db.batch([
+      db
+        .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?")
+        .bind(user.id),
+      prepareSmsConsentEvent(db, {
+        userId: user.id,
+        phoneNumber: from,
+        eventType: "opt_out",
+        source: "sms",
+        providerMessageSid: messageSid || null,
+      }),
+    ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
       : buildSmsResponse("You are opted out of Meatup SMS. Reply START to re-enable.");
   }
 
   if (replyType === "opt_in") {
-    await db
-      .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?")
-      .bind(user.id)
-      .run();
+    await db.batch([
+      db
+        .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?")
+        .bind(user.id),
+      prepareSmsConsentEvent(db, {
+        userId: user.id,
+        phoneNumber: from,
+        eventType: "opt_in",
+        source: "sms",
+        providerMessageSid: messageSid || null,
+      }),
+    ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
       : buildSmsResponse("You are opted in to Meatup SMS reminders. Reply STOP to opt out.");

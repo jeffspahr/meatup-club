@@ -2,6 +2,7 @@ import { Form, redirect } from "react-router";
 import type { Route } from "./+types/dashboard.profile";
 import { requireActiveUser } from "../lib/auth.server";
 import { normalizePhoneNumber } from "../lib/sms.server";
+import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
 import { PageHeader, Card, UserAvatar, Badge, Alert, Button } from "~/components/ui";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
@@ -66,7 +67,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const smsOptIn = wantsSms && !!normalizedPhone ? 1 : 0;
 
-    await db
+    const updateStatement = db
       .prepare(`
         UPDATE users
         SET phone_number = ?,
@@ -82,8 +83,30 @@ export async function action({ request, context }: Route.ActionArgs) {
             END
         WHERE id = ?
       `)
-      .bind(normalizedPhone, smsOptIn, smsOptIn, smsOptIn, hasCarrierOptOut ? 1 : 0, user.id)
-      .run();
+      .bind(normalizedPhone, smsOptIn, smsOptIn, smsOptIn, hasCarrierOptOut ? 1 : 0, user.id);
+
+    const wasSmsEnabled = user.sms_opt_in === 1 && !user.sms_opt_out_at;
+    const phoneChanged = normalizedPhone !== user.phone_number;
+    const consentPhoneNumber = normalizedPhone || user.phone_number;
+    const consentEventType = smsOptIn === 1 && (!wasSmsEnabled || phoneChanged)
+      ? 'opt_in'
+      : smsOptIn === 0 && wasSmsEnabled
+        ? 'opt_out'
+        : null;
+    const statements = [updateStatement];
+
+    if (consentEventType && consentPhoneNumber) {
+      statements.push(
+        prepareSmsConsentEvent(db, {
+          userId: user.id,
+          phoneNumber: consentPhoneNumber,
+          eventType: consentEventType,
+          source: 'profile',
+        })
+      );
+    }
+
+    await db.batch(statements);
 
     return { success: 'SMS preferences updated successfully' };
   }

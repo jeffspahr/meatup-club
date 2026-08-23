@@ -150,6 +150,11 @@ export default function VerificationPage() {
               settings.
             </li>
           </ol>
+          <p className="mt-5 text-sm leading-6 text-muted-foreground">
+            An administrator may also prefill a mobile number without enabling SMS. After receiving
+            the public program disclosures, the member can explicitly enroll by texting START or
+            UNSTOP to 888-857-MEAT from that linked number. Prefilling alone is not consent.
+          </p>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
             <div className="rounded-[1.75rem] border border-border bg-background px-5 py-5">
@@ -198,7 +203,11 @@ export default function VerificationPage() {
               <ul className="mt-4 space-y-3 text-sm leading-6 text-muted-foreground">
                 <li>SMS consent is captured directly from the end user.</li>
                 <li>Users are not subscribed by default and must actively opt in.</li>
-                <li>Consent is tied to the member record and stored with the submitted phone number.</li>
+                <li>
+                  Consent is tied to the member record and stored with the submitted phone number,
+                  timestamp, source, disclosure version, and provider message identifier when
+                  supplied by Twilio.
+                </li>
                 <li>SMS reminders are optional and are not required to use Meatup.Club.</li>
                 <li>The same consent language is documented publicly at /privacy and /sms-consent.</li>
               </ul>

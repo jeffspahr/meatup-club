@@ -9,7 +9,7 @@ export default function SmsConsentPage() {
         <h1 className="mt-3 page-heading">
           SMS Consent & Opt-In
         </h1>
-        <p className="mt-3 text-sm text-muted-foreground">Last updated: February 25, 2026</p>
+        <p className="mt-3 text-sm text-muted-foreground">Last updated: August 22, 2026</p>
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
           For public carrier and messaging reviews, use{" "}
           <Link
@@ -32,6 +32,7 @@ export default function SmsConsentPage() {
 
           <section>
             <h2 className="section-heading">How Users Opt In</h2>
+            <h3 className="mt-3 font-medium text-foreground">Profile opt-in</h3>
             <ol className="mt-3 list-decimal space-y-2 pl-6">
               <li>Sign in to Meatup.Club.</li>
               <li>Go to Profile settings.</li>
@@ -46,6 +47,21 @@ export default function SmsConsentPage() {
               </li>
               <li>Save preferences to enroll in SMS reminders.</li>
             </ol>
+            <h3 className="mt-6 font-medium text-foreground">Keyword opt-in</h3>
+            <ol className="mt-3 list-decimal space-y-2 pl-6">
+              <li>A mobile number is linked to an invited member account.</li>
+              <li>
+                Linking or prefilling a number does not grant consent and does not enable SMS.
+              </li>
+              <li>
+                The member is shown or given this call to action outside SMS: &quot;Text START to
+                888-857-MEAT to receive Meatup.Club event reminders and RSVP updates. Message
+                frequency varies. Message and data rates may apply. Reply STOP to unsubscribe or
+                HELP for help. Consent is optional. See meatup.club/terms and
+                meatup.club/privacy.&quot;
+              </li>
+              <li>The member texts START or UNSTOP from the linked number to enroll.</li>
+            </ol>
           </section>
 
           <section>
@@ -54,7 +70,7 @@ export default function SmsConsentPage() {
               <li>Purpose: event reminders and RSVP status updates only.</li>
               <li>Frequency: varies by event, typically low volume.</li>
               <li>Opt-out: reply STOP at any time.</li>
-              <li>Re-enrollment: after opting out by text, reply START or UNSTOP.</li>
+              <li>Enrollment or re-enrollment by keyword: reply START or UNSTOP.</li>
               <li>Help: reply HELP for instructions.</li>
               <li>Fees: message and data rates may apply.</li>
             </ul>

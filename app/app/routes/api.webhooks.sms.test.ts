@@ -92,7 +92,11 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  const batch = vi.fn(async (statements: Array<{ run: () => Promise<unknown> }>) =>
+    await Promise.all(statements.map((statement) => statement.run()))
+  );
+
+  return { prepare, batch, runCalls };
 }
 
 function createRequest({
@@ -226,6 +230,30 @@ describe("api.webhooks.sms", () => {
     expect(upsertRsvp).not.toHaveBeenCalled();
   });
 
+  it("does not enroll an unknown phone number that texts START", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
+    const db = createMockDb({ user: null });
+
+    const response = await action({
+      request: createRequest({ body: "START", optOutType: "START" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(await getSmsBody(response)).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
+    );
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
   it("opts the user out when they text STOP", async () => {
     vi.mocked(parseSmsReply).mockReturnValue("opt_out");
     const db = createMockDb({
@@ -250,6 +278,17 @@ describe("api.webhooks.sms", () => {
       {
         sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
         bindArgs: [7],
+      },
+      {
+        sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
+        bindArgs: [
+          7,
+          "+15551234567",
+          "opt_out",
+          "sms",
+          "sms-reminders-2026-08-22",
+          "SM123",
+        ],
       },
     ]);
     expect(upsertRsvp).not.toHaveBeenCalled();
@@ -280,6 +319,17 @@ describe("api.webhooks.sms", () => {
       {
         sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
         bindArgs: [7],
+      },
+      {
+        sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
+        bindArgs: [
+          7,
+          "+15551234567",
+          "opt_out",
+          "sms",
+          "sms-reminders-2026-08-22",
+          "SM123",
+        ],
       },
     ]);
   });
@@ -312,8 +362,58 @@ describe("api.webhooks.sms", () => {
         sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
         bindArgs: [7],
       },
+      {
+        sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
+        bindArgs: [
+          7,
+          "+15551234567",
+          "opt_in",
+          "sms",
+          "sms-reminders-2026-08-22",
+          "SM123",
+        ],
+      },
     ]);
     expect(upsertRsvp).not.toHaveBeenCalled();
+  });
+
+  it("enrolls a known prefilled number when the member texts START", async () => {
+    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
+    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
+    const db = createMockDb({
+      user: { id: 7, sms_opt_in: 0, sms_opt_out_at: null },
+    });
+
+    await action({
+      request: createRequest({ body: "START", sid: "SM_PREFILLED", optOutType: "START" }),
+      context: {
+        cloudflare: {
+          env: {
+            DB: db,
+            TWILIO_AUTH_TOKEN: "token",
+          },
+        },
+      } as never,
+      params: {},
+    } as never);
+
+    expect(db.runCalls).toEqual([
+      {
+        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
+        bindArgs: [7],
+      },
+      {
+        sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
+        bindArgs: [
+          7,
+          "+15551234567",
+          "opt_in",
+          "sms",
+          "sms-reminders-2026-08-22",
+          "SM_PREFILLED",
+        ],
+      },
+    ]);
   });
 
   it("keeps YES as an RSVP command if Twilio misclassifies it as START", async () => {
