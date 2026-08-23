@@ -1,6 +1,7 @@
-import { redirect, type AppLoadContext } from "react-router";
+import { redirect, type RouterContextProvider } from "react-router";
 import { getSession, commitSession, destroySession } from "./session.server";
 import { getUserByEmail, isUserActive } from "./db.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export type AuthUser = {
   id: number;
@@ -38,12 +39,12 @@ export type GoogleUserInfo = {
   locale?: string;
 };
 
-function getLocalDevAuthBypassEmail(context: AppLoadContext) {
+function getLocalDevAuthBypassEmail(context: Readonly<RouterContextProvider>) {
   if (!import.meta.env.DEV || process.env.NODE_ENV === "test") {
     return null;
   }
 
-  return context.cloudflare.env.DEV_AUTH_BYPASS_EMAIL?.trim() || null;
+  return getCloudflareContext(context).env.DEV_AUTH_BYPASS_EMAIL?.trim() || null;
 }
 
 function isLocalhostRequest(request: Request) {
@@ -53,12 +54,12 @@ function isLocalhostRequest(request: Request) {
 // Get current user from session
 export async function getUser(
   request: Request,
-  context: AppLoadContext
+  context: Readonly<RouterContextProvider>
 ): Promise<AuthUser | null> {
   const bypassEmail = getLocalDevAuthBypassEmail(context);
 
   if (bypassEmail && isLocalhostRequest(request)) {
-    const user = await getUserByEmail(context.cloudflare.env.DB, bypassEmail);
+    const user = await getUserByEmail(getCloudflareContext(context).env.DB, bypassEmail);
     if (user) {
       return user as AuthUser;
     }
@@ -72,7 +73,7 @@ export async function getUser(
     return null;
   }
 
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const user = await getUserByEmail(db, email);
 
   if (!user) {
@@ -85,7 +86,7 @@ export async function getUser(
 // Require authentication - redirect to login if not authenticated
 export async function requireAuth(
   request: Request,
-  context: AppLoadContext
+  context: Readonly<RouterContextProvider>
 ): Promise<AuthUser> {
   const user = await getUser(request, context);
 
@@ -104,7 +105,7 @@ export async function requireAuth(
 // Require active user - redirect if not active
 export async function requireActiveUser(
   request: Request,
-  context: AppLoadContext
+  context: Readonly<RouterContextProvider>
 ): Promise<AuthUser> {
   const user = await requireAuth(request, context);
 
@@ -118,7 +119,7 @@ export async function requireActiveUser(
 // Require admin user
 export async function requireAdmin(
   request: Request,
-  context: AppLoadContext
+  context: Readonly<RouterContextProvider>
 ): Promise<AuthUser> {
   const user = await requireActiveUser(request, context);
 

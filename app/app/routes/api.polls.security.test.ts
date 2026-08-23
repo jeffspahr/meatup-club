@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -34,7 +35,7 @@ describe("api.polls action security", () => {
 
     const response = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as any,
+      context: createLoadContext({ env: { DB: db } } as never),
     } as any);
 
     expect(response.status).toBe(403);

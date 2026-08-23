@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RefreshRestaurantsPage, { action, loader } from "./dashboard.admin.refresh-restaurants";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -90,11 +91,9 @@ function actionRequestContext(db: ReturnType<typeof createMockDb>) {
     request: new Request("http://localhost/dashboard/admin/refresh-restaurants", {
       method: "POST",
     }),
-    context: {
-      cloudflare: {
+    context: createLoadContext({
         env: { DB: db, GOOGLE_PLACES_API_KEY: "test-places-api-key" },
-      },
-    } as never,
+      } as never) as never,
     params: {},
   } as never;
 }
@@ -120,7 +119,7 @@ describe("dashboard.admin.refresh-restaurants route", () => {
   it("requires admin access in the loader", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/refresh-restaurants"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 

@@ -11,6 +11,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { confirmAction } from "../lib/confirm.client";
 import { logErrorEvent } from "../lib/observability.server";
 import { normalizePhoneNumber } from "../lib/sms.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 type MemberSmsStatus = {
   label: string;
@@ -84,7 +85,7 @@ function MemberSmsStatusCell({ member }: { member: Member }) {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   // Fetch all members
   const membersResult = await db
@@ -104,7 +105,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const admin = await requireAdmin(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const actionType = formData.get('_action');
 
@@ -151,7 +152,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         .run();
 
       // Send invitation email if Resend API key is configured
-      const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
+      const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
 
       if (resendApiKey) {
         // Fetch the selected template (or default if none selected)

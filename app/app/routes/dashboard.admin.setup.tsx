@@ -1,16 +1,28 @@
-import { Form, Link, type AppLoadContext } from "react-router";
+import { Form, Link, type RouterContextProvider } from "react-router";
 import { useState } from "react";
 import { requireAdmin } from "../lib/auth.server";
 import { EnvelopeIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { AdminLayout } from "../components/AdminLayout";
 import { Alert, Card, PageHeader } from "../components/ui";
 
-export async function loader({ request, context }: { request: Request; context: AppLoadContext }) {
+export async function loader({
+  request,
+  context,
+}: {
+  request: Request;
+  context: Readonly<RouterContextProvider>;
+}) {
   await requireAdmin(request, context);
   return {};
 }
 
-export async function action({ request, context }: { request: Request; context: AppLoadContext }) {
+export async function action({
+  request,
+  context,
+}: {
+  request: Request;
+  context: Readonly<RouterContextProvider>;
+}) {
   await requireAdmin(request, context);
   const formData = await request.formData();
   const _action = formData.get('_action');

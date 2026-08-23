@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { action } from './api.webhooks.email-rsvp';
+import { createLoadContext } from "~/lib/router-context";
 
 /**
  * Integration tests for webhook signature verification and database operations
@@ -85,14 +86,12 @@ describe('Webhook Handler - Signature Verification', () => {
         }),
       });
 
-      const context = {
-        cloudflare: {
+      const context = createLoadContext({
           env: {
             DB: mockDb,
             RESEND_WEBHOOK_SECRET: undefined, // Missing secret
           },
-        },
-      } as any;
+        } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -115,9 +114,7 @@ describe('Webhook Handler - Signature Verification', () => {
         body: JSON.stringify({ type: 'email.received' }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -138,9 +135,7 @@ describe('Webhook Handler - Signature Verification', () => {
         body: JSON.stringify({ type: 'email.received' }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -161,9 +156,7 @@ describe('Webhook Handler - Signature Verification', () => {
         body: JSON.stringify({ type: 'email.received' }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -193,9 +186,7 @@ describe('Webhook Handler - Signature Verification', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -227,9 +218,7 @@ describe('Webhook Handler - Signature Verification', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -260,9 +249,7 @@ describe('Webhook Handler - Signature Verification', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -290,9 +277,7 @@ describe('Webhook Handler - Signature Verification', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -351,9 +336,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -388,9 +371,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -430,9 +411,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
 
@@ -464,9 +443,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -497,9 +474,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -536,9 +511,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -581,9 +554,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -617,9 +588,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -655,9 +624,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -698,9 +665,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -731,9 +696,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -772,9 +735,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       const response = await action({ request, context } as any);
       const data = (await response.json()) as any;
@@ -812,9 +773,7 @@ describe('Webhook Handler - Database Operations', () => {
         }),
       });
 
-      const context = {
-        cloudflare: { env: mockEnv },
-      } as any;
+      const context = createLoadContext({ env: mockEnv } as never);
 
       await action({ request, context } as any);
 

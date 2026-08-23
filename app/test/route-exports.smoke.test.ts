@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { createLoadContext } from "~/lib/router-context";
 
 /**
  * Structural smoke tests for route modules.
@@ -23,8 +24,7 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
 
   beforeEach(() => {
     // Mock Cloudflare context
-    mockContext = {
-      cloudflare: {
+    mockContext = createLoadContext({
         env: {
           DB: createMockDB(),
           RESEND_API_KEY: 'test-api-key',
@@ -35,8 +35,7 @@ describe('Route Exports Smoke - Structural Route Checks', () => {
         ctx: {
           waitUntil: vi.fn(),
         },
-      },
-    };
+      } as never);
 
     // Mock request
     mockRequest = new Request('http://localhost:3000/');

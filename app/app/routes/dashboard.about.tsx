@@ -4,6 +4,7 @@ import type { ContentItem, Member } from "~/lib/types";
 import { requireActiveUser } from "../lib/auth.server";
 import ReactMarkdown from 'react-markdown';
 import { PageHeader, Card, Alert, UserAvatar, Badge } from "~/components/ui";
+import { getCloudflareContext } from "~/lib/router-context";
 import {
   BookOpenIcon,
   RocketLaunchIcon,
@@ -18,7 +19,7 @@ function firstNameKey(name: string | null): string {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   await requireActiveUser(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   const [contentResult, membersResult] = await Promise.all([
     db.prepare('SELECT * FROM site_content ORDER BY id ASC').all(),

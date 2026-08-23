@@ -3,6 +3,7 @@ import { action } from "./dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
 import { logActivity } from "../lib/activity.server";
 import { removeVote, voteForRestaurant } from "../lib/restaurants.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -131,7 +132,7 @@ describe("dashboard._index poll actions — gating", () => {
       const db = createMockDb({ activePoll: null });
       const result = await action({
         request: createRequest({ _action: intent, suggestion_id: "1", suggested_date: "2099-01-01" }),
-        context: { cloudflare: { env: { DB: db } } } as never,
+        context: createLoadContext({ env: { DB: db } } as never) as never,
       } as never);
       expect(result).toEqual({ error: "No active poll. Actions require an active poll." });
       expect(db.runCalls).toEqual([]);
@@ -144,7 +145,7 @@ describe("dashboard._index poll actions — suggest_date", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "suggest_date" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Date is required" });
     expect(db.runCalls).toEqual([]);
@@ -154,7 +155,7 @@ describe("dashboard._index poll actions — suggest_date", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "suggest_date", suggested_date: "2000-01-01" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Cannot add dates in the past" });
     expect(db.runCalls).toEqual([]);
@@ -164,7 +165,7 @@ describe("dashboard._index poll actions — suggest_date", () => {
     const db = createMockDb({ existingDate: { id: 999 } });
     const result = await action({
       request: createRequest({ _action: "suggest_date", suggested_date: "2099-01-01" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "This date has already been added for the current poll" });
     expect(db.runCalls).toEqual([]);
@@ -174,7 +175,7 @@ describe("dashboard._index poll actions — suggest_date", () => {
     const db = createMockDb({ insertSuggestionId: 777 });
     const result = await action({
       request: createRequest({ _action: "suggest_date", suggested_date: "2099-01-01" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(db.runCalls).toEqual([
@@ -200,7 +201,7 @@ describe("dashboard._index poll actions — vote_date", () => {
     });
     const result = await action({
       request: createRequest({ _action: "vote_date", suggestion_id: "10", remove: "false" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Cannot vote on dates in the past" });
     expect(db.runCalls).toEqual([]);
@@ -212,7 +213,7 @@ describe("dashboard._index poll actions — vote_date", () => {
     });
     const result = await action({
       request: createRequest({ _action: "vote_date", suggestion_id: "10", remove: "true" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(db.runCalls).toEqual([
@@ -232,7 +233,7 @@ describe("dashboard._index poll actions — vote_date", () => {
     });
     const result = await action({
       request: createRequest({ _action: "vote_date", suggestion_id: "10", remove: "false" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Suggestion not found in active poll" });
     expect(db.runCalls).toEqual([]);
@@ -244,7 +245,7 @@ describe("dashboard._index poll actions — vote_date", () => {
     });
     const result = await action({
       request: createRequest({ _action: "vote_date", suggestion_id: "10", remove: "false" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(db.runCalls).toEqual([
@@ -264,7 +265,7 @@ describe("dashboard._index poll actions — delete_date", () => {
     const db = createMockDb({ dateOwner: { user_id: 999, poll_id: 1 } });
     const result = await action({
       request: createRequest({ _action: "delete_date", suggestion_id: "10" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Permission denied" });
     expect(db.runCalls).toEqual([]);
@@ -274,7 +275,7 @@ describe("dashboard._index poll actions — delete_date", () => {
     const db = createMockDb({ dateOwner: { user_id: 123, poll_id: 1 } });
     const result = await action({
       request: createRequest({ _action: "delete_date", suggestion_id: "10" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(db.runCalls).toEqual([
@@ -303,7 +304,7 @@ describe("dashboard._index poll actions — delete_date", () => {
     const db = createMockDb({ dateOwner: { user_id: 123, poll_id: 1 } });
     const result = await action({
       request: createRequest({ _action: "delete_date", suggestion_id: "10" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(logActivity).toHaveBeenCalledWith(
@@ -317,7 +318,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "vote_restaurant" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ error: "Restaurant ID is required" });
     expect(voteForRestaurant).not.toHaveBeenCalled();
@@ -327,7 +328,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "vote_restaurant", suggestion_id: suggestionId }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Restaurant ID is invalid" });
@@ -339,7 +340,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb({ availableRestaurant: null });
     const result = await action({
       request: createRequest({ _action: "vote_restaurant", suggestion_id: "9" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Restaurant is not available in the active poll" });
@@ -350,7 +351,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "vote_restaurant", suggestion_id: "" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ ok: true });
@@ -365,7 +366,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb({ existingRestaurantVote: { restaurant_id: 5 } });
     const result = await action({
       request: createRequest({ _action: "vote_restaurant", suggestion_id: "9" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(voteForRestaurant).toHaveBeenCalledWith(expect.anything(), 1, 9, 123);
@@ -381,7 +382,7 @@ describe("dashboard._index poll actions — vote_restaurant", () => {
     const db = createMockDb({ existingRestaurantVote: null });
     const result = await action({
       request: createRequest({ _action: "vote_restaurant", suggestion_id: "9" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(logActivity).toHaveBeenCalledWith(
@@ -398,7 +399,7 @@ describe("dashboard._index poll actions — unvote_restaurant", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "unvote_restaurant" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
     expect(result).toEqual({ ok: true });
     expect(removeVote).toHaveBeenCalledWith(expect.anything(), 1, 123);

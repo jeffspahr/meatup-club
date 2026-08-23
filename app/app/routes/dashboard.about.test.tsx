@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Route } from "./+types/dashboard.about";
 import AboutPage, { loader } from "./dashboard.about";
 import { requireActiveUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -59,7 +60,7 @@ describe("dashboard.about route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/about"),
-      context: { cloudflare: { env: { DB: createMockDb(content, members) } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb(content, members) } } as never) as never,
       params: {},
     } as never);
 
@@ -71,8 +72,7 @@ describe("dashboard.about route", () => {
   it("falls back to empty content and members lists when queries return no rows", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard/about"),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: {
               prepare: vi.fn((sql: string) => {
@@ -89,8 +89,7 @@ describe("dashboard.about route", () => {
               }),
             },
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 

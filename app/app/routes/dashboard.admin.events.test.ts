@@ -14,6 +14,7 @@ import {
   toStagedEventEmailBatchFromQueryResult,
 } from "../lib/event-email-delivery.server";
 import { sendRsvpOverrideEmail } from "../lib/email.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -312,7 +313,7 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Select a restaurant from Google Places." });
@@ -332,14 +333,12 @@ describe("dashboard.admin.events action flows", () => {
 
     const response = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -397,13 +396,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const response = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -457,13 +454,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const response = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(response).toEqual({ success: "Queued calendar resend for 2 missing active members." });
@@ -526,13 +521,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "Queued calendar resend for 2 selected active members." });
@@ -565,13 +558,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({
@@ -607,13 +598,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Cancelled events cannot be resent" });
@@ -632,7 +621,7 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Invalid RSVP status" });
@@ -650,7 +639,7 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Event or user not found" });
@@ -668,14 +657,12 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "RSVP override saved and user notified." });
@@ -714,14 +701,12 @@ describe("dashboard.admin.events action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ success: "RSVP override saved and user notified." });
@@ -747,13 +732,11 @@ describe("dashboard.admin.events action flows", () => {
 
     const response = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);

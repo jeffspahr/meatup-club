@@ -5,6 +5,7 @@ import AdminPollsPage, { loader } from "./dashboard.admin.polls";
 import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
 import { getActivePollLeaders } from "../lib/polls.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual<typeof import("react-router")>("react-router");
@@ -148,7 +149,7 @@ describe("dashboard.admin.polls loader and UI", () => {
 
     const response = await loader({
       request: new Request("http://localhost/dashboard/admin/polls"),
-      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() } } as never) as never,
       params: {},
     } as never);
 
@@ -185,7 +186,7 @@ describe("dashboard.admin.polls loader and UI", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/polls"),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
     const loaderData = result as Exclude<Awaited<ReturnType<typeof loader>>, Response>;

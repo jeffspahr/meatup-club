@@ -4,6 +4,7 @@ import { requireActiveUser } from "../lib/auth.server";
 import { getAllActivity, getActivityStats } from "../lib/activity.server";
 import { Badge, Card, PageHeader } from "../components/ui";
 import { AdminLayout } from "../components/AdminLayout";
+import { getCloudflareContext } from "~/lib/router-context";
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
@@ -12,7 +13,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     throw new Response("Unauthorized", { status: 403 });
   }
 
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get('page') || '1');
   const limit = 50;

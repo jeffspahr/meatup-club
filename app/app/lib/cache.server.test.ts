@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { withCache } from "./cache.server";
+import { createLoadContext } from "~/lib/router-context";
 
 const matchSpy = vi.fn();
 const putSpy = vi.fn();
@@ -24,7 +25,7 @@ describe("withCache", () => {
     const fetcher = vi.fn();
     const response = await withCache(
       new Request("https://meatup.club/api/places/search?q=steak"),
-      { cloudflare: { ctx: { waitUntil } } },
+      createLoadContext({ ctx: { waitUntil } } as never),
       fetcher,
       "public, max-age=60"
     );
@@ -45,7 +46,7 @@ describe("withCache", () => {
 
     const response = await withCache(
       new Request("https://meatup.club/api/places/details?id=abc"),
-      { cloudflare: { ctx: { waitUntil } } },
+      createLoadContext({ ctx: { waitUntil } } as never),
       fetcher,
       "public, s-maxage=300"
     );
@@ -70,7 +71,7 @@ describe("withCache", () => {
 
     const response = await withCache(
       new Request("https://meatup.club/api/places/photo?name=test"),
-      { cloudflare: { ctx: { waitUntil } } },
+      createLoadContext({ ctx: { waitUntil } } as never),
       fetcher,
       "public, max-age=3600"
     );

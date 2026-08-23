@@ -66,6 +66,7 @@ import { action as acceptInviteAction, loader as acceptInviteLoader } from "../a
 import { action as adminPollsAction } from "../app/routes/dashboard.admin.polls";
 import { action as dashboardAction, loader as dashboardLoader } from "../app/routes/dashboard._index";
 import { action as emailWebhookAction } from "../app/routes/api.webhooks.email-rsvp";
+import { createLoadContext } from "~/lib/router-context";
 
 const pollsAction = dashboardAction;
 const pollsLoader = dashboardLoader;
@@ -75,16 +76,14 @@ function createContext(harness: ReturnType<typeof createSqliteD1Harness>, extraE
   const waitUntil = vi.fn((promise: Promise<unknown>) => promise);
 
   return {
-    context: {
-      cloudflare: {
+    context: createLoadContext({
         env: {
           DB: harness.db,
           APP_TIMEZONE: "UTC",
           ...extraEnv,
         },
         ctx: { waitUntil },
-      },
-    } as never,
+      } as never) as never,
     waitUntil,
   };
 }

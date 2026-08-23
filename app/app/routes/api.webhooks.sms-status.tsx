@@ -1,4 +1,5 @@
 import type { Route } from "./+types/api.webhooks.sms-status";
+import { getCloudflareContext } from "~/lib/router-context";
 import {
   parseTwilioMessageStatus,
   recordPollSmsDeliveryStatus,
@@ -27,7 +28,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     url: request.url,
     params,
     signature: request.headers.get("X-Twilio-Signature"),
-    authToken: context.cloudflare.env.TWILIO_AUTH_TOKEN,
+    authToken: getCloudflareContext(context).env.TWILIO_AUTH_TOKEN,
   });
   if (!isValid) {
     return new Response("Invalid signature", { status: 403 });
@@ -54,7 +55,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     ? recordPollSmsDeliveryStatus
     : recordSmsDeliveryStatus;
   const recorded = await recordStatus({
-    db: context.cloudflare.env.DB,
+    db: getCloudflareContext(context).env.DB,
     deliveryId,
     messageSid,
     status,

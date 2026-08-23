@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Route } from "./+types/pending";
 import PendingPage, { loader } from "./pending";
 import { getUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   getUser: vi.fn(),
@@ -24,7 +25,7 @@ describe("pending route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/pending"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 

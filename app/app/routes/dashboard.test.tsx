@@ -4,6 +4,7 @@ import type { Route } from "./+types/dashboard";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout, { ErrorBoundary, loader } from "./dashboard";
 import { requireActiveUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -34,7 +35,7 @@ describe("dashboard route", () => {
   it("loads the active user for the dashboard shell", async () => {
     const result = await loader({
       request: new Request("http://localhost/dashboard"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 

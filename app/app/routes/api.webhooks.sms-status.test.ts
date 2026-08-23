@@ -6,6 +6,10 @@ import {
   recordSmsDeliveryStatus,
   verifyTwilioSignature,
 } from "../lib/sms.server";
+import {
+  createLoadContext,
+  getCloudflareContext,
+} from "~/lib/router-context";
 
 vi.mock("../lib/sms.server", () => ({
   parseTwilioMessageStatus: vi.fn(() => "delivered"),
@@ -47,11 +51,9 @@ function createRequest({
 function createArgs(request: Request) {
   return {
     request,
-    context: {
-      cloudflare: {
+    context: createLoadContext({
         env: { DB: { prepare: vi.fn() }, TWILIO_AUTH_TOKEN: "token" },
-      },
-    },
+      } as never),
     params: {},
   };
 }
@@ -93,7 +95,7 @@ describe("api.webhooks.sms-status", () => {
 
     expect(response.status).toBe(204);
     expect(recordSmsDeliveryStatus).toHaveBeenCalledWith({
-      db: args.context.cloudflare.env.DB,
+      db: getCloudflareContext(args.context).env.DB,
       deliveryId,
       messageSid,
       status: "delivered",
@@ -108,7 +110,7 @@ describe("api.webhooks.sms-status", () => {
 
     expect(response.status).toBe(204);
     expect(recordPollSmsDeliveryStatus).toHaveBeenCalledWith({
-      db: args.context.cloudflare.env.DB,
+      db: getCloudflareContext(args.context).env.DB,
       deliveryId,
       messageSid,
       status: "delivered",

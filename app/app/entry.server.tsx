@@ -2,6 +2,8 @@ import { renderToReadableStream } from "react-dom/server";
 import { ServerRouter, type EntryContext } from "react-router";
 import { logErrorEvent } from "./lib/observability.server";
 
+export { createLoadContext } from "./lib/router-context";
+
 export default async function handleRequest(
   request: Request,
   responseStatusCode: number,

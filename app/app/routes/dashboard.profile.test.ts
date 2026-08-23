@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action, loader } from "./dashboard.profile";
 import { requireActiveUser } from "../lib/auth.server";
 import { normalizePhoneNumber } from "../lib/sms.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -90,7 +91,7 @@ describe("dashboard.profile route", () => {
   it("returns the active user from the loader", async () => {
     const result = await loader({
       request: createRequest(),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 
@@ -110,7 +111,7 @@ describe("dashboard.profile route", () => {
         _action: "update_notifications",
         notify_event_updates: "on",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -131,7 +132,7 @@ describe("dashboard.profile route", () => {
         _action: "update_sms",
         phone_number: "invalid",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -151,7 +152,7 @@ describe("dashboard.profile route", () => {
         phone_number: "555-123-4567",
         sms_opt_in: "on",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -169,7 +170,7 @@ describe("dashboard.profile route", () => {
         phone_number: "555-123-4567",
         sms_opt_in: "on",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -215,7 +216,7 @@ describe("dashboard.profile route", () => {
         _action: "update_sms",
         phone_number: "555-123-4567",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -253,7 +254,7 @@ describe("dashboard.profile route", () => {
         phone_number: "555-123-4567",
         sms_opt_in: "on",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -286,7 +287,7 @@ describe("dashboard.profile route", () => {
         phone_number: "555-123-4567",
         sms_opt_in: "on",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -307,7 +308,7 @@ describe("dashboard.profile route", () => {
 
     const result = await action({
       request: createRequest({ _action: "nope" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

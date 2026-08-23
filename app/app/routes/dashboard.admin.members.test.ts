@@ -3,6 +3,7 @@ import { action } from "./dashboard.admin.members";
 import { requireAdmin } from "../lib/auth.server";
 import { sendInviteEmail } from "../lib/email.server";
 import { forceUserReauth } from "../lib/db.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -128,7 +129,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Email is required" });
@@ -143,7 +144,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "User with this email already exists" });
@@ -159,14 +160,12 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "Email template not found" });
@@ -186,14 +185,12 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(result).toEqual({
@@ -222,14 +219,12 @@ describe("dashboard.admin.members action flows", () => {
 
     const response = await action({
       request,
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_API_KEY: "test-api-key",
           },
-        },
-      } as never,
+        } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -255,7 +250,7 @@ describe("dashboard.admin.members action flows", () => {
         email: "member@example.com",
         phone_number: "555-123-4567",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({
@@ -273,7 +268,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({ error: "User ID is required" });
@@ -290,7 +285,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const response = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -315,7 +310,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const response = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -337,7 +332,7 @@ describe("dashboard.admin.members action flows", () => {
         user_id: "7",
         phone_number: "555-123-4567",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({
@@ -355,7 +350,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const response = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(response).toBeInstanceOf(Response);
@@ -389,7 +384,7 @@ describe("dashboard.admin.members action flows", () => {
 
     const result = await action({
       request,
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
     } as never);
 
     expect(result).toEqual({

@@ -3,6 +3,7 @@ import { action } from "./api.webhooks.email-delivery";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { createLoadContext } from "~/lib/router-context";
 
 let mockVerify = vi.fn();
 
@@ -60,14 +61,12 @@ describe("api.webhooks.email-delivery", () => {
   it("returns 500 when no delivery webhook secret is configured", async () => {
     const response = await action({
       request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_DELIVERY_WEBHOOK_SECRET: undefined,
           },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(response.status).toBe(500);
@@ -89,13 +88,11 @@ describe("api.webhooks.email-delivery", () => {
 
     const response = await action({
       request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(response.status).toBe(200);
@@ -121,13 +118,11 @@ describe("api.webhooks.email-delivery", () => {
 
     const response = await action({
       request: createRequest({ type: "email.opened", data: { email_id: "email-123" } }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
           },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(response.status).toBe(200);
@@ -139,14 +134,12 @@ describe("api.webhooks.email-delivery", () => {
   it("verifies with the env fallback secret and records supported events", async () => {
     const response = await action({
       request: createRequest({ type: "email.delivered", data: { email_id: "email-123" } }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             RESEND_DELIVERY_WEBHOOK_SECRET: "env-secret",
           },
-        },
-      } as never,
+        } as never) as never,
     });
 
     expect(response.status).toBe(200);

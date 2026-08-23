@@ -1,9 +1,10 @@
-import type { AppLoadContext } from "react-router";
+import type { RouterContextProvider } from "react-router";
 import { Webhook } from "svix";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface ResendDeliveryWebhookPayload {
   type: string;
@@ -17,10 +18,12 @@ interface ResendDeliveryWebhookPayload {
   };
 }
 
-async function getWebhookSecret(context: AppLoadContext): Promise<string | null> {
-  const db = context.cloudflare.env.DB;
+async function getWebhookSecret(
+  context: Readonly<RouterContextProvider>
+): Promise<string | null> {
+  const db = getCloudflareContext(context).env.DB;
   const storedConfig = await getProviderWebhookConfig(db, "resend", "delivery_status");
-  return storedConfig?.signingSecret || context.cloudflare.env.RESEND_DELIVERY_WEBHOOK_SECRET || null;
+  return storedConfig?.signingSecret || getCloudflareContext(context).env.RESEND_DELIVERY_WEBHOOK_SECRET || null;
 }
 
 /**
@@ -31,9 +34,9 @@ export async function action({
   context,
 }: {
   request: Request;
-  context: AppLoadContext;
+  context: Readonly<RouterContextProvider>;
 }) {
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
 
   try {
     const webhookSecret = await getWebhookSecret(context);

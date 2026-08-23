@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loader } from "./dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -155,7 +156,7 @@ describe("dashboard._index loader", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard"),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "America/New_York" } } as never) as never,
       params: {},
     } as never);
 
@@ -207,7 +208,7 @@ describe("dashboard._index loader", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard"),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "America/New_York" } } as never) as never,
       params: {},
     } as never);
 
@@ -266,7 +267,7 @@ describe("dashboard._index loader", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard?event=5"),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "America/New_York" } } as never) as never,
       params: {},
     } as never);
 

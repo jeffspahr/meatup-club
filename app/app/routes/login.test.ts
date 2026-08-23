@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loader } from "./login";
 import { commitSession, getSession } from "../lib/session.server";
 import { getGoogleAuthUrl } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/session.server", () => ({
   getSession: vi.fn(),
@@ -42,7 +43,7 @@ describe("login route", () => {
 
     const response = await loader({
       request: createCookieRequest("http://localhost/login"),
-      context: { cloudflare: { env: {} } } as never,
+      context: createLoadContext({ env: {} } as never) as never,
       params: {},
     } as never);
 

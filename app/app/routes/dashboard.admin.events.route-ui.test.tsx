@@ -12,6 +12,7 @@ import {
   isEventInPastInTimeZone,
 } from "../lib/dateUtils";
 import { maybeCheckTwilioProviderHealth, sendAdhocSmsReminder } from "../lib/sms.server";
+import { createLoadContext } from "~/lib/router-context";
 
 let navigationState: { state: string; formData: FormData | null } = {
   state: "idle",
@@ -309,7 +310,7 @@ describe("dashboard.admin.events loader and UI", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/events"),
-      context: { cloudflare: { env: { DB: db, APP_TIMEZONE: "America/New_York" } } } as never,
+      context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "America/New_York" } } as never) as never,
       params: {},
     } as never);
 
@@ -501,15 +502,13 @@ describe("dashboard.admin.events loader and UI", () => {
         status: "cancelled",
         send_updates: "true",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             EMAIL_DELIVERY_QUEUE: queue,
           },
           ctx: {},
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -536,14 +535,12 @@ describe("dashboard.admin.events loader and UI", () => {
         _action: "delete",
         id: "42",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             EMAIL_DELIVERY_QUEUE: queue,
           },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -570,7 +567,7 @@ describe("dashboard.admin.events loader and UI", () => {
         message_type: "default",
         recipient_scope: "everyone",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -585,15 +582,13 @@ describe("dashboard.admin.events loader and UI", () => {
         recipient_scope: "specific",
         recipient_user_id: "7",
       }),
-      context: {
-        cloudflare: {
+      context: createLoadContext({
           env: {
             DB: db,
             TWILIO_ACCOUNT_SID: "sid",
           },
           ctx: { waitUntil: vi.fn() },
-        },
-      } as never,
+        } as never) as never,
       params: {},
     } as never);
 
@@ -622,7 +617,7 @@ describe("dashboard.admin.events loader and UI", () => {
         message_type: "default",
         recipient_scope: "all",
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

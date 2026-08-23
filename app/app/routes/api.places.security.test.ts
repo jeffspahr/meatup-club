@@ -4,6 +4,7 @@ import { loader as detailsLoader } from "./api.places.details";
 import { loader as photoLoader } from "./api.places.photo";
 import { getUser } from "../lib/auth.server";
 import { enforceRateLimit } from "../lib/rate-limit.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   getUser: vi.fn(),
@@ -23,8 +24,7 @@ vi.mock("../lib/cache.server", () => ({
 
 describe("Places API route guards", () => {
   function createMockContext(apiKey: string | undefined = "test-places-api-key") {
-    return {
-      cloudflare: {
+    return createLoadContext({
         env: {
           DB: {},
           GOOGLE_PLACES_API_KEY: apiKey,
@@ -32,8 +32,7 @@ describe("Places API route guards", () => {
         ctx: {
           waitUntil: vi.fn(),
         },
-      },
-    } as any;
+      } as never);
   }
 
   beforeEach(() => {

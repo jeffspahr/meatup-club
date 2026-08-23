@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loader } from "./api.health.sms";
 import { maybeCheckTwilioProviderHealth } from "../lib/sms.server";
 import { logErrorEvent } from "../lib/observability.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/sms.server", () => ({
   isSmsProviderHealthFresh: vi.fn((health) => health.status === "healthy"),
@@ -26,7 +27,7 @@ describe("SMS provider health endpoint", () => {
     });
 
     const response = await loader({
-      context: { cloudflare: { env: { DB: {} } } },
+      context: createLoadContext({ env: { DB: {} } } as never),
     } as never);
 
     expect(response.status).toBe(200);
@@ -43,7 +44,7 @@ describe("SMS provider health endpoint", () => {
     });
 
     const response = await loader({
-      context: { cloudflare: { env: { DB: {} } } },
+      context: createLoadContext({ env: { DB: {} } } as never),
     } as never);
 
     expect(response.status).toBe(503);
@@ -56,7 +57,7 @@ describe("SMS provider health endpoint", () => {
     );
 
     const response = await loader({
-      context: { cloudflare: { env: { DB: {} } } },
+      context: createLoadContext({ env: { DB: {} } } as never),
     } as never);
 
     expect(response.status).toBe(503);

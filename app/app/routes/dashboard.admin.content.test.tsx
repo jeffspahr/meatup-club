@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminContentPage, { action, loader } from "./dashboard.admin.content";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -76,7 +77,7 @@ describe("dashboard.admin.content route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/content"),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -104,7 +105,7 @@ describe("dashboard.admin.content route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() } } as never) as never,
       params: {},
     } as never);
 
@@ -123,7 +124,7 @@ describe("dashboard.admin.content route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -149,7 +150,7 @@ describe("dashboard.admin.content route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

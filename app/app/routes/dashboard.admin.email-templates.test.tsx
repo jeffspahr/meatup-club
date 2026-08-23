@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminEmailTemplatesPage, { action, loader } from "./dashboard.admin.email-templates";
 import { requireAdmin } from "../lib/auth.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
@@ -98,7 +99,7 @@ describe("dashboard.admin.email-templates route", () => {
 
     const result = await loader({
       request: new Request("http://localhost/dashboard/admin/email-templates"),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -116,7 +117,7 @@ describe("dashboard.admin.email-templates route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: createMockDb() } } } as never,
+      context: createLoadContext({ env: { DB: createMockDb() } } as never) as never,
       params: {},
     } as never);
 
@@ -138,7 +139,7 @@ describe("dashboard.admin.email-templates route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -166,7 +167,7 @@ describe("dashboard.admin.email-templates route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -184,7 +185,7 @@ describe("dashboard.admin.email-templates route", () => {
         method: "POST",
         body: formData,
       }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 

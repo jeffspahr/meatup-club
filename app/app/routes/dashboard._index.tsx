@@ -60,6 +60,7 @@ import {
   LightBulbIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
+import { getCloudflareContext } from "~/lib/router-context";
 
 interface ActivePollRow {
   id: number;
@@ -121,9 +122,9 @@ interface RestaurantRow {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const user = await requireActiveUser(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const isAdmin = user.is_admin === 1;
-  const appTimeZone = getAppTimeZone(context.cloudflare.env.APP_TIMEZONE);
+  const appTimeZone = getAppTimeZone(getCloudflareContext(context).env.APP_TIMEZONE);
   const requestedEventId = Number(new URL(request.url).searchParams.get('event'));
 
   // Phase 1: queries that don't depend on each other.
@@ -342,14 +343,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 // triggering a navigation (which would scroll the page back to the top).
 export async function action({ request, context }: Route.ActionArgs) {
   const user = await requireActiveUser(request, context);
-  const db = context.cloudflare.env.DB;
+  const db = getCloudflareContext(context).env.DB;
   const formData = await request.formData();
   const intent = formData.get('_action');
 
   if (intent === 'event_create' || intent === 'event_update' || intent === 'event_rsvp') {
     const ctx = {
       db,
-      queue: context.cloudflare.env.EMAIL_DELIVERY_QUEUE,
+      queue: getCloudflareContext(context).env.EMAIL_DELIVERY_QUEUE,
       user,
       formData,
       request,
@@ -620,7 +621,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'This restaurant has already been added' };
     }
 
-    const apiKey = context.cloudflare.env.GOOGLE_PLACES_API_KEY;
+    const apiKey = getCloudflareContext(context).env.GOOGLE_PLACES_API_KEY;
     if (!apiKey) {
       return { error: 'Places API is not configured' };
     }
@@ -632,7 +633,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       identifier: `user:${user.id}:ip:${ip}`,
       limit: 60,
       windowSeconds: 60,
-      ctx: context.cloudflare.ctx,
+      ctx: getCloudflareContext(context).ctx,
     });
     if (!rateLimit.allowed) {
       return { error: 'Rate limit exceeded. Please try again shortly.' };

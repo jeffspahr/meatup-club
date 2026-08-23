@@ -7,6 +7,7 @@ import {
   deleteRestaurant,
   findRestaurantByPlaceId,
 } from "../lib/restaurants.server";
+import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/auth.server", () => ({
   requireActiveUser: vi.fn(),
@@ -110,9 +111,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
         _action: "suggest_restaurant",
         place_id: "place123",
       }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -136,9 +135,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
     const db = createMockDb();
     const result = await action({
       request: createRequest({ _action: "suggest_restaurant" }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -155,9 +152,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
         _action: "suggest_restaurant",
         place_id: "bad/value",
       }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -175,9 +170,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
         _action: "suggest_restaurant",
         place_id: "exists",
       }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -194,9 +187,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
         _action: "suggest_restaurant",
         place_id: "place123",
       }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -219,9 +210,7 @@ describe("dashboard._index action — suggest_restaurant", () => {
         _action: "suggest_restaurant",
         place_id: "place123",
       }),
-      context: {
-        cloudflare: { env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } },
-      } as never,
+      context: createLoadContext({ env: { DB: db, GOOGLE_PLACES_API_KEY: "test-key" } } as never) as never,
       params: {},
     } as never);
 
@@ -252,7 +241,7 @@ describe("dashboard._index action — delete_restaurant", () => {
 
     const result = await action({
       request: createRequest({ _action: "delete_restaurant", restaurant_id: "5" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -272,7 +261,7 @@ describe("dashboard._index action — delete_restaurant", () => {
 
     const result = await action({
       request: createRequest({ _action: "delete_restaurant", restaurant_id: "5" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
@@ -292,7 +281,7 @@ describe("dashboard._index action — delete_restaurant", () => {
 
     const result = await action({
       request: createRequest({ _action: "delete_restaurant", restaurant_id: "5" }),
-      context: { cloudflare: { env: { DB: db } } } as never,
+      context: createLoadContext({ env: { DB: db } } as never) as never,
       params: {},
     } as never);
 
