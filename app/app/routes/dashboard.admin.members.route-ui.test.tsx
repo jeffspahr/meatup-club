@@ -136,6 +136,8 @@ describe("dashboard.admin.members loader and UI", () => {
     expect(screen.getByRole("heading", { name: "Invite New User" })).toBeInTheDocument();
     expect(screen.getByLabelText("Email *")).toHaveValue("");
     expect(screen.getByLabelText("Name (Optional)")).toHaveValue("");
+    expect(screen.getByLabelText("Mobile Number (Optional)")).toHaveValue("");
+    expect(screen.getByText(/This only links the number/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Email Template")).toHaveValue("1");
     expect(screen.getByRole("link", { name: "Manage templates" })).toHaveAttribute(
       "href",
@@ -199,6 +201,10 @@ describe("dashboard.admin.members loader and UI", () => {
 
     expect(screen.getByRole("button", { name: "Save Changes" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Member One")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("+15551234567")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Changing this disables SMS until the member explicitly opts in again/i)
+    ).toBeInTheDocument();
     const roleSelect = document.querySelector('select[name="is_admin"]');
     expect(roleSelect).not.toBeNull();
     expect(roleSelect as unknown as HTMLSelectElement).toHaveValue("true");

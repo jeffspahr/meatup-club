@@ -33,3 +33,8 @@
 - 2026-08-22: Browser-test fixtures must satisfy production domain invariants; negative sentinel IDs can make otherwise-valid boundary checks fail only in E2E. Use reserved high positive IDs for entities whose production IDs are positive, and clean them up explicitly.
 - 2026-08-22: Failure mode: expanding an existing multi-purpose UI fixture with extra rows and invalidating its singular text assertions; detection signal: Testing Library reports multiple matches for an unrelated status such as `Active`; prevention rule: cover new display-state matrices in a dedicated focused test so established interaction fixtures retain their original cardinality assumptions.
 - 2026-08-22: Failure mode: validating a wide admin table only at a narrow breakpoint and missing that the desktop page wrapper capped it while most of the viewport remained unused; detection signal: the user screenshot shows a small internal horizontal scroller surrounded by large empty margins; prevention rule: for desktop data-table changes, test at a screenshot-representative wide viewport and measure both content width and internal scroll width before shipping.
+# 2026-08-22: Keep D1 contract fixtures synchronized with schema additions
+
+- Failure mode: A new table and migration passed focused application tests but failed CI because the canonical-schema and migration fixtures assert exact table and migration counts.
+- Detection signal: `npm run test:d1` failed with `CHECK constraint failed: passed = 1` after all Vitest coverage checks passed.
+- Prevention rule: For every D1 schema addition, update and run both `current-schema-assertions.sql` and `migration-assertions.sql` via `npm run test:d1` before publishing.

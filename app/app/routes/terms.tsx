@@ -51,7 +51,9 @@ export default function TermsPage() {
                 Frequency: message frequency varies by event, typically low volume.
               </li>
               <li>
-                Consent: users opt in via profile settings with an explicit SMS consent checkbox.
+                Consent: users opt in through an explicit profile checkbox or by texting START or
+                UNSTOP from a mobile number already linked to their member account. Administrators
+                may prefill a number but cannot consent on a member&apos;s behalf.
               </li>
               <li>
                 Optionality: SMS reminders are optional and not required to use the service.
@@ -60,7 +62,7 @@ export default function TermsPage() {
                 Opt-out: reply STOP at any time to stop SMS messages.
               </li>
               <li>
-                Re-enrollment: after opting out by text, reply START or UNSTOP.
+                Keyword enrollment and re-enrollment: reply START or UNSTOP.
               </li>
               <li>
                 Help: reply HELP for usage instructions.

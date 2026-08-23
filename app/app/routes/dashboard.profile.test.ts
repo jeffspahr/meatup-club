@@ -42,7 +42,11 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  const batch = vi.fn(async (statements: Array<{ run: () => Promise<unknown> }>) =>
+    await Promise.all(statements.map((statement) => statement.run()))
+  );
+
+  return { prepare, batch, runCalls };
 }
 
 function createRequest(formEntries?: Record<string, string>) {
@@ -175,6 +179,54 @@ describe("dashboard.profile route", () => {
         sql: expect.stringContaining("UPDATE users SET phone_number = ?"),
         bindArgs: ["+15551234567", 1, 1, 1, 0, 123],
       }),
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT OR IGNORE INTO sms_consent_events"),
+        bindArgs: [
+          123,
+          "+15551234567",
+          "opt_in",
+          "profile",
+          "sms-reminders-2026-08-22",
+          null,
+        ],
+      }),
+    ]);
+  });
+
+  it("records profile opt-out evidence when enabled reminders are disabled", async () => {
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 123,
+      is_admin: 0,
+      status: "active",
+      email: "user@example.com",
+      name: "User",
+      picture: null,
+      notify_poll_updates: 1,
+      notify_event_updates: 1,
+      phone_number: "+15551234567",
+      sms_opt_in: 1,
+      sms_opt_out_at: null,
+      sms_opt_out_source: null,
+    } as never);
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "update_sms",
+        phone_number: "555-123-4567",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ success: "SMS preferences updated successfully" });
+    expect(db.runCalls[1]?.bindArgs).toEqual([
+      123,
+      "+15551234567",
+      "opt_out",
+      "profile",
+      "sms-reminders-2026-08-22",
+      null,
     ]);
   });
 
@@ -240,6 +292,14 @@ describe("dashboard.profile route", () => {
 
     expect(result).toEqual({ success: "SMS preferences updated successfully" });
     expect(db.runCalls[0]?.bindArgs).toEqual(["+15551234567", 1, 1, 1, 0, 123]);
+    expect(db.runCalls[1]?.bindArgs).toEqual([
+      123,
+      "+15551234567",
+      "opt_in",
+      "profile",
+      "sms-reminders-2026-08-22",
+      null,
+    ]);
   });
 
   it("rejects unknown action types", async () => {

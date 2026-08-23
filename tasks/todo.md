@@ -1,5 +1,49 @@
 # Active Backlog (2026-02-23)
 
+## SMS Prefill and Consent Audit (2026-08-22)
+
+### Goal
+Allow admins to prefill member phone numbers without granting SMS consent, and retain durable evidence when a member explicitly opts in.
+
+### Acceptance Criteria
+- [x] Admins can add or correct a unique valid US phone number for invited and existing members.
+- [x] Admin phone entry never enables SMS; changing or clearing a number revokes eligibility for that account.
+- [x] A known member who texts START or UNSTOP becomes eligible and creates durable consent evidence containing the number, timestamp, source, disclosure version, and Twilio Message SID.
+- [x] Profile opt-in and opt-out changes are also represented in the consent audit trail.
+- [x] Public compliance pages accurately document both explicit opt-in methods.
+- [ ] Migration validation, focused tests, full tests, lint, typecheck, build, and production deployment pass.
+
+### Active Tasks
+- [x] Inspect the current D1 schema, webhook, profile consent, and admin member-edit flows.
+- [x] Add the consent audit schema and shared persistence helper.
+- [x] Add admin phone prefill with validation and consent-reset safeguards.
+- [x] Update public consent documentation and regression coverage.
+- [ ] Run verification and publish through the normal deployment workflow.
+
+### Working Notes
+- Work is isolated in `/private/tmp/meatup-sms-consent-audit` from current `origin/main`; unrelated changes in the primary checkout remain untouched.
+- SMS consent belongs to both the member and the specific phone number. An administrator may associate a number with an account but cannot consent on the member's behalf.
+- D1 `batch()` will keep the operational user state and immutable consent event in one transaction.
+- The D1 verification fixtures enumerate canonical tables and migration count; every schema addition must update both fixture contracts.
+
+### Results
+- Added optional admin phone entry for invitations and member edits. Admin entry never opts a member in, and changing a number resets prior consent.
+- Added immutable consent-event records for profile and SMS opt-in/opt-out changes, including Twilio Message SID evidence for keyword replies.
+- Kept START and UNSTOP limited to phone numbers already associated with a member account, with idempotent webhook retry behavior.
+- Updated the public privacy, terms, SMS consent, and verification pages to document profile and keyword opt-in accurately.
+
+### Verification
+- Focused route and UI tests: 42 passed.
+- `fnm exec --using=v24.14.0 npm run test:run` (632 passed)
+- `fnm exec --using=v24.14.0 npm run test:coverage` (632 passed; 79.93% statements, 80.39% lines)
+- `fnm exec --using=v24.14.0 npm run lint`
+- `fnm exec --using=v24.14.0 npm run typecheck`
+- `fnm exec --using=v24.14.0 npm run build`
+- Applied the baseline schema and additive migration to local D1, then inserted and queried a representative audit row.
+- Updated the canonical and forward-migration D1 assertions for the new table, provider SID index, and sixth tracked migration.
+- Visually checked invite and member-edit phone fields at a desktop viewport.
+- `git diff --check`
+
 ## Member Table Width (2026-08-22)
 
 ### Goal

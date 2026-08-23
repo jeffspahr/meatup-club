@@ -18,6 +18,8 @@ vi.mock("../lib/db.server", () => ({
 
 type MockDbOptions = {
   existingUser?: { id: number } | null;
+  existingPhoneUser?: { id: number } | null;
+  currentMember?: { phone_number: string | null } | null;
   selectedTemplate?: {
     subject: string;
     html_body: string;
@@ -28,6 +30,8 @@ type MockDbOptions = {
 
 function createMockDb({
   existingUser = null,
+  existingPhoneUser = null,
+  currentMember = { phone_number: null },
   selectedTemplate = {
     subject: "Welcome to Meatup",
     html_body: "<p>Welcome</p>",
@@ -45,6 +49,17 @@ function createMockDb({
         return existingUser;
       }
 
+      if (
+        normalizedSql === "SELECT id FROM users WHERE phone_number = ?" ||
+        normalizedSql === "SELECT id FROM users WHERE phone_number = ? AND id != ?"
+      ) {
+        return existingPhoneUser;
+      }
+
+      if (normalizedSql === "SELECT phone_number FROM users WHERE id = ?") {
+        return currentMember;
+      }
+
       if (normalizedSql.includes("SELECT * FROM email_templates WHERE id = ?")) {
         return selectedTemplate;
       }
@@ -59,7 +74,7 @@ function createMockDb({
     const runForArgs = async (bindArgs: unknown[]) => {
       runCalls.push({ sql: normalizedSql, bindArgs });
 
-      if (normalizedSql.includes("INSERT INTO users (email, name, status)")) {
+      if (normalizedSql.includes("INSERT INTO users (email, name, status,")) {
         return { meta: { last_row_id: insertedUserId } };
       }
 
@@ -201,6 +216,7 @@ describe("dashboard.admin.members action flows", () => {
       _action: "invite",
       email: "member@example.com",
       name: "Member",
+      phone_number: "555-123-4567",
       template_id: "5",
     });
 
@@ -224,6 +240,28 @@ describe("dashboard.admin.members action flows", () => {
         acceptLink: "http://localhost/accept-invite?email=member%40example.com",
       })
     );
+    expect(db.runCalls).toContainEqual({
+      sql: "INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)",
+      bindArgs: ["member@example.com", "Member", "invited", "+15551234567"],
+    });
+  });
+
+  it("rejects an invited member phone number already linked to another account", async () => {
+    const db = createMockDb({ existingPhoneUser: { id: 9 } });
+
+    const result = await action({
+      request: createRequest({
+        _action: "invite",
+        email: "member@example.com",
+        phone_number: "555-123-4567",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({
+      error: "That phone number is already linked to another account.",
+    });
+    expect(db.runCalls).toEqual([]);
   });
 
   it("requires a user id for member updates", async () => {
@@ -263,6 +301,49 @@ describe("dashboard.admin.members action flows", () => {
         bindArgs: ["Updated Name", 1, "7"],
       })
     );
+  });
+
+  it("prefills a changed member phone number without granting SMS consent", async () => {
+    const db = createMockDb({ currentMember: { phone_number: "+15550000000" } });
+    const request = createRequest({
+      _action: "update",
+      user_id: "7",
+      name: "Updated Name",
+      is_admin: "false",
+      phone_number: "555-123-4567",
+    });
+
+    const response = await action({
+      request,
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(response).toBeInstanceOf(Response);
+    expect(db.runCalls).toContainEqual({
+      sql: "UPDATE users SET name = ?, is_admin = ?, phone_number = ?, sms_opt_in = 0, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
+      bindArgs: ["Updated Name", 0, "+15551234567", "7"],
+    });
+  });
+
+  it("rejects duplicate phone numbers on member updates", async () => {
+    const db = createMockDb({
+      currentMember: { phone_number: null },
+      existingPhoneUser: { id: 9 },
+    });
+
+    const result = await action({
+      request: createRequest({
+        _action: "update",
+        user_id: "7",
+        phone_number: "555-123-4567",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    } as never);
+
+    expect(result).toEqual({
+      error: "That phone number is already linked to another account.",
+    });
+    expect(db.runCalls).toEqual([]);
   });
 
   it("deletes a member and their related votes/suggestions before redirecting", async () => {

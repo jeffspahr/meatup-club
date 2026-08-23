@@ -254,6 +254,17 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
   UNIQUE(provider, delivery_id)
 );
 
+CREATE TABLE IF NOT EXISTS sms_consent_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  phone_number TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK(event_type IN ('opt_in', 'opt_out')),
+  source TEXT NOT NULL CHECK(source IN ('profile', 'sms')),
+  disclosure_version TEXT NOT NULL,
+  provider_message_sid TEXT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS event_email_deliveries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
@@ -384,6 +395,11 @@ CREATE INDEX IF NOT EXISTS idx_api_rate_limits_scope_identifier ON api_rate_limi
 
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_provider ON webhook_deliveries(provider);
 CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_received_at ON webhook_deliveries(received_at);
+CREATE INDEX IF NOT EXISTS idx_sms_consent_events_user_id ON sms_consent_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_sms_consent_events_phone_number ON sms_consent_events(phone_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sms_consent_events_provider_message_sid
+  ON sms_consent_events(provider_message_sid)
+  WHERE provider_message_sid IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_event_email_deliveries_batch ON event_email_deliveries(batch_id);
 CREATE INDEX IF NOT EXISTS idx_event_email_deliveries_event ON event_email_deliveries(event_id, delivery_type, calendar_sequence);
 CREATE INDEX IF NOT EXISTS idx_event_email_deliveries_backlog ON event_email_deliveries(status, next_attempt_at, last_queued_at);
