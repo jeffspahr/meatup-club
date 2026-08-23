@@ -158,20 +158,20 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
         <div className="flex gap-1">
           <button
             onClick={goToPreviousMonth}
-            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-xs"
+            className="px-1.5 py-0.5 border border-border rounded-sm hover:bg-muted transition-colors text-xs"
             title="Previous month"
           >
             ←
           </button>
           <button
             onClick={goToToday}
-            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-[10px] font-medium"
+            className="px-1.5 py-0.5 border border-border rounded-sm hover:bg-muted transition-colors text-[10px] font-medium"
           >
             Today
           </button>
           <button
             onClick={goToNextMonth}
-            className="px-1.5 py-0.5 border border-border rounded hover:bg-muted transition-colors text-xs"
+            className="px-1.5 py-0.5 border border-border rounded-sm hover:bg-muted transition-colors text-xs"
             title="Next month"
           >
             →
@@ -283,19 +283,19 @@ export function DateCalendar({ suggestions, activePollId, currentUserId, onDateC
       <div className="mt-2 pt-2 border-t border-border">
         <div className="grid grid-cols-2 gap-1.5 text-[10px]">
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 border border-indigo-500 rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 border border-indigo-500 rounded-sm shrink-0"></div>
             <span className="text-muted-foreground">Today</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-400 rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-400 rounded-sm shrink-0"></div>
             <span className="text-muted-foreground">Active</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-muted border border-border rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-muted border border-border rounded-sm shrink-0"></div>
             <span className="text-muted-foreground">Not Active</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 bg-muted rounded flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-muted rounded-sm shrink-0"></div>
             <span className="text-muted-foreground">Past</span>
           </div>
         </div>

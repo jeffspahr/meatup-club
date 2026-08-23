@@ -29,7 +29,7 @@ export const announcementPreviewMarkdownComponents: Components = {
   strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
   code: ({ children }) => (
-    <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[0.95em] text-foreground">
+    <code className="rounded-sm bg-accent/10 px-1.5 py-0.5 font-mono text-[0.95em] text-foreground">
       {children}
     </code>
   ),

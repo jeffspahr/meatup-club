@@ -109,7 +109,7 @@ export function EventRestaurantFields({
               type="text"
               value={restaurantAddress}
               onChange={(event) => onRestaurantAddressChange(event.target.value)}
-              className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
             />
           </div>
         </div>

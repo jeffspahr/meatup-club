@@ -594,7 +594,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
             />
           </div>
 
-          <section className="mb-6 rounded-xl border border-border bg-card/70 p-5 shadow-sm">
+          <section className="mb-6 rounded-xl border border-border bg-card/70 p-5 shadow-xs">
             <div className="mb-4 flex items-start gap-3">
               <span className="icon-container mt-0.5" aria-hidden="true">
                 <PaperAirplaneIcon className="h-4 w-4" />
@@ -626,7 +626,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   name="recipient_scope"
                   value={smsRecipientScope}
                   onChange={(event) => setSmsRecipientScope(event.target.value)}
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
                 >
                   <option value="all">All SMS-opted members</option>
                   <option value="not_voted">No poll activity yet</option>
@@ -644,7 +644,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     name="recipient_user_id"
                     defaultValue=""
                     required
-                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select a member</option>
                     {smsMembers.map((member) => (
@@ -666,7 +666,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                   type="text"
                   maxLength={240}
                   placeholder="Example: Please vote by Friday."
-                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -697,7 +697,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     <select
                       name="winning_restaurant_id"
                       defaultValue={topRestaurant!.id}
-                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent bg-card text-foreground"
                       required
                     >
                       {allRestaurants.map((restaurant: any) => (
@@ -719,7 +719,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                     <select
                       name="winning_date_id"
                       defaultValue={topDate!.id}
-                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                      className="w-full px-4 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent bg-card text-foreground"
                       required
                     >
                       {allDates.map((date: any) => (
@@ -747,7 +747,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                       name="create_event"
                       value="true"
                       defaultChecked
-                      className="w-4 h-4 text-accent rounded focus:ring-accent"
+                      className="w-4 h-4 text-accent rounded-sm focus:ring-accent"
                     />
                     <span className="text-sm font-medium text-foreground">
                       Create event from winners
@@ -763,7 +763,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                       name="send_invites"
                       value="true"
                       defaultChecked
-                      className="w-4 h-4 text-accent rounded focus:ring-accent"
+                      className="w-4 h-4 text-accent rounded-sm focus:ring-accent"
                     />
                     <span className="text-sm font-medium text-foreground">
                       Send calendar invites to all members
@@ -823,7 +823,7 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
                 required
                 maxLength={120}
                 placeholder="e.g., Q2 2026 Meetup Poll"
-                className="w-full px-4 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-card text-foreground"
+                className="w-full px-4 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent bg-card text-foreground"
               />
             </div>
             <div className="flex justify-end">

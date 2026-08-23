@@ -1,5 +1,47 @@
 # Active Backlog (2026-02-23)
 
+## Tailwind CSS 4 Upgrade (2026-08-23)
+
+### Goal
+Upgrade the application from Tailwind CSS 3 to Tailwind CSS 4 while preserving the existing Ember & Smoke theme, semantic utility names, responsive behavior, and rendered appearance.
+
+### Acceptance Criteria
+- [x] Use the supported Tailwind 4 integration for the current Vite 8 toolchain under Node 24.
+- [x] Preserve the existing semantic colors, typography, radii, shadows, animations, light/dark behavior, and content detection.
+- [x] Keep application markup and custom design-system CSS unchanged unless Tailwind 4 compatibility requires a targeted migration.
+- [x] Clean install, lint, secret scan, typecheck, coverage, D1 verification, production build, browser E2E, Cloudflare type generation, and deploy dry-run pass.
+- [x] Compare representative rendered pages and generated CSS against the Tailwind 3 baseline.
+- [x] Publish the upgrade as an isolated pull request and confirm required CI.
+
+### Active Tasks
+- [x] Capture the Tailwind 3 build and rendered-page baseline.
+- [x] Apply the smallest supported Tailwind 4 dependency and configuration migration.
+- [x] Verify semantic utilities and correct any documented compatibility changes.
+- [x] Run full Node 24 verification and visual regression checks.
+- [x] Commit, push, open the pull request, and monitor CI.
+
+### Working Notes
+- Work is isolated on `codex/upgrade-tailwind-4` from the merged Vite 8 `origin/main`.
+- Retain the JavaScript theme configuration initially and load it explicitly from CSS; a CSS-first theme rewrite would add unnecessary visual risk to this dependency slice.
+- Prefer Tailwind's Vite plugin over the legacy PostCSS integration now that the application is on Vite 8.
+
+### Results
+- Upgraded Tailwind CSS to 4.3.3 through the dedicated Vite plugin and removed the legacy PostCSS/autoprefixer integration.
+- Retained the existing JavaScript theme through `@config`, avoiding a high-churn CSS-first theme rewrite while preserving semantic colors, custom radii, shadows, animations, and media-driven dark mode.
+- Applied the official v4 compatibility migrations for renamed utilities, opacity modifiers, important modifiers, and forced-colors-safe focus outlines. Added narrow Preflight compatibility rules for the v3 border, placeholder, and button-cursor defaults.
+- The production CSS grew from 39,454 bytes / 8.30 kB gzip to 57,340 bytes / 10.92 kB gzip because Tailwind 4 emits its CSS-variable theme and modern compatibility output. The Worker dry-run remains effectively unchanged at 1,829.76 KiB raw / 373.15 KiB gzip.
+- Tailwind 4's documented browser floor is Safari 16.4, Chrome 111, and Firefox 128; the repository declares no older-browser support requirement.
+
+### Verification
+- `fnm exec --using=24 npm ci` (cross-platform optional native packages recorded; 388 packages; zero vulnerabilities)
+- `fnm exec --using=24 npm run verify` (lint, secret scan, typecheck, 646 coverage tests, D1 schema/migrations, production build, and 7 browser E2E tests passed)
+- `fnm exec --using=24 npm run cf-typegen`
+- `fnm exec --using=24 npx wrangler deploy --dry-run --config dist/meatup_club/wrangler.json`
+- `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
+- Generated CSS contains the semantic theme utilities and v3-equivalent radius, shadow, modal-opacity, and focus-outline compatibility declarations.
+- Local visual checks confirmed the dark public landing and verification pages retain the semantic palette, card styling, and desktop layout without horizontal overflow; the seeded browser suite passed authenticated dashboard behavior and the iPhone no-JavaScript flow.
+- GitHub Application CI passed on pull request #291.
+
 ## Vite 8 Toolchain Upgrade (2026-08-23)
 
 ### Goal

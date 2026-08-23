@@ -61,7 +61,7 @@ export function EventEditForm({
             required
             value={formData.eventDate}
             onChange={(currentEvent) => onEventDateChange(currentEvent.target.value)}
-            className="w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full rounded-md border border-border px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-accent"
           />
         </div>
 
@@ -78,7 +78,7 @@ export function EventEditForm({
             type="time"
             value={formData.eventTime}
             onChange={(currentEvent) => onEventTimeChange(currentEvent.target.value)}
-            className="w-full rounded-md border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full rounded-md border border-border px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-accent"
           />
         </div>
       </div>
@@ -90,7 +90,7 @@ export function EventEditForm({
           type="checkbox"
           value="true"
           defaultChecked={true}
-          className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+          className="h-4 w-4 rounded-sm border-border text-accent focus:ring-accent"
         />
         Send calendar updates to all active members
       </label>

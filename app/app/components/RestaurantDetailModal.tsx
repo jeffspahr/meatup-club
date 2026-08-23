@@ -52,7 +52,7 @@ export function RestaurantDetailModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
@@ -87,7 +87,7 @@ export function RestaurantDetailModal({
           <div className="space-y-4">
             {restaurant.address && (
               <div className="flex items-start gap-2 text-sm text-foreground">
-                <MapPinIcon className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <MapPinIcon className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                 <span>{restaurant.address}</span>
               </div>
             )}

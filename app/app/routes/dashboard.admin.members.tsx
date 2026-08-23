@@ -436,7 +436,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
           {actionData.inviteLink && (
             <div className="mt-2">
               <p className="text-sm mb-1">Share this link with the invitee:</p>
-              <code className="bg-amber-500/10 px-2 py-1 rounded text-xs break-all">
+              <code className="bg-amber-500/10 px-2 py-1 rounded-sm text-xs break-all">
                 {actionData.inviteLink}
               </code>
             </div>
@@ -464,7 +464,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 type="email"
                 required
                 placeholder="member@example.com"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -480,7 +480,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 name="name"
                 type="text"
                 placeholder="John Doe"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
             </div>
 
@@ -497,7 +497,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                 type="tel"
                 inputMode="tel"
                 placeholder="555-123-4567"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 This only links the number. The member must opt in from their profile or text START
@@ -515,7 +515,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
               <select
                 id="template_id"
                 name="template_id"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
               >
                 {templates.map((template: any) => (
                   <option
@@ -541,7 +541,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
 
       {/* Members List */}
       <Card className="overflow-x-auto p-0">
-        <table className="w-full min-w-[72rem] divide-y divide-border">
+        <table className="w-full min-w-6xl divide-y divide-border">
           <caption className="sr-only">
             Member roles, account status, SMS reminder eligibility, join date, and actions
           </caption>
@@ -595,7 +595,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, name: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                           />
                         </div>
 
@@ -616,7 +616,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, phone_number: e.target.value })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
                             Changing this disables SMS until the member explicitly opts in again.
@@ -637,7 +637,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                             onChange={(e) =>
                               setEditData({ ...editData, is_admin: e.target.value === 'true' })
                             }
-                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                           >
                             <option value="false">Member</option>
                             <option value="true">Admin</option>

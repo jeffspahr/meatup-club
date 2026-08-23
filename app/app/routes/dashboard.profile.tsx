@@ -179,7 +179,7 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
                 type="checkbox"
                 name="notify_poll_updates"
                 defaultChecked={user.notify_poll_updates === 1}
-                className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                className="mt-1 h-4 w-4 rounded-sm border-border text-accent focus:ring-accent"
               />
               <div>
                 <div className="font-medium text-foreground">Poll Updates</div>
@@ -195,7 +195,7 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
                 type="checkbox"
                 name="notify_event_updates"
                 defaultChecked={user.notify_event_updates === 1}
-                className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+                className="mt-1 h-4 w-4 rounded-sm border-border text-accent focus:ring-accent"
               />
               <div>
                 <div className="font-medium text-foreground">Event Updates</div>
@@ -251,7 +251,7 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
               inputMode="tel"
               placeholder="555-123-4567"
               defaultValue={user.phone_number || ''}
-              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
             />
           </div>
 
@@ -262,7 +262,7 @@ export default function ProfilePage({ loaderData, actionData }: Route.ComponentP
               defaultChecked={user.sms_opt_in === 1}
               disabled={hasCarrierOptOut}
               aria-describedby={hasCarrierOptOut ? 'sms-carrier-opt-out-help' : undefined}
-              className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent"
+              className="mt-1 h-4 w-4 rounded-sm border-border text-accent focus:ring-accent"
             />
             <div>
               <div className="font-medium text-foreground">

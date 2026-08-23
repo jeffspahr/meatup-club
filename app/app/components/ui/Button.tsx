@@ -18,9 +18,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "!py-1.5 !px-3 !text-xs",
+  sm: "py-1.5! px-3! text-xs!",
   md: "", // default sizing from the CSS class
-  lg: "!py-3 !px-6 !text-sm",
+  lg: "py-3! px-6! text-sm!",
 };
 
 /**
@@ -40,7 +40,7 @@ export function Button({
       className={`${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...rest}
     >
-      {icon && <span className="w-4 h-4 flex-shrink-0">{icon}</span>}
+      {icon && <span className="w-4 h-4 shrink-0">{icon}</span>}
       {children}
     </button>
   );
