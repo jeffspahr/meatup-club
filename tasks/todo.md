@@ -11,14 +11,14 @@ Upgrade the application from Tailwind CSS 3 to Tailwind CSS 4 while preserving t
 - [x] Keep application markup and custom design-system CSS unchanged unless Tailwind 4 compatibility requires a targeted migration.
 - [x] Clean install, lint, secret scan, typecheck, coverage, D1 verification, production build, browser E2E, Cloudflare type generation, and deploy dry-run pass.
 - [x] Compare representative rendered pages and generated CSS against the Tailwind 3 baseline.
-- [ ] Publish the upgrade as an isolated pull request and confirm required CI.
+- [x] Publish the upgrade as an isolated pull request and confirm required CI.
 
 ### Active Tasks
 - [x] Capture the Tailwind 3 build and rendered-page baseline.
 - [x] Apply the smallest supported Tailwind 4 dependency and configuration migration.
 - [x] Verify semantic utilities and correct any documented compatibility changes.
 - [x] Run full Node 24 verification and visual regression checks.
-- [ ] Commit, push, open the pull request, and monitor CI.
+- [x] Commit, push, open the pull request, and monitor CI.
 
 ### Working Notes
 - Work is isolated on `codex/upgrade-tailwind-4` from the merged Vite 8 `origin/main`.
@@ -40,6 +40,7 @@ Upgrade the application from Tailwind CSS 3 to Tailwind CSS 4 while preserving t
 - `fnm exec --using=24 npm audit --audit-level=low` (zero vulnerabilities)
 - Generated CSS contains the semantic theme utilities and v3-equivalent radius, shadow, modal-opacity, and focus-outline compatibility declarations.
 - Local visual checks confirmed the dark public landing and verification pages retain the semantic palette, card styling, and desktop layout without horizontal overflow; the seeded browser suite passed authenticated dashboard behavior and the iPhone no-JavaScript flow.
+- GitHub Application CI passed on pull request #291.
 
 ## Vite 8 Toolchain Upgrade (2026-08-23)
 
