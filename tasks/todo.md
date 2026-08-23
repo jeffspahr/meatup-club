@@ -24,6 +24,7 @@ Allow admins to prefill member phone numbers without granting SMS consent, and r
 - Work is isolated in `/private/tmp/meatup-sms-consent-audit` from current `origin/main`; unrelated changes in the primary checkout remain untouched.
 - SMS consent belongs to both the member and the specific phone number. An administrator may associate a number with an account but cannot consent on the member's behalf.
 - D1 `batch()` will keep the operational user state and immutable consent event in one transaction.
+- The D1 verification fixtures enumerate canonical tables and migration count; every schema addition must update both fixture contracts.
 
 ### Results
 - Added optional admin phone entry for invitations and member edits. Admin entry never opts a member in, and changing a number resets prior consent.
@@ -39,6 +40,7 @@ Allow admins to prefill member phone numbers without granting SMS consent, and r
 - `fnm exec --using=v24.14.0 npm run typecheck`
 - `fnm exec --using=v24.14.0 npm run build`
 - Applied the baseline schema and additive migration to local D1, then inserted and queried a representative audit row.
+- Updated the canonical and forward-migration D1 assertions for the new table, provider SID index, and sixth tracked migration.
 - Visually checked invite and member-edit phone fields at a desktop viewport.
 - `git diff --check`
 

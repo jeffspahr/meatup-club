@@ -21,12 +21,13 @@ FROM pragma_index_list('users')
 WHERE name = 'idx_users_phone_number' AND "unique" = 1;
 
 INSERT INTO migration_verification (passed)
-SELECT CASE WHEN COUNT(*) = 4 THEN 1 ELSE 0 END
+SELECT CASE WHEN COUNT(*) = 5 THEN 1 ELSE 0 END
 FROM sqlite_schema
 WHERE type = 'table'
   AND name IN (
     'event_email_deliveries',
     'provider_webhooks',
+    'sms_consent_events',
     'sms_deliveries',
     'sms_provider_health'
   );
@@ -37,7 +38,17 @@ FROM pragma_table_info('users')
 WHERE name = 'sms_opt_out_source';
 
 INSERT INTO migration_verification (passed)
-SELECT CASE WHEN COUNT(*) = 5 THEN 1 ELSE 0 END
+SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
+FROM pragma_table_info('sms_consent_events')
+WHERE name = 'provider_message_sid';
+
+INSERT INTO migration_verification (passed)
+SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
+FROM pragma_index_list('sms_consent_events')
+WHERE name = 'idx_sms_consent_events_provider_message_sid' AND "unique" = 1;
+
+INSERT INTO migration_verification (passed)
+SELECT CASE WHEN COUNT(*) = 6 THEN 1 ELSE 0 END
 FROM d1_migrations;
 
 DROP TABLE migration_verification;
