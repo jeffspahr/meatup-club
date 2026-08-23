@@ -29,19 +29,31 @@ function syntheticSigningSecret(seed: string): string {
   return `${prefix}${btoa(`meatup-club-${seed}-contract-key`)}`;
 }
 
+function useDeliverySigningSecret(secret: string): void {
+  vi.mocked(getProviderWebhookConfig).mockResolvedValue({
+    provider: "resend",
+    purpose: "delivery_status",
+    webhookId: "wh_contract",
+    endpoint: "https://meatup.club/api/webhooks/email-delivery",
+    signingSecret: secret,
+    events: ["email.delivered"],
+  });
+}
+
 function signedRequest({
   url,
   payload,
   secret,
   messageId,
+  timestamp = new Date(),
 }: {
   url: string;
-  payload: Record<string, unknown>;
+  payload: Record<string, unknown> | string;
   secret: string;
   messageId: string;
+  timestamp?: Date;
 }): Request {
-  const body = JSON.stringify(payload);
-  const timestamp = new Date();
+  const body = typeof payload === "string" ? payload : JSON.stringify(payload);
   const signature = new Webhook(secret).sign(messageId, timestamp, body);
 
   return new Request(url, {
@@ -106,16 +118,29 @@ describe("Svix webhook contracts", () => {
     expect(reserveWebhookDelivery).not.toHaveBeenCalled();
   });
 
+  it("rejects a correctly signed RSVP webhook with a stale timestamp", async () => {
+    const secret = syntheticSigningSecret("stale-rsvp");
+    const response = await rsvpAction({
+      request: signedRequest({
+        url: "http://localhost/api/webhooks/email-rsvp",
+        payload: { type: "email.received", data: {} },
+        secret,
+        messageId: "msg_rsvp_stale_contract",
+        timestamp: new Date(Date.now() - 6 * 60 * 1000),
+      }),
+      context: {
+        cloudflare: { env: { DB: db, RESEND_WEBHOOK_SECRET: secret } },
+      } as never,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid signature" });
+    expect(reserveWebhookDelivery).not.toHaveBeenCalled();
+  });
+
   it("accepts a delivery webhook signed by the installed Svix implementation", async () => {
     const secret = syntheticSigningSecret("delivery");
-    vi.mocked(getProviderWebhookConfig).mockResolvedValue({
-      provider: "resend",
-      purpose: "delivery_status",
-      webhookId: "wh_contract",
-      endpoint: "https://meatup.club/api/webhooks/email-delivery",
-      signingSecret: secret,
-      events: ["email.delivered"],
-    });
+    useDeliverySigningSecret(secret);
 
     const response = await deliveryAction({
       request: signedRequest({
@@ -148,14 +173,7 @@ describe("Svix webhook contracts", () => {
 
   it("rejects a delivery webhook signed with a different key", async () => {
     const configuredSecret = syntheticSigningSecret("configured-delivery");
-    vi.mocked(getProviderWebhookConfig).mockResolvedValue({
-      provider: "resend",
-      purpose: "delivery_status",
-      webhookId: "wh_contract",
-      endpoint: "https://meatup.club/api/webhooks/email-delivery",
-      signingSecret: configuredSecret,
-      events: ["email.delivered"],
-    });
+    useDeliverySigningSecret(configuredSecret);
 
     const response = await deliveryAction({
       request: signedRequest({
@@ -173,6 +191,56 @@ describe("Svix webhook contracts", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Invalid signature" });
     expect(reserveWebhookDelivery).not.toHaveBeenCalled();
+    expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
+  });
+
+  it("rejects a correctly signed delivery webhook with malformed JSON", async () => {
+    const secret = syntheticSigningSecret("malformed-delivery");
+    useDeliverySigningSecret(secret);
+
+    const response = await deliveryAction({
+      request: signedRequest({
+        url: "http://localhost/api/webhooks/email-delivery",
+        payload: "{not-json",
+        secret,
+        messageId: "msg_delivery_malformed_contract",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid signature" });
+    expect(reserveWebhookDelivery).not.toHaveBeenCalled();
+    expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
+  });
+
+  it("ignores a duplicate delivery only after verifying its signature", async () => {
+    const secret = syntheticSigningSecret("duplicate-delivery");
+    useDeliverySigningSecret(secret);
+    vi.mocked(reserveWebhookDelivery).mockResolvedValue(false);
+
+    const response = await deliveryAction({
+      request: signedRequest({
+        url: "http://localhost/api/webhooks/email-delivery",
+        payload: {
+          type: "email.delivered",
+          data: { email_id: "email-duplicate-contract" },
+        },
+        secret,
+        messageId: "msg_delivery_duplicate_contract",
+      }),
+      context: { cloudflare: { env: { DB: db } } } as never,
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      message: "Duplicate webhook ignored",
+    });
+    expect(reserveWebhookDelivery).toHaveBeenCalledWith(
+      db,
+      "resend_delivery",
+      "msg_delivery_duplicate_contract"
+    );
     expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
   });
 });
