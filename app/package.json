@@ -27,12 +27,12 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@react-router/cloudflare": "8.3.0",
+    "@react-router/cloudflare": "8.3.1",
     "isbot": "^5.2.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
-    "react-router": "8.3.0",
+    "react-router": "8.3.1",
     "svix": "^2.1.0"
   },
   "devDependencies": {
