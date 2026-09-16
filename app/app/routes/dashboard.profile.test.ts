@@ -178,7 +178,7 @@ describe("dashboard.profile route", () => {
     expect(db.runCalls).toEqual([
       expect.objectContaining({
         sql: expect.stringContaining("UPDATE users SET phone_number = ?"),
-        bindArgs: ["+15551234567", 1, 1, 1, 0, 123],
+        bindArgs: ["+15551234567", 1, 1, 1, 0, 123, null, 0, null, null],
       }),
       expect.objectContaining({
         sql: expect.stringContaining("INSERT OR IGNORE INTO sms_consent_events"),
@@ -292,7 +292,7 @@ describe("dashboard.profile route", () => {
     } as never);
 
     expect(result).toEqual({ success: "SMS preferences updated successfully" });
-    expect(db.runCalls[0]?.bindArgs).toEqual(["+15551234567", 1, 1, 1, 0, 123]);
+    expect(db.runCalls[0]?.bindArgs).toEqual(["+15551234567", 1, 1, 1, 0, 123, "+15551234567", 0, "2026-08-22 12:00:00", "profile"]);
     expect(db.runCalls[1]?.bindArgs).toEqual([
       123,
       "+15551234567",
