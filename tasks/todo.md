@@ -87,3 +87,21 @@ A failed user deletion must preserve the user's votes and suggestions and other 
 - Member deletion now uses one D1 transaction; the route clearly explains that linked history prevents deletion. Restrictive foreign keys and global restaurants remain preserved.
 - Real SQLite regressions cover successful deletion and complete rollback, including cascaded votes from other members.
 - Verification: 14 focused tests, all 706 tests in 90 files, coverage thresholds (80.90% statements, 71.82% branches), typecheck, lint and git diff checks pass. Cloudflare D1 documentation confirms batch statements roll back as a unit on failure.
+
+## Review: RSVP persistence and input validation
+
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
+
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.

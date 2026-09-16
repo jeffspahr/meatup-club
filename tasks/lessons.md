@@ -58,3 +58,7 @@
 
 - 2026-09-16: Failure mode: member removal deleted votes and date suggestions before a restrictive user-history foreign key rejected the final deletion. Detection: real SQLite tests showed the account surviving while its participation and other members' votes disappeared. Prevention: batch every dependent destructive mutation atomically, and assert rollback of both direct changes and cascades against the canonical schema.
 - 2026-09-16: Failure mode: file-edit scripts used repository-root-relative paths while command execution was in app/. Detection: FileNotFoundError before tests. Prevention: use absolute worktree paths for scripted edits and reserve app/ working directory for application commands.
+
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
