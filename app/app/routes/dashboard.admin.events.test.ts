@@ -407,7 +407,7 @@ describe("dashboard.admin.events action flows", () => {
     expect(db.runCalls).toContainEqual(
       expect.objectContaining({
         sql: expect.stringContaining("UPDATE events"),
-        bindArgs: ["Updated Prime Steakhouse", "456 Oak Ave", "2026-05-01", "19:15", "upcoming", 3, 42],
+        bindArgs: ["Updated Prime Steakhouse", "456 Oak Ave", "2026-05-01", "19:15", "upcoming", 3, 42, 2],
       })
     );
     expect(db.runCalls).not.toContainEqual(
@@ -427,6 +427,7 @@ describe("dashboard.admin.events action flows", () => {
           eventTime: "19:15",
         },
         calendarSequence: 3,
+        onlyIfEventUpdated: true,
       }
     );
     expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(
@@ -457,12 +458,13 @@ describe("dashboard.admin.events action flows", () => {
     expect(response).toBeInstanceOf(Response);
     expect(db.runCalls).toContainEqual(expect.objectContaining({
       sql: expect.stringContaining("UPDATE events"),
-      bindArgs: ["Prime Steakhouse", "123 Main St", "2099-05-01", "18:00", "cancelled", 3, 42],
+      bindArgs: ["Prime Steakhouse", "123 Main St", "2099-05-01", "18:00", "cancelled", 3, 42, 2],
     }));
     expect(buildStageEventUpdateDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
     if (sendUpdates) {
       expect(buildStageEventCancellationDeliveriesForActiveMembersStatement).toHaveBeenCalledWith(db, {
         batchId: expect.any(String),
+        onlyIfEventUpdated: true,
         details: { eventId: 42, restaurantName: "Prime Steakhouse", restaurantAddress: "123 Main St", eventDate: "2099-05-01", eventTime: "18:00", sequence: 3 },
       });
       expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ deliveryType: "cancel" }));
@@ -491,7 +493,7 @@ describe("dashboard.admin.events action flows", () => {
     expect(db.runCalls).toContainEqual(
       expect.objectContaining({
         sql: expect.stringContaining("SET calendar_sequence = ?"),
-        bindArgs: [3, 42],
+        bindArgs: [3, 42, 2],
       })
     );
     expect(getActiveMemberIdsWithoutAcceptedEventEmailDelivery).toHaveBeenCalledWith(db, 42);
@@ -508,6 +510,7 @@ describe("dashboard.admin.events action flows", () => {
         },
         userIds: [7, 9],
         calendarSequence: 3,
+        onlyIfEventUpdated: true,
       })
     );
     expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(
@@ -772,6 +775,7 @@ describe("dashboard.admin.events action flows", () => {
       db,
       {
         batchId: expect.any(String),
+        expectedCalendarSequence: 2,
         details: {
           eventId: 42,
           restaurantName: "Prime Steakhouse",
@@ -785,7 +789,7 @@ describe("dashboard.admin.events action flows", () => {
     expect(db.runCalls).toContainEqual(
       expect.objectContaining({
         sql: expect.stringContaining("DELETE FROM events WHERE id = ?"),
-        bindArgs: [42],
+        bindArgs: [42, 2],
       })
     );
     expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(

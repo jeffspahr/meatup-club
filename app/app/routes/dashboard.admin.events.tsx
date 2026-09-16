@@ -631,10 +631,12 @@ export async function action({ request, context }: Route.ActionArgs) {
           deliveryType === 'cancel'
             ? buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
                 batchId: updateBatchId,
+                onlyIfEventUpdated: true,
                 details: { ...details, sequence: nextSequence },
               })
             : buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
                 batchId: updateBatchId,
+                onlyIfEventUpdated: true,
                 details,
                 calendarSequence: nextSequence,
               }),
@@ -643,6 +645,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
 
       const updateResults = await db.batch(updateStatements);
+
+      if (updateResults[0].meta.changes === 0) {
+        return { error: "This event changed while you were saving. Please reload and try again." };
+      }
 
       if (updateBatchId) {
         stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(
@@ -755,10 +761,10 @@ export async function action({ request, context }: Route.ActionArgs) {
             `
               UPDATE events
               SET calendar_sequence = ?
-              WHERE id = ?
+              WHERE id = ? AND COALESCE(calendar_sequence, 0) = ?
             `
           )
-          .bind(nextSequence, eventId),
+          .bind(nextSequence, eventId, nextSequence - 1),
         buildStageEventUpdateDeliveriesStatement(db, {
           batchId: resendBatchId,
           details: {
@@ -770,9 +776,14 @@ export async function action({ request, context }: Route.ActionArgs) {
           },
           userIds: targetUserIds,
           calendarSequence: nextSequence,
+          onlyIfEventUpdated: true,
         }),
         buildSelectStagedDeliveryIdsStatement(db, resendBatchId),
       ]);
+
+      if (resendStatements[0].meta.changes === 0) {
+        return { error: "This event changed while you were saving. Please reload and try again." };
+      }
 
       const resendBatch = toStagedEventEmailBatchFromQueryResult(
         resendBatchId,
@@ -843,6 +854,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         deleteStatements.push(
           buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
             batchId: deleteBatchId,
+            expectedCalendarSequence: Number(event.calendar_sequence ?? 0),
             details: {
               eventId,
               restaurantName: event.restaurant_name,
@@ -855,13 +867,17 @@ export async function action({ request, context }: Route.ActionArgs) {
         );
       }
 
-      deleteStatements.push(buildDeleteEventStatement(db, eventId));
+      const deleteStatementIndex = deleteStatements.length;
+      deleteStatements.push(buildDeleteEventStatement(db, eventId, event ? Number(event.calendar_sequence ?? 0) : undefined));
 
       if (deleteBatchId) {
         deleteStatements.push(buildSelectStagedDeliveryIdsStatement(db, deleteBatchId));
       }
 
       const deleteResults = await db.batch(deleteStatements);
+      if (event && deleteResults[deleteStatementIndex].meta.changes === 0) {
+        return { error: "This event changed while you were saving. Please reload and try again." };
+      }
 
       if (deleteBatchId) {
         stagedCancellationBatch = toStagedEventEmailBatchFromQueryResult(
