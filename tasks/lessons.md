@@ -59,3 +59,7 @@
 - 2026-09-16: Failure mode: date shape checks and lexical past-date comparisons accepted impossible calendar dates (including February 29 in non-leap years), producing records on unintended days. Detection: event parser and route regressions accepted 13 malformed date cases. Prevention: validate actual calendar-day round trips at every date write boundary before temporal comparisons.
 
 - 2026-09-16: Failure mode: fixing admin poll mutation validation while leaving the parallel JSON API path unchecked. Detection: real-schema API action tests still persisted impossible dates. Prevention: trace every route that calls a shared mutation before marking an invariant fix complete.
+
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
