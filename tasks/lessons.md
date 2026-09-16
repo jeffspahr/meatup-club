@@ -43,3 +43,6 @@
 - Failure mode: Adding a second form to a page broke a test that selected the first generic `_action` and `poll_id` inputs in document order.
 - Detection signal: Focused UI coverage expected `close` but received the new `send_poll_sms` action.
 - Prevention rule: On pages with multiple forms, locate the intended form by its action value, accessible name, or role before asserting sibling fields.
+
+- 2026-09-15: Failure mode: using `last_insert_rowid()` per recipient inside an invite `INSERT ... SELECT` let delivery inserts overwrite the event ID and roll back poll closure. Detection: production `poll_close_transaction_failed` logs and a real SQLite regression with different event/delivery sequences. Prevention: capture the event ID once before inserting child rows; test multi-recipient creation and poll closure against real SQL.
+- 2026-09-15: Failure mode: autocomplete called selection before search-change invalidation, and batched name/address updates spread stale form state. Detection: the real event form displayed a restaurant but submitted an empty `restaurant_name`. Prevention: commit selection after search changes, use functional state updates for batched field changes, and assert submitted FormData through the real component.

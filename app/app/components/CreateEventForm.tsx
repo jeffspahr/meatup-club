@@ -1,11 +1,12 @@
 import { Form } from "react-router";
+import type { Dispatch, SetStateAction } from "react";
 import { Button, Card } from "./ui";
 import { EventRestaurantFields } from "./EventRestaurantFields";
 import type { EventFormState } from "../lib/events-shared";
 
 interface CreateEventFormProps {
   formData: EventFormState;
-  onChange: (next: EventFormState) => void;
+  onChange: Dispatch<SetStateAction<EventFormState>>;
 }
 
 export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
@@ -22,10 +23,10 @@ export function CreateEventForm({ formData, onChange }: CreateEventFormProps) {
           restaurantName={formData.restaurantName}
           restaurantAddress={formData.restaurantAddress}
           onRestaurantNameChange={(value) =>
-            onChange({ ...formData, restaurantName: value })
+            onChange((current) => ({ ...current, restaurantName: value }))
           }
           onRestaurantAddressChange={(value) =>
-            onChange({ ...formData, restaurantAddress: value })
+            onChange((current) => ({ ...current, restaurantAddress: value }))
           }
         />
 
