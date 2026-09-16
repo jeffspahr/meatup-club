@@ -1,3 +1,4 @@
+import { sendNewEventSmsNotification, sendAdhocSmsReminder } from "../lib/sms.server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./dashboard.admin.events";
 import { requireAdmin } from "../lib/auth.server";
@@ -42,6 +43,7 @@ vi.mock("../lib/email.server", () => ({
 
 vi.mock("../lib/sms.server", () => ({
   sendAdhocSmsReminder: vi.fn(),
+  sendNewEventSmsNotification: vi.fn(),
 }));
 
 type MockDbOptions = {
@@ -211,12 +213,7 @@ function createMockDb({
   }>) => {
     const results = [];
 
-    for (const [index, statement] of statements.entries()) {
-      if (index === statements.length - 1 && typeof statement.all === "function") {
-        results.push(await statement.all());
-        continue;
-      }
-
+    for (const statement of statements) {
       if (typeof statement.run === "function") {
         results.push(await statement.run());
         continue;
@@ -258,6 +255,7 @@ function createRequest(formEntries: Record<string, string | string[]>) {
 describe("dashboard.admin.events action flows", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(sendNewEventSmsNotification).mockResolvedValue({ sent: 0, errors: [] });
     vi.mocked(requireAdmin).mockResolvedValue({
       id: 1,
       name: "Admin User",
@@ -443,6 +441,34 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "update",
       }
     );
+  });
+
+  it.each([true, false])("uses cancellation delivery when marking an event cancelled (notify=%s)", async sendUpdates => {
+    const db = createMockDb();
+    const response = await action({
+      request: createRequest({
+        _action: "update", id: "42", restaurant_name: "Prime Steakhouse",
+        restaurant_address: "123 Main St", event_date: "2099-05-01", event_time: "18:00",
+        status: "cancelled", send_updates: String(sendUpdates),
+      }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+
+    expect(response).toBeInstanceOf(Response);
+    expect(db.runCalls).toContainEqual(expect.objectContaining({
+      sql: expect.stringContaining("UPDATE events"),
+      bindArgs: ["Prime Steakhouse", "123 Main St", "2099-05-01", "18:00", "cancelled", 3, 42],
+    }));
+    expect(buildStageEventUpdateDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
+    if (sendUpdates) {
+      expect(buildStageEventCancellationDeliveriesForActiveMembersStatement).toHaveBeenCalledWith(db, {
+        batchId: expect.any(String),
+        details: { eventId: 42, restaurantName: "Prime Steakhouse", restaurantAddress: "123 Main St", eventDate: "2099-05-01", eventTime: "18:00", sequence: 3 },
+      });
+      expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ deliveryType: "cancel" }));
+    } else {
+      expect(buildStageEventCancellationDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
+    }
   });
 
   it("resends only to missing recipients by default", async () => {
@@ -774,5 +800,145 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "cancel",
       }
     );
+  });  describe("on-demand SMS notifications", () => {
+    const upcomingEvent = {
+      id: 42,
+      restaurant_name: "Prime Steakhouse",
+      restaurant_address: "123 Main St",
+      event_date: "2099-04-20",
+      event_time: "18:00",
+      status: "upcoming",
+      created_by: 1,
+    };
+
+    beforeEach(() => {
+      vi.mocked(sendAdhocSmsReminder).mockResolvedValue({ sent: 3, errors: [] });
+    });
+
+    function send(form: Record<string, string> = {}, db = createMockDb({ editableEvent: upcomingEvent })) {
+      const waitUntil = vi.fn();
+      return {
+        db,
+        waitUntil,
+        result: action({
+          request: createRequest({ _action: "send_sms_reminder", event_id: "42", ...form }),
+          context: createLoadContext({ env: { DB: db, APP_TIMEZONE: "America/New_York" }, ctx: { waitUntil } } as never),
+        } as never),
+      };
+    }
+
+    it("defaults to members with no RSVP and awaits delivery even when waitUntil is available", async () => {
+      const { result, db, waitUntil } = send();
+      expect(await result).toEqual({ success: "Twilio accepted 3 SMS notifications." });
+      expect(sendAdhocSmsReminder).toHaveBeenCalledWith(expect.objectContaining({
+        db, event: upcomingEvent, recipientScope: "pending", recipientUserId: null, customMessage: null,
+      }));
+      expect(waitUntil).not.toHaveBeenCalled();
+    });
+
+    it("allows sending to all opted-in members with a custom message", async () => {
+      const { result } = send({ recipient_scope: "all", message_type: "custom", custom_message: "  Please RSVP today  " });
+      expect(await result).toEqual({ success: "Twilio accepted 3 SMS notifications." });
+      expect(sendAdhocSmsReminder).toHaveBeenCalledWith(expect.objectContaining({
+        recipientScope: "all", customMessage: "Please RSVP today",
+      }));
+    });
+
+    it("reports when there are no eligible recipients", async () => {
+      vi.mocked(sendAdhocSmsReminder).mockResolvedValueOnce({ sent: 0, errors: [] });
+      expect(await send().result).toEqual({ success: "No SMS-eligible members match this recipient selection." });
+    });
+
+    it("reports partial provider failures with the delivered count", async () => {
+      vi.mocked(sendAdhocSmsReminder).mockResolvedValueOnce({ sent: 2, errors: ["Provider unavailable"] });
+      expect(await send().result).toEqual({ error: "SMS send failed. Twilio accepted 2. Provider unavailable" });
+    });
+
+    it("returns an actionable error when the send operation throws", async () => {
+      vi.mocked(sendAdhocSmsReminder).mockRejectedValueOnce(new Error("Database unavailable"));
+      expect(await send().result).toEqual({ error: "SMS send failed. SMS notifications could not be sent. Please try again." });
+    });
+
+    it("requires admin authorization before reading the event or sending", async () => {
+      const forbidden = new Response("Forbidden", { status: 403 });
+      vi.mocked(requireAdmin).mockRejectedValueOnce(forbidden);
+      const { result, db } = send();
+      await expect(result).rejects.toBe(forbidden);
+      expect(db.prepare).not.toHaveBeenCalled();
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it.each(["", "abc", "-1", "1.5", "9007199254740992"])("rejects invalid event id %s", async (eventId) => {
+      expect(await send({ event_id: eventId }).result).toEqual({ error: "Event ID is required for SMS reminders" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it("rejects missing events", async () => {
+      expect(await send({}, createMockDb({ editableEvent: null })).result).toEqual({ error: "Event not found" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { ...upcomingEvent, status: "cancelled" },
+      { ...upcomingEvent, status: "completed" },
+      { ...upcomingEvent, event_date: "2000-01-01" },
+    ])("rejects an event that cannot receive RSVPs: $status on $event_date", async (editableEvent) => {
+      expect(await send({}, createMockDb({ editableEvent })).result).toEqual({ error: "SMS notifications can only be sent for upcoming events" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it("rejects an invalid recipient scope", async () => {
+      expect(await send({ recipient_scope: "unknown" }).result).toEqual({ error: "Invalid recipient selection" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it.each(["", "-1", "1.5", "abc"])("rejects invalid specific recipient %s", async (recipientId) => {
+      expect(await send({ recipient_scope: "specific", recipient_user_id: recipientId }).result).toEqual({ error: "Select a specific recipient" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
+
+    it("rejects an empty custom message", async () => {
+      expect(await send({ message_type: "custom", custom_message: "  " }).result).toEqual({ error: "Custom SMS message cannot be empty" });
+      expect(sendAdhocSmsReminder).not.toHaveBeenCalled();
+    });
   });
+
+  it("does not send an event notification when event persistence fails", async () => {
+    const db = createMockDb();
+    db.batch.mockRejectedValueOnce(new Error("Database unavailable"));
+    await action({
+      request: createRequest({ _action: "create", restaurant_name: "Prime Steakhouse", restaurant_address: "123 Main St", event_date: "2099-04-20", event_time: "18:00" }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+    expect(db.batch).toHaveBeenCalledOnce();
+    expect(sendNewEventSmsNotification).not.toHaveBeenCalled();
+  });
+
+
+  it("keeps the created event successful and warns when SMS delivery fails", async () => {
+    const db = createMockDb();
+    vi.mocked(sendNewEventSmsNotification).mockResolvedValueOnce({ sent: 0, errors: ["Provider unavailable"] });
+    const result = await action({
+      request: createRequest({ _action: "create", restaurant_name: "Prime Steakhouse", restaurant_address: "123 Main St", event_date: "2099-04-20", event_time: "18:00" }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+    expect(result).toEqual({
+      warning: "Event created, but some SMS notifications could not be sent. Retry from Event Management.",
+    });
+    expect(db.batch).toHaveBeenCalledOnce();
+    expect(sendNewEventSmsNotification).toHaveBeenCalledOnce();
+  });
+
+  it("notifies members after successful event creation without calendar invites", async () => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({ _action: "create", restaurant_name: "Prime Steakhouse", event_date: "2099-04-20", event_time: "18:00" }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+    expect(result).toBeInstanceOf(Response);
+    expect(sendNewEventSmsNotification).toHaveBeenCalledWith(expect.objectContaining({
+      db, event: expect.objectContaining({ id: 101, restaurant_name: "Prime Steakhouse" }),
+    }));
+  });
+
 });

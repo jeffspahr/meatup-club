@@ -2,7 +2,6 @@ import type { RouterContextProvider } from "react-router";
 import { Webhook } from "svix";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
-import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { logErrorEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
 
@@ -67,12 +66,11 @@ export async function action({
       return Response.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const isFirstDelivery = await reserveWebhookDelivery(db, "resend_delivery", svixId);
-    if (!isFirstDelivery) {
+    const result = await applyResendDeliveryWebhookEvent(db, payload, svixId);
+    if (result.duplicate) {
       return Response.json({ message: "Duplicate webhook ignored" });
     }
 
-    const result = await applyResendDeliveryWebhookEvent(db, payload);
     if (!result.handled) {
       return Response.json({ message: "Ignored: unsupported delivery event type" });
     }

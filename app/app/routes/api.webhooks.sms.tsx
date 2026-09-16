@@ -6,14 +6,15 @@ import {
   parseTwilioOptOutType,
   verifyTwilioSignature,
 } from "../lib/sms.server";
-import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
-import { upsertRsvp } from "../lib/rsvps.server";
+import { getAppTimeZone, getEventDateTimeUtc } from "../lib/dateUtils";
+import { persistSmsRsvp } from "../lib/sms-rsvp.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
 import { getCloudflareContext } from "~/lib/router-context";
 
 interface SmsWebhookUserRow {
   id: number;
+  status: string;
   sms_opt_in: number;
   sms_opt_out_at: string | null;
 }
@@ -22,15 +23,24 @@ interface SmsReminderRow {
   event_id: number;
 }
 
-interface UpcomingEventRow {
-  id: number;
+interface SmsRsvpEventRow {
+  event_id: number;
+  restaurant_name: string;
+  event_date: string;
+  event_time: string | null;
+  status: string;
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const env = getCloudflareContext(context).env;
   const db = env.DB;
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return new Response("Invalid webhook payload", { status: 400 });
+  }
   const params = new URLSearchParams();
   for (const [key, value] of formData.entries()) {
     if (typeof value === "string") {
@@ -57,10 +67,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const fromRaw = formData.get("From")?.toString() || "";
   const body = formData.get("Body")?.toString() || "";
   const parsedBodyReply = parseSmsReply(body);
-  // YES and NO are Meatup RSVP commands. Give them precedence in case a
+  // YES, NO, and MAYBE are Meatup RSVP commands. Give them precedence in case a
   // Messaging Service was mistakenly configured to classify YES as START.
   const replyType =
-    parsedBodyReply === "yes" || parsedBodyReply === "no"
+    parsedBodyReply === "yes" || parsedBodyReply === "no" || parsedBodyReply === "maybe"
       ? parsedBodyReply
       : twilioOptOutType ?? parsedBodyReply;
   const twilioAlreadyReplied =
@@ -70,7 +80,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Consent commands are idempotent through the unique provider Message SID
   // on sms_consent_events. Do not reserve them here: a failed consent batch
   // must remain retryable so state and evidence cannot diverge.
-  if (messageSid && !isConsentCommand) {
+  if (messageSid && !isConsentCommand && replyType !== "yes" && replyType !== "no" && replyType !== "maybe") {
     const isFirstDelivery = await reserveWebhookDelivery(db, "twilio", messageSid);
     if (!isFirstDelivery) {
       return twilioOptOutType
@@ -88,7 +98,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const user = await db
-    .prepare("SELECT id, sms_opt_in, sms_opt_out_at FROM users WHERE phone_number = ?")
+    .prepare("SELECT id, status, sms_opt_in, sms_opt_out_at FROM users WHERE phone_number = ?")
     .bind(from)
     .first() as SmsWebhookUserRow | null;
 
@@ -102,9 +112,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_out") {
     await db.batch([
-      db
-        .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?")
-        .bind(user.id),
       prepareSmsConsentEvent(db, {
         userId: user.id,
         phoneNumber: from,
@@ -112,6 +119,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         source: "sms",
         providerMessageSid: messageSid || null,
       }),
+      // A replayed consent receipt must not overwrite a more recent command.
+      db
+        .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ? AND changes() > 0")
+        .bind(user.id),
     ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
@@ -120,9 +131,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_in") {
     await db.batch([
-      db
-        .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?")
-        .bind(user.id),
       prepareSmsConsentEvent(db, {
         userId: user.id,
         phoneNumber: from,
@@ -130,6 +138,9 @@ export async function action({ request, context }: Route.ActionArgs) {
         source: "sms",
         providerMessageSid: messageSid || null,
       }),
+      db
+        .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ? AND changes() > 0")
+        .bind(user.id),
     ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
@@ -140,8 +151,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return twilioAlreadyReplied
       ? buildSmsResponse()
       : buildSmsResponse(
-          "Meatup.Club reminders. Reply YES or NO to RSVP, STOP to opt out, or START to re-enable. Help: support@meatup.club."
+          "Meatup.Club reminders. Reply YES, NO or MAYBE followed by the event number in your invitation to RSVP, STOP to opt out, or START to re-enable. Help: support@meatup.club."
         );
+  }
+
+  if (user.status !== "active") {
+    return buildSmsResponse("Your account must be active to RSVP. Visit https://meatup.club for help.");
   }
 
   if (user.sms_opt_in !== 1) {
@@ -152,45 +167,52 @@ export async function action({ request, context }: Route.ActionArgs) {
     return buildSmsResponse("You are opted out of SMS. Reply START to re-enable reminders.");
   }
 
-  const timeZone = getAppTimeZone(env.APP_TIMEZONE);
-  const today = getTodayDateStringInTimeZone(timeZone);
-  const latestReminder = await db
-    .prepare(`
-      SELECT sr.event_id
-      FROM sms_reminders sr
-      JOIN events e ON e.id = sr.event_id
-      WHERE sr.user_id = ?
-        AND e.status = 'upcoming'
-        AND e.event_date >= ?
-      ORDER BY sr.sent_at DESC
-      LIMIT 1
-    `)
-    .bind(user.id, today)
-    .first() as SmsReminderRow | null;
-
-  let eventId = latestReminder?.event_id;
-
-  if (!eventId) {
-    const nextEvent = await db
-      .prepare(
-        "SELECT id FROM events WHERE status = 'upcoming' AND event_date >= ? ORDER BY event_date ASC LIMIT 1"
-      )
-      .bind(today)
-      .first() as UpcomingEventRow | null;
-    eventId = nextEvent?.id;
+  const eventNumberMatch = body.trim().match(/^(?:yes|y|no|n|maybe)\s+(\d+)[.!]?$/i);
+  const explicitEventId = eventNumberMatch ? Number(eventNumberMatch[1]) : null;
+  if (
+    (/\d/.test(body) && !eventNumberMatch) ||
+    (explicitEventId !== null && (!Number.isSafeInteger(explicitEventId) || explicitEventId <= 0))
+  ) {
+    return buildSmsResponse("Use the event number from your invitation, for example YES 42, NO 42 or MAYBE 42.");
   }
 
-  if (!eventId) {
-    return buildSmsResponse("We couldn't find an upcoming event to RSVP for.");
+  const reminder = explicitEventId !== null
+    ? await db
+      .prepare("SELECT event_id FROM sms_reminders WHERE user_id = ? AND event_id = ? LIMIT 1")
+      .bind(user.id, explicitEventId)
+      .first<SmsReminderRow>()
+    : await db
+      .prepare("SELECT event_id FROM sms_reminders WHERE user_id = ? ORDER BY sent_at DESC, id DESC LIMIT 1")
+      .bind(user.id)
+      .first<SmsReminderRow>();
+  if (!reminder) {
+    return buildSmsResponse("We couldn't find an SMS invitation for that event. RSVP at https://meatup.club/dashboard.");
   }
 
-  await upsertRsvp({
+  const eventId = reminder.event_id;
+  const event = await db
+    .prepare("SELECT id AS event_id, restaurant_name, event_date, event_time, status FROM events WHERE id = ?")
+    .bind(eventId)
+    .first<SmsRsvpEventRow>();
+  if (
+    !event || event.status !== "upcoming" ||
+    !(getEventDateTimeUtc(event.event_date, event.event_time, getAppTimeZone(env.APP_TIMEZONE)).getTime() > Date.now())
+  ) {
+    return buildSmsResponse("That event is no longer accepting RSVPs. View upcoming events at https://meatup.club/dashboard.");
+  }
+
+  const processed = await persistSmsRsvp({
     db,
+    deliveryId: messageSid,
     eventId,
     userId: user.id,
     status: replyType,
   });
 
-  const confirmation = replyType === "yes" ? "Yes" : "No";
-  return buildSmsResponse(`Thanks! Your RSVP is set to ${confirmation}.`);
+  if (!processed) {
+    return buildSmsResponse("Thanks! We already received that response.");
+  }
+
+  const confirmation = replyType.charAt(0).toUpperCase() + replyType.slice(1);
+  return buildSmsResponse(`Thanks! Your RSVP for ${event.restaurant_name} (event ${eventId}) is set to ${confirmation}.`);
 }

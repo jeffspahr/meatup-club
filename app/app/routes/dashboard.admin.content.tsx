@@ -128,6 +128,7 @@ export default function AdminContentPage({ loaderData, actionData }: Route.Compo
                       </Button>
                     </div>
 
+                    {showPreview && <input type="hidden" name="content" value={editContent} />}
                     {showPreview ? (
                       <div className="w-full px-4 py-3 border border-border rounded-md bg-muted min-h-[240px]">
                         <ReactMarkdown

@@ -41,7 +41,8 @@ export function RestaurantAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const requestController = useRef<AbortController | null>(null);
+  const selectedName = useRef<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,58 +59,76 @@ export function RestaurantAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Synchronize the current query with the Places API. Cleanup invalidates both
+  // searches and detail lookups, including responses already being decoded.
   useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
+    const controller = new AbortController();
+    requestController.current = controller;
+    setSuggestions([]);
+    setShowDropdown(false);
+    setSelectedIndex(-1);
+    setIsLoading(false);
 
-    if (value.length < 2) {
-      setSuggestions([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    debounceTimer.current = setTimeout(async () => {
+    const timer = value.length < 2 || value === selectedName.current ? null : setTimeout(async () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/places/search?input=${encodeURIComponent(value)}`
+          `/api/places/search?input=${encodeURIComponent(value)}`,
+          { signal: controller.signal }
         );
+        if (!response.ok) throw new Error(`Place search failed (${response.status})`);
         const data = (await response.json()) as PlaceSearchResponse;
+        if (controller.signal.aborted) return;
         setSuggestions(data.places || []);
         setShowDropdown(true);
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error("Failed to fetch suggestions:", error);
         setSuggestions([]);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     }, 300);
 
     return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
+      if (timer !== null) clearTimeout(timer);
+      controller.abort();
+      requestController.current?.abort();
     };
   }, [value]);
 
+  function handleChange(nextValue: string) {
+    requestController.current?.abort();
+    selectedName.current = null;
+    onChange(nextValue);
+  }
+
   async function handleSelect(place: Place) {
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
     setIsLoading(true);
     setShowDropdown(false);
+    setSelectedIndex(-1);
 
     try {
       const response = await fetch(
-        `/api/places/details?placeId=${encodeURIComponent(place.id)}`
+        `/api/places/details?placeId=${encodeURIComponent(place.id)}`,
+        { signal: controller.signal }
       );
+      if (!response.ok) throw new Error(`Place details failed (${response.status})`);
       const placeDetails = (await response.json()) as PlaceDetails;
+      if (controller.signal.aborted) return;
+      selectedName.current = placeDetails.name;
       onChange(placeDetails.name);
       // Commit the selection after updating the search text: text changes may
       // invalidate a previously selected restaurant in the parent form.
       onSelect(placeDetails);
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error("Failed to fetch place details:", error);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) setIsLoading(false);
     }
   }
 
@@ -124,7 +143,7 @@ export function RestaurantAutocomplete({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter" && selectedIndex >= 0) {
+    } else if (e.key === "Enter" && selectedIndex >= 0 && selectedIndex < suggestions.length) {
       e.preventDefault();
       handleSelect(suggestions[selectedIndex]);
     } else if (e.key === "Escape") {
@@ -139,7 +158,7 @@ export function RestaurantAutocomplete({
         id={inputId}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Start typing restaurant name..."
         className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-amber-500 bg-card text-foreground"
