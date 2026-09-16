@@ -68,3 +68,10 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+- [x] Preserve cancellation calendar IDs after deleting events; regression reproduced event-0 before the fix.
+- [x] Verify final patches and record audit limitations.
+Results (deleted event cancellation): the immutable dedupe key preserves the original calendar event ID after the event foreign key becomes NULL. The sender now uses that ID and rejects invalid snapshot IDs before sending. A real SQLite stage/delete/send regression inspects the actual cancellation attachment.
+
+Final verification: Node 24 lint, typecheck, secret-fixture scan, 722 tests in 92 suites with coverage, production client/SSR/Worker build, and git diff checks pass. Coverage: 81.31% statements, 72.38% branches, 73.07% functions, 81.79% lines. Reviewed scheduled Worker dispatch/config, SMS scheduling/tracking/consent, email outbox staging/sending/recovery, delivery callbacks, provider error handling, and event deletion handoff. No production callbacks or sends were triggered; live provider behavior is represented by signed contract requests and documented Resend responses. Browser checks and D1 schema/migration checks were not rerun for these server-only changes with no schema edits.
+
