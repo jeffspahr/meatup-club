@@ -223,6 +223,8 @@ Page-level layout decisions are centralized in `app/app/app.css`. Do not reintro
 
 ## Commit and Pull Request Guidelines
 
+- Always create a pull request for completed code changes without waiting for the user to ask. Use a focused branch, DCO sign-off, and the required verification checks.
+
 - Use short, imperative commit messages. Conventional commit style is preferred when it fits the change.
 - Use DCO sign-offs when committing. Read the name and email from `git config`; do not guess.
 - Keep commits atomic and describable. Do not mix unrelated formatting-only churn with behavior changes.

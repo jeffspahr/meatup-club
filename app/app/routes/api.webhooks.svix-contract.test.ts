@@ -155,15 +155,10 @@ describe("Svix webhook contracts", () => {
       success: true,
       message: "Delivery state updated",
     });
-    expect(reserveWebhookDelivery).toHaveBeenCalledWith(
-      db,
-      "resend_delivery",
-      "msg_delivery_contract"
-    );
     expect(applyResendDeliveryWebhookEvent).toHaveBeenCalledWith(db, {
       type: "email.delivered",
       data: { email_id: "email-contract" },
-    });
+    }, "msg_delivery_contract");
   });
 
   it("rejects a delivery webhook signed with a different key", async () => {
@@ -212,7 +207,7 @@ describe("Svix webhook contracts", () => {
   it("ignores a duplicate delivery only after verifying its signature", async () => {
     const secret = syntheticSigningSecret("duplicate-delivery");
     useDeliverySigningSecret(secret);
-    vi.mocked(reserveWebhookDelivery).mockResolvedValue(false);
+    vi.mocked(applyResendDeliveryWebhookEvent).mockResolvedValue({ handled: true, updated: false, duplicate: true });
 
     const response = await deliveryAction({
       request: signedRequest({
@@ -231,11 +226,9 @@ describe("Svix webhook contracts", () => {
     await expect(response.json()).resolves.toEqual({
       message: "Duplicate webhook ignored",
     });
-    expect(reserveWebhookDelivery).toHaveBeenCalledWith(
-      db,
-      "resend_delivery",
-      "msg_delivery_duplicate_contract"
-    );
-    expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
+    expect(applyResendDeliveryWebhookEvent).toHaveBeenCalledWith(db, {
+      type: "email.delivered",
+      data: { email_id: "email-duplicate-contract" },
+    }, "msg_delivery_duplicate_contract");
   });
 });
