@@ -32,27 +32,22 @@ export async function upsertRsvp({
     .bind(eventId, userId)
     .first();
 
-  if (existing) {
-    const calendarClause = updatedViaCalendar ? ", updated_via_calendar = 1" : "";
-    const commentsClause = comments !== undefined ? ", comments = ?" : "";
+  const calendarClause = updatedViaCalendar ? ", updated_via_calendar = 1" : "";
+  const commentsClause = comments !== undefined ? ", comments = excluded.comments" : "";
 
-    const sql = `UPDATE rsvps SET status = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL${calendarClause}${commentsClause} WHERE event_id = ? AND user_id = ?`;
-
-    const bindings =
-      comments !== undefined
-        ? [status, comments, eventId, userId]
-        : [status, eventId, userId];
-
-    await db.prepare(sql).bind(...bindings).run();
-    return "updated";
-  }
-
-  const calendarVal = updatedViaCalendar ? 1 : 0;
+  // The read above is only for the activity label. Resolve races at the unique
+  // key so two first responses cannot both attempt a plain insert.
   await db
-    .prepare(
-      "INSERT INTO rsvps (event_id, user_id, status, comments, admin_override, updated_via_calendar) VALUES (?, ?, ?, ?, 0, ?)"
-    )
-    .bind(eventId, userId, status, comments ?? null, calendarVal)
+    .prepare(`
+      INSERT INTO rsvps (event_id, user_id, status, comments, admin_override, updated_via_calendar)
+      VALUES (?, ?, ?, ?, 0, ?)
+      ON CONFLICT(event_id, user_id) DO UPDATE SET
+        status = excluded.status,
+        admin_override = 0,
+        admin_override_by = NULL,
+        admin_override_at = NULL${calendarClause}${commentsClause}
+    `)
+    .bind(eventId, userId, status, comments ?? null, updatedViaCalendar ? 1 : 0)
     .run();
-  return "created";
+  return existing ? "updated" : "created";
 }
