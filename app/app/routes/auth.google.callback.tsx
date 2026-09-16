@@ -5,7 +5,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Import server-only modules inside loader to prevent client bundling
   const { getSession } = await import("../lib/session.server");
   const { getGoogleTokens, getGoogleUserInfo, createUserSession } = await import("../lib/auth.server");
-  const { ensureUser, isUserActive } = await import("../lib/db.server");
+  const { ensureUser, getUserByEmail } = await import("../lib/db.server");
   const { logActivity } = await import("../lib/activity.server");
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -39,8 +39,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     googleUser.picture
   );
 
-  // Check if user is active
-  const active = await isUserActive(db, googleUser.email);
+  // Preserve the invitation step for members who have not accepted yet.
+  const user = await getUserByEmail(db, googleUser.email);
+  const active = user?.status === "active";
 
   // Log the login activity
   await logActivity({
@@ -59,7 +60,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Create session and redirect
   if (active) {
     return createUserSession(userId, googleUser.email, "/dashboard");
-  } else {
-    return createUserSession(userId, googleUser.email, "/pending");
   }
+  return createUserSession(
+    userId,
+    googleUser.email,
+    user?.status === "invited" ? "/accept-invite" : "/pending"
+  );
 }

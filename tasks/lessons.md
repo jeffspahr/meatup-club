@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-09-16: Failure mode: invitation template checks ran after creating/promoting a member, so a validation error consumed the invitation state; unnormalized invitation addresses also failed to match Google login. Detection: seven real-schema route regressions for missing templates and mixed-case/whitespace addresses. Prevention: validate prerequisites before writes and normalize new email input at the invitation boundary. Missing-template fixtures must explicitly remove the canonical schema's seeded default template.
+
 - 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
 
 - 2026-02-21: Initialized lessons log for remediation tracking.
@@ -54,6 +56,8 @@
 
 - Failure mode: tests embedded calendar bodies directly in Resend webhook payloads and used `PARTSTAT:ACCEPTED`, concealing missing receiving-API retrieval and incorrect ICS parameter parsing. Detection: realistic metadata-only webhooks and folded `ATTENDEE;PARTSTAT=...` replies failed 11 regressions. Prevention: test provider-documented payload shapes and actual protocol syntax, including attachments and localized subjects.
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
+
+
 
 - 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
 
