@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-09-16: Failure mode: invitation template checks ran after creating/promoting a member, so a validation error consumed the invitation state; unnormalized invitation addresses also failed to match Google login. Detection: seven real-schema route regressions for missing templates and mixed-case/whitespace addresses. Prevention: validate prerequisites before writes and normalize new email input at the invitation boundary. Missing-template fixtures must explicitly remove the canonical schema's seeded default template.
+
 - 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
 
 - 2026-02-21: Initialized lessons log for remediation tracking.

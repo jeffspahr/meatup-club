@@ -110,7 +110,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const actionType = formData.get('_action');
 
   if (actionType === 'invite') {
-    const email = formData.get('email');
+    const rawEmail = formData.get('email');
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
     const name = formData.get('name');
     const templateId = formData.get('template_id');
     const rawPhone = String(formData.get('phone_number') || '').trim();
@@ -145,6 +146,28 @@ export async function action({ request, context }: Route.ActionArgs) {
         }
       }
 
+      // Validate email configuration before creating or promoting the member.
+      const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
+
+      let template;
+      if (resendApiKey) {
+        // Fetch the selected template (or default if none selected)
+        if (templateId) {
+          template = await db
+            .prepare('SELECT * FROM email_templates WHERE id = ?')
+            .bind(templateId)
+            .first();
+        } else {
+          template = await db
+            .prepare('SELECT * FROM email_templates WHERE is_default = 1 LIMIT 1')
+            .first();
+        }
+
+        if (!template) {
+          return { error: 'Email template not found' };
+        }
+      }
+
       // A person may have signed in before their invitation was issued.
       if (existingUser) {
         const result = await db
@@ -161,32 +184,12 @@ export async function action({ request, context }: Route.ActionArgs) {
           .run();
       }
 
-      // Send invitation email if Resend API key is configured
-      const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
-
-      if (resendApiKey) {
-        // Fetch the selected template (or default if none selected)
-        let template;
-        if (templateId) {
-          template = await db
-            .prepare('SELECT * FROM email_templates WHERE id = ?')
-            .bind(templateId)
-            .first();
-        } else {
-          template = await db
-            .prepare('SELECT * FROM email_templates WHERE is_default = 1 LIMIT 1')
-            .first();
-        }
-
-        if (!template) {
-          return { error: 'Email template not found' };
-        }
-
+      if (resendApiKey && template) {
         const url = new URL(request.url);
-        const acceptLink = `${url.origin}/accept-invite?email=${encodeURIComponent(email as string)}`;
+        const acceptLink = `${url.origin}/accept-invite?email=${encodeURIComponent(email)}`;
 
         const emailResult = await sendInviteEmail({
-          to: email as string,
+          to: email,
           inviteeName: (name as string) || null,
           inviterName: admin.name || admin.email,
           acceptLink,

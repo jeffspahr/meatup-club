@@ -21,8 +21,9 @@ describe("membership admission with the canonical schema", () => {
 
   beforeEach(() => {
     harness = createSqliteD1Harness();
+    harness.sqlite.exec("DELETE FROM email_templates");
     vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(
-      url.includes("/token")
+      url.includes("api.resend.com") ? { id: "invite-message" } : url.includes("/token")
         ? { access_token: "test-token" }
         : { id: "google-member", email: "member@example.com", verified_email: true, name: "Member" }
     )));
@@ -33,9 +34,63 @@ describe("membership admission with the canonical schema", () => {
     vi.unstubAllGlobals();
   });
 
-  function context() {
-    return createLoadContext({ env: { DB: harness.db } } as never);
+  function context(resendApiKey?: string) {
+    return createLoadContext({ env: { DB: harness.db, RESEND_API_KEY: resendApiKey } } as never);
   }
+
+  async function sendInvitation(email: string, options: { templateId?: string; resendApiKey?: string } = {}) {
+    const admin = harness.get<{ id: number }>("SELECT id FROM users WHERE email = 'admin@example.com'");
+    const adminId = admin?.id ?? harness.insert("INSERT INTO users (email, status, is_admin) VALUES (?, 'active', 1)", "admin@example.com");
+    return inviteMember({
+      request: new Request("https://meatup.club/dashboard/admin/members", {
+        method: "POST",
+        headers: { Cookie: await sessionCookie({ userId: adminId, email: "admin@example.com" }) },
+        body: new URLSearchParams({ _action: "invite", email, name: "Invited Member", template_id: options.templateId ?? "" }),
+      }),
+      context: context(options.resendApiKey), params: {},
+    } as never);
+  }
+
+  it.each([
+    ["new", "default"], ["pending", "default"],
+    ["new", "selected"], ["pending", "selected"],
+  ])("does not mutate a %s account when its %s template is missing, and permits retry", async (account, template) => {
+    if (account === "pending") {
+      harness.insert("INSERT INTO users (email, status, name) VALUES (?, 'pending', 'Original name')", "member@example.com");
+    }
+    const before = harness.get("SELECT id, status, name FROM users WHERE email = 'member@example.com'");
+    const options = { resendApiKey: "synthetic-invitation-key", templateId: template === "selected" ? "999" : undefined };
+    expect(await sendInvitation("member@example.com", options)).toEqual({ error: "Email template not found" });
+    expect(harness.get("SELECT id, status, name FROM users WHERE email = 'member@example.com'")).toEqual(before);
+    expect(fetch).not.toHaveBeenCalled();
+
+    harness.insert(`INSERT INTO email_templates (id, name, subject, html_body, text_body, is_default)
+      VALUES (999, 'Invitation', 'Welcome', '<p>Welcome</p>', 'Welcome', 1)`);
+    expect(await sendInvitation("member@example.com", options)).toBeInstanceOf(Response);
+    expect(harness.get("SELECT status FROM users WHERE email = 'member@example.com'")).toEqual({ status: "invited" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["new", "pending"])("normalizes the invitation address for a %s Google account", async (account) => {
+    if (account === "pending") {
+      harness.insert("INSERT INTO users (email, status) VALUES (?, 'pending')", "member@example.com");
+    }
+    // No provider key or template is required when email sending is disabled.
+    expect(await sendInvitation("  Member@Example.COM  ")).toBeInstanceOf(Response);
+    expect(harness.all("SELECT email, status FROM users WHERE email != 'admin@example.com'"))
+      .toEqual([{ email: "member@example.com", status: "invited" }]);
+    expect((await signIn()).headers.get("Location")).toBe("/accept-invite");
+  });
+
+  it("sends invitation email and links using the normalized address", async () => {
+    harness.insert(`INSERT INTO email_templates (name, subject, html_body, text_body, is_default)
+      VALUES ('Invitation', 'Welcome', '{{acceptLink}}', '{{acceptLink}}', 1)`);
+    expect(await sendInvitation("  Member@Example.COM  ", { resendApiKey: "synthetic-invitation-key" }))
+      .toBeInstanceOf(Response);
+    const payload = JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body));
+    expect(payload.to).toEqual(["member@example.com"]);
+    expect(payload.html).toContain("email=member%40example.com");
+  });
 
   async function signIn() {
     return oauthCallback({

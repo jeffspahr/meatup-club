@@ -1,5 +1,17 @@
 # Active Backlog
 
+## Invitation validation follow-up — 2026-09-16
+
+Acceptance: missing selected/default email templates must not create or promote a member, and correcting the template must permit retry. Newly entered invitation addresses must be trimmed/lowercased so Google sign-in finds them. Invitations without a configured email API key retain their existing behavior.
+
+- [x] Reproduce template-write ordering and email normalization failures against the real schema: all seven new cases fail before the fix.
+- [x] Validate templates before writes and normalize invitation input only.
+- [x] Run full tests, typecheck, lint and diff checks; record results and lessons.
+
+Scope: no shared DB helper changes or legacy account migration.
+
+Results: template lookup/validation now precedes both account insertion and pending-account promotion. Fixing a missing template permits the same invitation to retry. New addresses are trimmed/lowercased before lookup, persistence, email sending, and invite-link generation. Real-schema route coverage exercises default/selected templates, new/pending accounts, retry after template repair, Google sign-in routing, normalized provider payloads, and invitation without an API key/template. Full Node 24 tests, typecheck, lint and diff checks pass.
+
 Keep this file limited to current engineering follow-ups. GitHub issues are the source of truth for the product backlog, pull requests preserve completed work and verification history, and durable agent guidance belongs in `AGENTS.md` or `tasks/lessons.md`.
 
 ## Deferred Upgrades
