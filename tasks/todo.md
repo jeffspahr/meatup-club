@@ -411,3 +411,20 @@ Acceptance: session generations remain revoked after fresh logins, retain the me
 
 Results: 878 tests in 105 files, coverage gates, lint, secret scan, typecheck, local D1 baseline and migration chain, and production builds pass. Browser verification initially timed out opening the event form; a fresh-fixture rerun passed all 12 browser journeys. Repeated diagnostics exposed fixture-name collisions, recorded separately in lessons. Independently upgraded exact current-main schema: ordinary generation zero, pending revocation one, new-account default zero, foreign keys clean. Retargeted PR will receive required GitHub CI before handoff.
 - [ ] Coordinate production migration before merge/deployment; no production writes authorized by this preparation.
+
+## Admin SMS audience and feedback — 2026-09-16
+
+Acceptance: before sending, admins can see the selected recipient count and names and confirm the audience; sending, success, zero-recipient and failure feedback appears beside the event's button. Preserve explicit recipient selection and all SMS consent rules.
+
+- [x] Inspect current-main form, sender filters and screenshot report.
+- [x] Design: extract an event-scoped fetcher form, derive the audience from existing loader data, and confirm sends using the existing confirmation helper.
+- [x] Implement recipient preview and local send feedback.
+- [x] Add regression coverage for selection, confirmation, pending state, success/failure and event isolation.
+- [x] Verify full tests, typecheck, lint, build and browser layout.
+- [ ] Publish a DCO-signed PR (in progress).
+
+Working notes: original checkout has unrelated edits and stale source; implementation isolated from current main in a separate worktree. Pending means no RSVP row/status, so existing Yes/No/Maybe responses are excluded. Provider acceptance is not delivery confirmation. No live texts are needed for verification.
+
+Results: extracted `AdminEventSmsForm` uses a separate fetcher per event, shows an audience preview and explicit confirmation, and renders sending/results beside the submit button. Selection remains controlled across revalidation; no React effects added. The server still rechecks eligibility and reports actual accepted counts. UI preview is a snapshot, not a guarantee if eligibility changes before submission.
+
+Verification: Node 24; all 901 tests passed, including 14 admin SMS component regressions; lint, secret-fixture scan, typecheck and production build passed. Chromium admin SMS browser regression passed against local D1, including audience switching and cancelling confirmation with no POST. Screenshot updated at `docs/screenshots/event-sms-admin.png` and visually reviewed. No server recipient logic, migrations, production writes or live SMS sends changed/performed.
