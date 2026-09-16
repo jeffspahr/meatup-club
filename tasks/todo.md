@@ -68,3 +68,18 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Event timezone conversion at DST transitions — 2026-09-16
+
+### Acceptance criteria
+Valid event wall times after a DST transition convert using the offset at the actual event instant. Past-event classification changes only after the true start time. Preserve the existing interpretation of ambiguous and nonexistent local times.
+
+- [x] Review conversion and add spring/fall UTC conversion plus past-event boundary regressions.
+- [x] Reproduce four regression failures and correct the offset when the initial guess crosses a DST boundary.
+- [x] Run focused tests, full tests, typecheck and lint; record results.
+
+### DST results
+- A bounded correction now uses the offset at the candidate event instant and accepts it only when it matches the requested wall time. Existing ambiguous and nonexistent time choices remain unchanged.
+- The spring 2026 03:30 New York event now maps to 07:30Z, and the fall event maps to 08:30Z. Past-event checks are covered immediately before, at, and after each actual start.
+- Verification: all 33 focused date/timezone tests, all 712 tests in 91 files, typecheck, lint and diff checks pass under Node 24.
