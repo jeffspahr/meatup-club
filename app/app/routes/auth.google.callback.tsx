@@ -63,7 +63,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Create session and redirect
   if (active) {
     return createUserSession(userId, googleUser.email, "/dashboard", user.session_version);
-  } else {
-    return createUserSession(userId, googleUser.email, "/pending", user.session_version);
   }
+  return createUserSession(
+    userId,
+    googleUser.email,
+    user.status === "invited" ? "/accept-invite" : "/pending",
+    user.session_version
+  );
 }

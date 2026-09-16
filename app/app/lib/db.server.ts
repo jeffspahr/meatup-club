@@ -27,9 +27,9 @@ export async function ensureUser(
     return existing.id;
   }
 
-  // Create new user
+  // OAuth proves identity, not membership. Never inherit the schema's active default.
   const result = await db
-    .prepare("INSERT INTO users (email, name, picture) VALUES (?, ?, ?)")
+    .prepare("INSERT INTO users (email, name, picture, status) VALUES (?, ?, ?, 'pending')")
     .bind(email, name || null, picture || null)
     .run();
 
