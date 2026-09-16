@@ -1,8 +1,8 @@
 import type { D1Database, D1PreparedStatement, D1Result } from "@cloudflare/workers-types";
 import type { AuthUser } from "./auth.server";
+import { isValidCalendarDate } from "./date-validation";
 
 const EVENT_TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-const EVENT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface EditableEvent {
   id: number;
@@ -44,7 +44,7 @@ export function parseEventMutationFormData(
     return { error: "Select a restaurant from Google Places." };
   }
 
-  if (!eventDate || !EVENT_DATE_PATTERN.test(eventDate)) {
+  if (!isValidCalendarDate(eventDate)) {
     return { error: "A valid event date is required." };
   }
 

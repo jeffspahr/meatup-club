@@ -54,3 +54,6 @@
 
 - Failure mode: tests embedded calendar bodies directly in Resend webhook payloads and used `PARTSTAT:ACCEPTED`, concealing missing receiving-API retrieval and incorrect ICS parameter parsing. Detection: realistic metadata-only webhooks and folded `ATTENDEE;PARTSTAT=...` replies failed 11 regressions. Prevention: test provider-documented payload shapes and actual protocol syntax, including attachments and localized subjects.
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
+
+
+- 2026-09-16: Failure mode: date shape checks and lexical past-date comparisons accepted impossible calendar dates (including February 29 in non-leap years), producing records on unintended days. Detection: event parser and route regressions accepted 13 malformed date cases. Prevention: validate actual calendar-day round trips at every date write boundary before temporal comparisons.

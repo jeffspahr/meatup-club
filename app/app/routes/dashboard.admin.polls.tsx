@@ -3,6 +3,7 @@ import { Form, Link, redirect } from "react-router";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/dashboard.admin.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { isValidCalendarDate } from "../lib/date-validation";
 import { buildCreateEventStatementForActivePoll } from "../lib/events.server";
 import {
   buildSelectStagedDeliveryIdsStatement,
@@ -332,6 +333,9 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     // Event-specific validation
     if (createEvent && selectedDate) {
+      if (!isValidCalendarDate(selectedDate.suggested_date)) {
+        return { error: 'Selected date is not a valid calendar date' };
+      }
       const appTimeZone = getAppTimeZone(getCloudflareContext(context).env.APP_TIMEZONE);
       if (isDateInPastInTimeZone(selectedDate.suggested_date as string, appTimeZone)) {
         return { error: 'Cannot create event for a date in the past' };

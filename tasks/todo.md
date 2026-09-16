@@ -68,3 +68,16 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Review: calendar date validation
+
+Acceptance: event forms and date nominations only persist actual calendar dates in YYYY-MM-DD format; impossible dates and non-string submissions return form errors. Poll closure cannot copy an invalid legacy nomination into an event.
+
+- [x] Trace event parsing, date nominations, and poll-to-event creation.
+- [x] Reproduce invalid date acceptance: 13 regressions failed before the fix.
+- [x] Add shared calendar-date validation at write boundaries.
+- [x] Verify 735 full-suite tests, lint, typecheck, and diff checks.
+- [x] Record results and prevention lesson.
+
+Results: a shared validator requires strict YYYY-MM-DD input and a real calendar day, preventing JavaScript date rollover for invalid month lengths and leap years. Event forms, date nominations, and poll-to-event creation reject malformed dates before writes. Existing future-date and voting semantics remain intact.

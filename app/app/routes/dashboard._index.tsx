@@ -1,6 +1,7 @@
 import { Link, useFetcher, useNavigation } from "react-router";
 import type { Route } from "./+types/dashboard._index";
 import { requireActiveUser } from "../lib/auth.server";
+import { isValidCalendarDate } from "../lib/date-validation";
 import { useState, useEffect, useRef, type CSSProperties } from 'react';
 import {
   formatDateForDisplay,
@@ -386,7 +387,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (!suggestedDate) {
         return { error: 'Date is required' };
       }
-      if (isDateInPastUTC(suggestedDate as string)) {
+      if (!isValidCalendarDate(suggestedDate)) {
+        return { error: 'A valid date is required' };
+      }
+      if (isDateInPastUTC(suggestedDate)) {
         return { error: 'Cannot add dates in the past' };
       }
 
