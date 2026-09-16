@@ -55,7 +55,8 @@
 - Failure mode: tests embedded calendar bodies directly in Resend webhook payloads and used `PARTSTAT:ACCEPTED`, concealing missing receiving-API retrieval and incorrect ICS parameter parsing. Detection: realistic metadata-only webhooks and folded `ATTENDEE;PARTSTAT=...` replies failed 11 regressions. Prevention: test provider-documented payload shapes and actual protocol syntax, including attachments and localized subjects.
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
-## Restaurant lookup responses must belong to the current input
-- Failure mode: old search/details responses replaced newer user input, and HTTP error JSON was treated as restaurant details, causing an undefined input value and a render crash.
-- Detection: deferred-response component tests reproduced out-of-order responses; a 429 details response crashed the component. The add dialog also retained a previous selection after edits.
-- Prevention: invalidate async lookups on input changes/unmount, check HTTP success before consuming details, reset keyboard selection with result sets, and clear selected records when their search input changes.
+
+
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.

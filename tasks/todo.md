@@ -69,22 +69,22 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
-## Thorough bug review — 2026-09-16
 
-Acceptance: review current main (`ebe0b61`) across UI/data, auth/member access, event/poll mutations, and background delivery; reproduce actionable bugs; publish focused PRs with regression tests and verification. Preserve the original checkout and do not merge or deploy.
 
-- [x] Inspect current main and existing PRs; create isolated review worktrees.
-- [ ] In progress: review UI/data loaders and coordinate three independent domain reviews.
-- [ ] Reproduce findings and implement the smallest fixes with regression coverage.
-- [ ] Verify each patch with tests, typecheck, lint, and build as appropriate.
-- [ ] Publish signed-off commits and focused PRs; inspect CI results.
-- [ ] Record review coverage, findings, results, and limitations.
+## Review: RSVP persistence and input validation
 
-Working notes: original checkout has unrelated edits. All review branches start from main ebe0b61. Existing open PRs #310 and #180 do not overlap planned fixes. Use Node 24.14.0.
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
 
-### Restaurant selection results
-- Reproduced five autocomplete failures and stale modal selection before fixes.
-- Fixed out-of-order searches/details, cleared/unmounted input handling, HTTP failure handling, stale keyboard selection, and stale add-dialog selection.
-- Changed effect classification: external sync (Places network requests and cancellation); selection invalidation remains in input handlers.
-- Verification: lint/typecheck passed; all 706 tests and coverage gates passed, followed by 18 focused component tests including two additional cancellation/HTTP regressions; production client/SSR/Worker build passed; all 11 desktop/iPhone browser checks passed.
-- Review continues in separate isolated branches; this commit contains only restaurant selection fixes and their tests.
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
