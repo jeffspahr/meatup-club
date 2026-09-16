@@ -212,7 +212,7 @@ app/
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `SESSION_SECRET` - Random string for session encryption
-- `RESEND_API_KEY` - Resend API key for email sending and calendar invites
+- `RESEND_API_KEY` - Resend Full access API key for sending invites and retrieving received calendar replies
 - `RESEND_WEBHOOK_SECRET` - Svix webhook secret for inbound RSVP email verification
 - `GOOGLE_PLACES_API_KEY` - Google Places API key for restaurant search/details/photo proxy routes
 - `TWILIO_ACCOUNT_SID` - Twilio Account SID for SMS sending and webhooks
@@ -225,11 +225,9 @@ app/
 
 ### Setting up Resend
 
-After deploying the application, configure Resend inbound email routing:
+Configure receiving for `mail.meatup.club` in Resend and publish its receiving MX record. Add an `email.received` webhook pointing to `https://meatup.club/api/webhooks/email-rsvp`, then store that webhook's signing secret as `RESEND_WEBHOOK_SECRET`.
 
-1. Visit https://meatup.club/dashboard/admin/setup (requires admin access)
-2. Click "Configure Resend Inbound Email"
-3. This will automatically set up `rsvp@mail.meatup.club` to forward calendar RSVP responses to your webhook
+`RESEND_API_KEY` must have Full access: sending-only keys cannot retrieve incoming email bodies and calendar attachments. The admin setup action configures delivery-status tracking; receiving is configured separately.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed setup instructions and troubleshooting.
 

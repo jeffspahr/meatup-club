@@ -42,7 +42,10 @@ describe('Webhook Handler - Signature Verification', () => {
 
     // Create mock D1 database
     mockDb = {
-      prepare: vi.fn().mockReturnThis(),
+      prepare: vi.fn((sql: string) => sql.startsWith('SELECT 1 FROM webhook_deliveries')
+        ? { bind: () => ({ first: () => Promise.resolve(mockDb.processed ? { found: 1 } : null) }) }
+        : mockDb),
+      batch: vi.fn().mockResolvedValue([{ meta: { changes: 1 } }, { meta: { changes: 1 } }]),
       bind: vi.fn().mockReturnThis(),
       first: vi.fn(),
       run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
@@ -198,7 +201,7 @@ describe('Webhook Handler - Signature Verification', () => {
 
   describe('Security: Idempotency', () => {
     it('should ignore duplicate deliveries by svix-id', async () => {
-      mockDb.run.mockResolvedValueOnce({ meta: { changes: 0 } });
+      mockDb.processed = true;
 
       const request = new Request('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
@@ -296,7 +299,10 @@ describe('Webhook Handler - Database Operations', () => {
     vi.clearAllMocks();
 
     mockDb = {
-      prepare: vi.fn().mockReturnThis(),
+      prepare: vi.fn((sql: string) => sql.startsWith('SELECT 1 FROM webhook_deliveries')
+        ? { bind: () => ({ first: () => Promise.resolve(mockDb.processed ? { found: 1 } : null) }) }
+        : mockDb),
+      batch: vi.fn().mockResolvedValue([{ meta: { changes: 1 } }, { meta: { changes: 1 } }]),
       bind: vi.fn().mockReturnThis(),
       first: vi.fn(),
       run: vi.fn(),
@@ -522,11 +528,11 @@ describe('Webhook Handler - Database Operations', () => {
       expect(data.data.user).toBe('user@example.com');
       expect(data.data.event).toBe('Prime Steakhouse');
 
-      // Verify INSERT was called (via upsertRsvp)
+      // Verify atomic RSVP upsert was prepared
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'INSERT INTO rsvps (event_id, user_id, status, admin_override, updated_via_calendar) VALUES (?, ?, ?, 0, ?)'
+        expect.stringContaining('INSERT INTO rsvps')
       );
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes', 1);
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes');
     });
 
     it('should map DECLINED to "no" status', async () => {
@@ -560,7 +566,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('no');
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no', 1);
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no');
     });
 
     it('should map TENTATIVE to "maybe" status', async () => {
@@ -594,7 +600,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('maybe');
-      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'maybe', 1);
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'maybe');
     });
   });
 
@@ -633,11 +639,11 @@ describe('Webhook Handler - Database Operations', () => {
       expect(data.success).toBe(true);
       expect(data.data.status).toBe('yes');
 
-      // Verify UPDATE was called (via upsertRsvp)
+      // Verify the atomic upsert supports existing RSVPs
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'UPDATE rsvps SET status = ?, admin_override = 0, admin_override_by = NULL, admin_override_at = NULL, updated_via_calendar = 1 WHERE event_id = ? AND user_id = ?'
+        expect.stringContaining('ON CONFLICT')
       );
-      expect(mockDb.bind).toHaveBeenCalledWith('yes', 123, 1);
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'yes');
     });
 
     it('should change status from yes to no', async () => {
@@ -671,7 +677,7 @@ describe('Webhook Handler - Database Operations', () => {
       const data = (await response.json()) as any;
 
       expect(data.data.status).toBe('no');
-      expect(mockDb.bind).toHaveBeenCalledWith('no', 123, 1);
+      expect(mockDb.bind).toHaveBeenCalledWith(123, 1, 'no');
     });
   });
 

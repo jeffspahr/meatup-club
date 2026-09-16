@@ -1,19 +1,14 @@
 import type { RouterContextProvider } from "react-router";
 import type { CloudflareEnv } from "../env";
 import { Webhook } from "svix";
-import { upsertRsvp } from "../lib/rsvps.server";
-import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
+import { persistCalendarRsvp } from "../lib/calendar-rsvp.server";
 import { logErrorEvent, logInfoEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
+import { getReceivedCalendarContents, type ReceivedEmailData } from "../lib/received-email.server";
 
 interface ResendEmailReceivedPayload {
   type: string;
-  data: {
-    from: string;
-    subject: string;
-    text: string;
-    html?: string;
-  };
+  data: ReceivedEmailData;
 }
 
 interface WebhookUserRow {
@@ -96,23 +91,27 @@ export async function action({
       return Response.json({ message: 'Ignored: not an email.received event' });
     }
 
-    const isFirstDelivery = await reserveWebhookDelivery(db, 'resend', svixId);
-    if (!isFirstDelivery) {
+    const processed = await db.prepare('SELECT 1 FROM webhook_deliveries WHERE provider = ? AND delivery_id = ?')
+      .bind('resend', svixId).first();
+    if (processed) {
       return Response.json({ message: 'Duplicate webhook ignored' });
     }
 
-    const { from, subject, text, html } = payload.data;
+    const { from, subject } = payload.data;
+    const emailMatch = from.match(/<([^>]+)>/) || [null, from];
+    const userEmail = emailMatch[1].trim().toLowerCase();
+    const contents = await getReceivedCalendarContents(
+      payload.data, getCloudflareContext(context).env.RESEND_API_KEY,
+    );
 
     // Parse the email content to extract calendar RSVP
-    const rsvpData = parseCalendarRSVP({ subject, text, html });
+    const rsvpData = contents
+      .map(text => parseCalendarRSVP({ subject, text, attendeeEmail: userEmail }))
+      .find(result => result !== null);
 
     if (!rsvpData) {
       return Response.json({ message: 'No RSVP data found' });
     }
-
-    // Extract email address from "Name <email@domain.com>" format
-    const emailMatch = from.match(/<([^>]+)>/) || [null, from];
-    const userEmail = emailMatch[1].toLowerCase();
 
     // Find the user
     const user = await db
@@ -166,7 +165,7 @@ export async function action({
     }
 
     // Map calendar PARTSTAT to RSVP status
-    const statusMap: Record<string, string> = {
+    const statusMap: Record<string, 'yes' | 'no' | 'maybe'> = {
       'ACCEPTED': 'yes',
       'DECLINED': 'no',
       'TENTATIVE': 'maybe',
@@ -175,18 +174,15 @@ export async function action({
 
     const rsvpStatus = statusMap[rsvpData.partstat] || 'maybe';
 
-    const result = await upsertRsvp({
+    const applied = await persistCalendarRsvp({
       db,
+      deliveryId: svixId,
       eventId,
       userId: user.id,
       status: rsvpStatus,
-      updatedViaCalendar: true,
     });
-    logInfoEvent(
-      result === "created"
-        ? "resend_rsvp_webhook_rsvp_created"
-        : "resend_rsvp_webhook_rsvp_updated"
-    );
+    if (!applied) return Response.json({ message: 'Duplicate webhook ignored' });
+    logInfoEvent("resend_rsvp_webhook_rsvp_updated");
 
     return Response.json({
       success: true,
@@ -242,23 +238,37 @@ async function resolveCanonicalEventId(
 export function parseCalendarRSVP({
   subject,
   text,
-  html
+  html,
+  attendeeEmail,
 }: {
   subject: string;
-  text: string;
-  html?: string;
+  text?: string | null;
+  html?: string | null;
+  attendeeEmail?: string;
 }): { eventUid: string; partstat: string } | null {
   // Look for calendar data in text or HTML
-  const content = text + (html || '');
+  const content = `${text || ''}\n${html || ''}`.replace(/\r?\n[ \t]/g, '');
+  const method = content.match(/^METHOD:([^\r\n]+)/im)?.[1].trim().toUpperCase();
+  if (method && method !== 'REPLY') return null;
 
   // Extract UID (unique event identifier)
   // Support both formats: event-{id}@meatup.club and event-{id}-{timestamp}@meatup.club
-  const uidMatch = content.match(/UID:(event-\d+(?:-\d+)?@meatup\.club)/);
+  const uidMatch = content.match(/UID:(event-\d+(?:-\d+)?@meatup\.club)(?=$|[\s<])/);
   if (!uidMatch) {
     return null;
   }
 
   const eventUid = uidMatch[1];
+
+  // PARTSTAT is an ATTENDEE parameter (equals sign), not a standalone property.
+  // Match the sender when a reply contains multiple attendees.
+  const attendees = content.match(/^ATTENDEE[;:][^\r\n]*/gim) || [];
+  if (attendees.length) {
+    const attendee = attendees.find(line => !attendeeEmail ||
+      line.match(/:mailto:([^\s]+)$/i)?.[1].toLowerCase() === attendeeEmail.toLowerCase());
+    const status = attendee?.match(/;PARTSTAT="?(ACCEPTED|DECLINED|TENTATIVE|NEEDS-ACTION)"?(?=[;:])/i)?.[1];
+    return status ? { eventUid, partstat: status.toUpperCase() } : null;
+  }
 
   // Extract PARTSTAT (participation status)
   // Common values: ACCEPTED, DECLINED, TENTATIVE, NEEDS-ACTION

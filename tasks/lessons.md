@@ -49,3 +49,8 @@
 
 - 2026-09-16: Failure mode: a database batch test double chose `.all()` for the last statement even when it was an UPDATE, falsely reporting no changed rows. Detection: new no-invite poll-close redirect tests failed despite valid SQL. Prevention: prefer `.run()` for statements supporting writes; never infer SELECT semantics from batch position.
 - 2026-09-16: Failure mode: new UI tests assumed the DOM emulator implements `window.confirm`. Detection: `vi.spyOn` failed before rendering because confirm was undefined. Prevention: stub browser dialogs explicitly and restore globals after each test; verify real confirmation behavior with the browser suite.
+
+## Calendar RSVP receiving contract — 2026-09-16
+
+- Failure mode: tests embedded calendar bodies directly in Resend webhook payloads and used `PARTSTAT:ACCEPTED`, concealing missing receiving-API retrieval and incorrect ICS parameter parsing. Detection: realistic metadata-only webhooks and folded `ATTENDEE;PARTSTAT=...` replies failed 11 regressions. Prevention: test provider-documented payload shapes and actual protocol syntax, including attachments and localized subjects.
+- Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.

@@ -244,57 +244,24 @@ ALTER TABLE rsvps ADD COLUMN updated_via_calendar INTEGER DEFAULT 0;
 - Resend API key stored in `RESEND_API_KEY` environment variable
 - Admin access to Meatup.Club
 
-### Automated Setup
+### Receiving setup
 
-The system provides an admin UI for one-click Resend configuration.
+1. Enable receiving for the verified `mail.meatup.club` domain in Resend and publish the MX record shown by Resend.
+2. Configure an `email.received` webhook targeting `https://meatup.club/api/webhooks/email-rsvp`.
+3. Store its signing secret in the Worker's `RESEND_WEBHOOK_SECRET` binding.
+4. Use a Full access `RESEND_API_KEY`. Sending-only keys cannot read received emails or attachments.
 
-**Access**: https://meatup.club/dashboard/admin/setup
+The admin setup action configures the separate delivery-status webhook; it does not configure inbound receiving.
 
-#### What It Does
+### Calendar reply processing
 
-1. Fetches verified domains from Resend API
-2. Locates `mail.meatup.club` domain
-3. Creates inbound email route:
-   - **Email address**: `rsvp@mail.meatup.club`
-   - **Forwards to**: `https://meatup.club/api/webhooks/email-rsvp`
-4. Handles existing routes (updates or recreates as needed)
+The handler verifies the raw webhook with Svix before reading provider data. Resend's webhook contains metadata, so it retrieves the message through `/emails/receiving/:email_id` and downloads calendar attachments through the receiving attachments API. Attachment content takes precedence over quoted invitation bodies. The parser unfolds ICS lines, reads the replying attendee's `PARTSTAT` parameter, and resolves both current and legacy event UIDs.
 
-#### Implementation
+The delivery ID and RSVP update commit in one D1 batch. If either write fails, the whole batch rolls back, allowing the same webhook to retry. A committed duplicate cannot overwrite a later response. Provider failures return HTTP 500 for retry without recording completion.
 
-**UI**: `/app/routes/dashboard.admin.setup.tsx`
+For previously ignored replies, deploying this fix does not retroactively recover their content. Inspect the latest reply in Resend before replaying it, and check whether its delivery ID was already recorded by the old handler; a replay using that same ID will still be treated as a duplicate. A new calendar response after deployment creates a new delivery.
 
-**API Endpoint**: `/app/routes/api.admin.setup-resend.tsx`
-
-```typescript
-export async function action({ request, context }: Route.ActionArgs) {
-  const resendApiKey = context.cloudflare.env.RESEND_API_KEY;
-
-  // Get domains
-  const domainsResponse = await fetch('https://api.resend.com/domains', {
-    headers: { 'Authorization': `Bearer ${resendApiKey}` },
-  });
-
-  // Create inbound route
-  await fetch(`https://api.resend.com/domains/${domain.id}/inbound-routes`, {
-    method: 'POST',
-    body: JSON.stringify({
-      pattern: 'rsvp',
-      forward_to: 'https://meatup.club/api/webhooks/email-rsvp',
-    }),
-  });
-}
-```
-
-### Manual Setup (Alternative)
-
-If automated setup fails, configure manually in Resend dashboard:
-
-1. Go to [Resend Dashboard](https://resend.com/domains)
-2. Select `mail.meatup.club` domain
-3. Navigate to "Inbound" tab
-4. Create new inbound route:
-   - Pattern: `rsvp`
-   - Forward to: `https://meatup.club/api/webhooks/email-rsvp`
+References: [Resend email.received payload](https://resend.com/docs/webhooks/emails/received), [Receiving content](https://resend.com/docs/dashboard/receiving/get-email-content), [Receiving attachments](https://resend.com/docs/dashboard/receiving/attachments).
 
 ## Event Creation Workflow
 
