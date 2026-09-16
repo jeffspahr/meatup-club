@@ -97,6 +97,10 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
+- [x] Reproduce and repair delivery-status webhook transaction and ordering failures: five regressions failed before the fix; 719 tests and coverage pass.
+- [ ] Preserve cancellation calendar IDs after deleting events and verify the final patch (in progress).
+Results (delivery callbacks): delivery IDs and status changes now commit atomically, allowing retries after write failures. SQL enforces status progression so late sent/delayed callbacks cannot overwrite delivered or negative final outcomes. Signed callbacks execute against real SQLite for rollback, retry, duplicate, and out-of-order cases; all 719 tests and coverage gates pass.
+
 - [x] Reproduce and repair unstable email retry payloads: all three event message types failed before the fix.
 - [x] Verify email retry fix with all 713 tests/coverage, lint and typecheck.
 - [ ] Reproduce and repair delivery-status webhook transaction and ordering failures (in progress).
@@ -240,3 +244,12 @@ Acceptance: preserve current application behavior while ensuring retried calenda
 - [x] Review the final diff and run full tests, typecheck and lint before publication.
 
 Results: all 815 tests in 98 files, TypeScript, ESLint and diff checks pass. Calendar retry source merged unchanged; both parent review-note histories are preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #326 refresh for next merge
+
+Acceptance: callback persistence failures remain retryable, terminal delivery states cannot be downgraded by late callbacks, and merged calendar retries retain stable payloads.
+
+- [x] Merge current main and resolve review notes while preserving both parent histories.
+- [x] Review the combined delivery module and run full tests, typecheck and lint before publication.
+
+Results: 821 tests in 99 files, TypeScript, ESLint and diff checks pass. Delivery code merged cleanly with stable calendar payloads; note conflicts preserve both parent histories. Required GitHub CI will validate the published revision before handoff.

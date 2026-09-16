@@ -1094,8 +1094,9 @@ export async function processEventEmailQueueBatch(params: {
 
 export async function applyResendDeliveryWebhookEvent(
   db: D1Database,
-  payload: ResendDeliveryWebhookPayload
-): Promise<{ handled: boolean; updated: boolean }> {
+  payload: ResendDeliveryWebhookPayload,
+  deliveryId?: string
+): Promise<{ handled: boolean; updated: boolean; duplicate?: boolean }> {
   const statusMap: Record<string, EventEmailDeliveryStatus> = {
     "email.sent": "provider_accepted",
     "email.delivered": "delivered",
@@ -1116,7 +1117,15 @@ export async function applyResendDeliveryWebhookEvent(
   }
 
   const failureReason = getResendFailureReason(payload);
-  const updateResult = await db
+  const statusRanks: Partial<Record<EventEmailDeliveryStatus, number>> = {
+    provider_accepted: 1,
+    delivery_delayed: 2,
+    delivered: 3,
+    failed: 4,
+    bounced: 5,
+    complained: 6,
+  };
+  const updateStatement = db
     .prepare(
       `
         UPDATE event_email_deliveries
@@ -1129,10 +1138,36 @@ export async function applyResendDeliveryWebhookEvent(
             END,
             updated_at = CURRENT_TIMESTAMP
         WHERE provider_message_id = ?
+          ${deliveryId ? "AND changes() > 0" : ""}
+          AND CASE status
+            WHEN 'provider_accepted' THEN 1
+            WHEN 'delivery_delayed' THEN 2
+            WHEN 'delivered' THEN 3
+            WHEN 'failed' THEN 4
+            WHEN 'bounced' THEN 5
+            WHEN 'complained' THEN 6
+            ELSE 0
+          END <= ?
       `
     )
-    .bind(status, payload.type, failureReason, status, providerMessageId)
-    .run();
+    .bind(status, payload.type, failureReason, status, providerMessageId, statusRanks[status]);
+
+  let updateResult: D1Result;
+  if (deliveryId) {
+    // A failed state write rolls back its receipt. A duplicate receipt makes
+    // changes() zero so it cannot reapply stale state after a newer callback.
+    const results = await db.batch([
+      db.prepare("INSERT OR IGNORE INTO webhook_deliveries (provider, delivery_id) VALUES (?, ?)")
+        .bind("resend_delivery", deliveryId),
+      updateStatement,
+    ]);
+    if (results[0].meta.changes === 0) {
+      return { handled: true, updated: false, duplicate: true };
+    }
+    updateResult = results[1];
+  } else {
+    updateResult = await updateStatement.run();
+  }
 
   const changes = normalizeNumber((updateResult as { meta?: { changes?: number } } | undefined)?.meta?.changes);
   return { handled: true, updated: changes > 0 };
