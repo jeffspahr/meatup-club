@@ -17,6 +17,7 @@ import { DateCalendar } from "../components/DateCalendar";
 import { DoodleView } from "../components/DoodleView";
 import { RestaurantVotePicker } from "../components/RestaurantVotePicker";
 import { CreateEventForm } from "../components/CreateEventForm";
+import { ClosePollForm } from "../components/ClosePollForm";
 import { UpcomingEventCard } from "../components/UpcomingEventCard";
 import {
   createRestaurant,
@@ -1069,6 +1070,9 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
               />
             </div>
           </div>
+          {isAdmin ? (
+            <ClosePollForm key={activePoll.id} poll={activePoll} restaurants={restaurantSuggestions} dates={dateSuggestions} />
+          ) : null}
         </Card>
       ) : (
         <Card
