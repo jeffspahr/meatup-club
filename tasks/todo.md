@@ -68,3 +68,16 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Review: preserve default email templates
+
+Acceptance: create/update/default-selection failures and missing target IDs preserve the current default; successful changes atomically select one default.
+
+- [x] Trace template mutation paths.
+- [x] Reproduce failure and nonexistent-target behavior with real SQLite: five regressions failed.
+- [x] Batch dependent writes and guard default clearing on target existence.
+- [x] Verify eight SQLite cases, 743 full-suite tests, lint, and typecheck.
+- [x] Record results and prevention lesson.
+
+Results: template creation, edits, and default selection now commit together with clearing the previous default. Missing update/default targets return a form error while preserving the current default. Trigger-based tests prove rollback if the second write fails.

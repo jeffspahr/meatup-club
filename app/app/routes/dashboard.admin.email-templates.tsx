@@ -39,24 +39,31 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'All fields are required' };
     }
 
+    if (actionType === 'update' && !id) {
+      return { error: 'Template ID is required' };
+    }
+
     try {
-      // If setting as default, unset all other defaults
+      const statements = [];
       if (is_default) {
-        await db
-          .prepare('UPDATE email_templates SET is_default = 0')
-          .run();
+        statements.push(actionType === 'create'
+          ? db.prepare('UPDATE email_templates SET is_default = 0')
+          : db.prepare('UPDATE email_templates SET is_default = 0 WHERE EXISTS (SELECT 1 FROM email_templates WHERE id = ?)').bind(id));
       }
 
       if (actionType === 'create') {
-        await db
+        statements.push(db
           .prepare('INSERT INTO email_templates (name, subject, html_body, text_body, is_default) VALUES (?, ?, ?, ?, ?)')
-          .bind(name, subject, html_body, text_body, is_default ? 1 : 0)
-          .run();
+          .bind(name, subject, html_body, text_body, is_default ? 1 : 0));
       } else {
-        await db
+        statements.push(db
           .prepare('UPDATE email_templates SET name = ?, subject = ?, html_body = ?, text_body = ?, is_default = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-          .bind(name, subject, html_body, text_body, is_default ? 1 : 0, id)
-          .run();
+          .bind(name, subject, html_body, text_body, is_default ? 1 : 0, id));
+      }
+
+      const results = await db.batch(statements);
+      if (actionType === 'update' && results[results.length - 1].meta.changes === 0) {
+        return { error: 'Template not found' };
       }
 
       return redirect('/dashboard/admin/email-templates');
@@ -103,16 +110,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      // Unset all defaults
-      await db
-        .prepare('UPDATE email_templates SET is_default = 0')
-        .run();
-
-      // Set new default
-      await db
-        .prepare('UPDATE email_templates SET is_default = 1 WHERE id = ?')
-        .bind(id)
-        .run();
+      const [, result] = await db.batch([
+        db.prepare('UPDATE email_templates SET is_default = 0 WHERE EXISTS (SELECT 1 FROM email_templates WHERE id = ?)').bind(id),
+        db.prepare('UPDATE email_templates SET is_default = 1 WHERE id = ?').bind(id),
+      ]);
+      if (result.meta.changes === 0) {
+        return { error: 'Template not found' };
+      }
 
       return redirect('/dashboard/admin/email-templates');
     } catch (err) {
