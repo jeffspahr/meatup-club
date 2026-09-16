@@ -596,6 +596,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
 
       const nextSequence = Number(existingEvent.calendar_sequence ?? 0) + 1;
+      const deliveryType = input.status === 'cancelled' ? 'cancel' : 'update';
       let stagedUpdateBatch: StagedEventEmailBatch | null = null;
       const updateBatchId = send_updates ? crypto.randomUUID() : null;
       const updateStatements = [
@@ -603,18 +604,24 @@ export async function action({ request, context }: Route.ActionArgs) {
       ];
 
       if (updateBatchId) {
+        const details = {
+          eventId,
+          restaurantName: input.restaurantName,
+          restaurantAddress: input.restaurantAddress,
+          eventDate: input.eventDate,
+          eventTime: input.eventTime,
+        };
         updateStatements.push(
-          buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
-            batchId: updateBatchId,
-            details: {
-              eventId,
-              restaurantName: input.restaurantName,
-              restaurantAddress: input.restaurantAddress,
-              eventDate: input.eventDate,
-              eventTime: input.eventTime,
-            },
-            calendarSequence: nextSequence,
-          }),
+          deliveryType === 'cancel'
+            ? buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
+                batchId: updateBatchId,
+                details: { ...details, sequence: nextSequence },
+              })
+            : buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
+                batchId: updateBatchId,
+                details,
+                calendarSequence: nextSequence,
+              }),
           buildSelectStagedDeliveryIdsStatement(db, updateBatchId)
         );
       }
@@ -624,7 +631,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (updateBatchId) {
         stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(
           updateBatchId,
-          'update',
+          deliveryType,
           updateResults[updateResults.length - 1] as D1Result<{ id: number }>
         );
       }

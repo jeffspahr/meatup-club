@@ -13,6 +13,7 @@ import {
 } from "./events.server";
 import {
   buildSelectStagedDeliveryIdsStatement,
+  buildStageEventCancellationDeliveriesForActiveMembersStatement,
   buildStageEventInviteDeliveriesForLastInsertedEventStatement,
   buildStageEventUpdateDeliveriesForActiveMembersStatement,
   enqueueStagedEventEmailBatch,
@@ -148,6 +149,7 @@ export async function runUpdateEventAction(
     } as const;
 
     const nextSequence = Number(existingEvent.calendar_sequence ?? 0) + 1;
+    const deliveryType = input.status === "cancelled" ? "cancel" : "update";
     let stagedUpdateBatch: StagedEventEmailBatch | null = null;
     const updateBatchId = sendUpdates ? crypto.randomUUID() : null;
     const updateStatements = [
@@ -155,18 +157,24 @@ export async function runUpdateEventAction(
     ];
 
     if (updateBatchId) {
+      const details = {
+        eventId,
+        restaurantName: input.restaurantName,
+        restaurantAddress: input.restaurantAddress,
+        eventDate: input.eventDate,
+        eventTime: input.eventTime,
+      };
       updateStatements.push(
-        buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
-          batchId: updateBatchId,
-          details: {
-            eventId,
-            restaurantName: input.restaurantName,
-            restaurantAddress: input.restaurantAddress,
-            eventDate: input.eventDate,
-            eventTime: input.eventTime,
-          },
-          calendarSequence: nextSequence,
-        }),
+        deliveryType === "cancel"
+          ? buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
+              batchId: updateBatchId,
+              details: { ...details, sequence: nextSequence },
+            })
+          : buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
+              batchId: updateBatchId,
+              details,
+              calendarSequence: nextSequence,
+            }),
         buildSelectStagedDeliveryIdsStatement(db, updateBatchId)
       );
     }
@@ -176,7 +184,7 @@ export async function runUpdateEventAction(
     if (updateBatchId) {
       stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(
         updateBatchId,
-        "update",
+        deliveryType,
         updateResults[updateResults.length - 1] as D1Result<{ id: number }>
       );
     }

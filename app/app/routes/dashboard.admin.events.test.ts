@@ -211,12 +211,7 @@ function createMockDb({
   }>) => {
     const results = [];
 
-    for (const [index, statement] of statements.entries()) {
-      if (index === statements.length - 1 && typeof statement.all === "function") {
-        results.push(await statement.all());
-        continue;
-      }
-
+    for (const statement of statements) {
       if (typeof statement.run === "function") {
         results.push(await statement.run());
         continue;
@@ -443,6 +438,34 @@ describe("dashboard.admin.events action flows", () => {
         deliveryType: "update",
       }
     );
+  });
+
+  it.each([true, false])("uses cancellation delivery when marking an event cancelled (notify=%s)", async sendUpdates => {
+    const db = createMockDb();
+    const response = await action({
+      request: createRequest({
+        _action: "update", id: "42", restaurant_name: "Prime Steakhouse",
+        restaurant_address: "123 Main St", event_date: "2099-05-01", event_time: "18:00",
+        status: "cancelled", send_updates: String(sendUpdates),
+      }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+
+    expect(response).toBeInstanceOf(Response);
+    expect(db.runCalls).toContainEqual(expect.objectContaining({
+      sql: expect.stringContaining("UPDATE events"),
+      bindArgs: ["Prime Steakhouse", "123 Main St", "2099-05-01", "18:00", "cancelled", 3, 42],
+    }));
+    expect(buildStageEventUpdateDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
+    if (sendUpdates) {
+      expect(buildStageEventCancellationDeliveriesForActiveMembersStatement).toHaveBeenCalledWith(db, {
+        batchId: expect.any(String),
+        details: { eventId: 42, restaurantName: "Prime Steakhouse", restaurantAddress: "123 Main St", eventDate: "2099-05-01", eventTime: "18:00", sequence: 3 },
+      });
+      expect(enqueueStagedEventEmailBatch).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ deliveryType: "cancel" }));
+    } else {
+      expect(buildStageEventCancellationDeliveriesForActiveMembersStatement).not.toHaveBeenCalled();
+    }
   });
 
   it("resends only to missing recipients by default", async () => {

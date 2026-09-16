@@ -68,3 +68,16 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Review: cancelled event calendar delivery
+
+Acceptance: an admin marking an event cancelled, or its creator editing an already-cancelled event, stages calendar cancellation messages at the incremented sequence when notifications are enabled. Ordinary updates remain update messages and disabled notifications stage nothing.
+
+- [x] Trace status-form update and cancellation delivery helpers.
+- [x] Reproduce incorrect update delivery on admin cancellation and creator edits to cancelled events.
+- [x] Select the cancellation helper and delivery type for cancelled events in both entry points.
+- [x] Verify 749 full-suite tests, lint, typecheck, and diff checks.
+- [x] Record results and prevention lesson.
+
+Results: cancelled event edits now persist cancellation deliveries rather than calendar requests, retaining the incremented sequence and atomic staging. Route regressions verify delivery selection/notification opt-out; real SQLite tests cover cancelled/ordinary edits and rollback if staging fails. Corrected the admin test batch double to execute a lone UPDATE instead of treating its final statement as a SELECT.
