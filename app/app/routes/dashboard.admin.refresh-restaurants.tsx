@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Form, Link } from "react-router";
+import { Form, Link, useNavigation } from "react-router";
 import type { Route } from "./+types/dashboard.admin.refresh-restaurants";
 import { requireAdmin } from "../lib/auth.server";
 import {
@@ -107,7 +106,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function RefreshRestaurantsPage({ actionData }: Route.ComponentProps) {
-  const [isRunning, setIsRunning] = useState(false);
+  const navigation = useNavigation();
+  const isRunning = navigation.state !== "idle";
 
   return (
     <AdminLayout>
@@ -163,11 +163,11 @@ export default function RefreshRestaurantsPage({ actionData }: Route.ComponentPr
             </Alert>
           )}
 
-          <Form method="post" onSubmit={() => setIsRunning(true)}>
+          <Form method="post">
             <Button
               type="submit"
               size="lg"
-              disabled={isRunning || !!actionData?.results}
+              disabled={isRunning}
               className="w-full"
             >
               {isRunning ? "Running Refresh..." : "Run Refresh"}

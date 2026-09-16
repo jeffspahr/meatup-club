@@ -54,6 +54,19 @@ describe("dashboard.admin.content route UI state", () => {
     navigationState = { state: "idle", formData: null };
   });
 
+  it("submits the edited content while previewing and after returning to edit", () => {
+    renderPage(loaderData);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const text = "# Changed\n\nPreview this before saving.";
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: text } });
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    const form = screen.getByRole("button", { name: "Save Changes" }).closest("form")!;
+    expect(new FormData(form).getAll("content")).toEqual([text]);
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("textbox")).toHaveValue(text);
+    expect(new FormData(form).getAll("content")).toEqual([text]);
+  });
+
   it("closes the editor after a successful update submission cycle", () => {
     const view = renderPage(loaderData);
 

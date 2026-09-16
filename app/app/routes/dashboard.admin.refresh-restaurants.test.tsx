@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Route } from "./+types/dashboard.admin.refresh-restaurants";
 import RefreshRestaurantsPage, { action, loader } from "./dashboard.admin.refresh-restaurants";
 import { requireAdmin } from "../lib/auth.server";
 import { createLoadContext } from "~/lib/router-context";
@@ -9,11 +10,14 @@ vi.mock("../lib/auth.server", () => ({
   requireAdmin: vi.fn(),
 }));
 
+let navigationState = "idle";
+
 vi.mock("react-router", async () => {
   const actual = await vi.importActual<typeof import("react-router")>("react-router");
 
   return {
     ...actual,
+    useNavigation: () => ({ state: navigationState }),
     Form: ({ children, ...props }: any) => <form {...props}>{children}</form>,
   };
 });
@@ -113,6 +117,7 @@ describe("dashboard.admin.refresh-restaurants route", () => {
   });
 
   afterEach(() => {
+    navigationState = "idle";
     global.fetch = originalFetch;
   });
 
@@ -268,6 +273,23 @@ describe("dashboard.admin.refresh-restaurants route", () => {
     expect(db.runCalls).toHaveLength(0);
   });
 
+  it("allows retry after a failed refresh and disables only while the request is pending", () => {
+    const props = { loaderData: {}, actionData: undefined } as Route.ComponentProps;
+    const page = () => <MemoryRouter><RefreshRestaurantsPage {...props} /></MemoryRouter>;
+    const view = render(page());
+    expect(screen.getByRole("button", { name: "Run Refresh" })).toBeEnabled();
+    navigationState = "submitting";
+    view.rerender(page());
+    expect(screen.getByRole("button", { name: "Running Refresh..." })).toBeDisabled();
+    navigationState = "loading";
+    view.rerender(page());
+    expect(screen.getByRole("button", { name: "Running Refresh..." })).toBeDisabled();
+    navigationState = "idle";
+    props.actionData = { results: { total: 1, updated: 0, unchanged: 0, failed: ["Prime Steakhouse"], details: [] } };
+    view.rerender(page());
+    expect(screen.getByRole("button", { name: "Run Refresh" })).toBeEnabled();
+  });
+
   it("renders the refresh summary with per-restaurant field changes", () => {
     const props = {
       loaderData: {},
@@ -295,6 +317,6 @@ describe("dashboard.admin.refresh-restaurants route", () => {
     expect(screen.getByText(/address, google_rating/)).toBeInTheDocument();
     expect(screen.getByText("Ocean Grill")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View Polls" })).toHaveAttribute("href", "/dashboard/polls");
-    expect(screen.getByRole("button", { name: "Run Refresh" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run Refresh" })).toBeEnabled();
   });
 });

@@ -100,6 +100,8 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 
 
 
+
+
 ## Review: preserve default email templates
 
 Acceptance: create/update/default-selection failures and missing target IDs preserve the current default; successful changes atomically select one default.
@@ -371,3 +373,12 @@ Acceptance: stale search/details responses cannot overwrite newer input or selec
 - [x] Review UI cancellation and selection changes and run full tests, typecheck and lint before publication.
 
 Results: 873 tests in 104 files, TypeScript, ESLint and diff checks pass. UI source merged cleanly; its effect synchronizes external Places requests and cancels obsolete work. Both parent review-note histories were preserved. Required GitHub CI will validate the build and browser journeys before handoff.
+
+## PR #325 refresh for next merge
+
+Acceptance: content preview preserves the submitted draft, and restaurant metadata refresh permits retry after navigation completes or fails on current main.
+
+- [x] Merge current main and preserve both parent review-note histories.
+- [x] Review form-state changes and run full tests, typecheck and lint before publication.
+
+Results: 875 tests in 104 files, TypeScript, ESLint and diff checks pass. Form changes merged cleanly; pending UI derives from navigation state without new effects. Both parent review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
