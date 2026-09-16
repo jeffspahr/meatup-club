@@ -954,6 +954,14 @@ export async function deliverEventEmailById(params: {
     return { outcome: "failed" };
   }
 
+  // Deleting an event clears its foreign key, but the staged dedupe key is
+  // immutable and retains the calendar's event ID for cancellation/retries.
+  const eventId = delivery.event_id ?? Number(delivery.dedupe_key.split(":")[1]);
+  if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+    await markDeliveryFailed(params.db, delivery.id, "Delivery has no valid calendar event ID");
+    return { outcome: "failed" };
+  }
+
   const nextAttemptCount = normalizeNumber(delivery.attempt_count) + 1;
   await params.db
     .prepare(
@@ -976,7 +984,7 @@ export async function deliverEventEmailById(params: {
 
   if (delivery.delivery_type === "invite") {
     result = await sendEventInviteEmail({
-      eventId: delivery.event_id ?? 0,
+      eventId,
       restaurantName: delivery.restaurant_name,
       restaurantAddress: delivery.restaurant_address,
       eventDate: delivery.event_date,
@@ -988,7 +996,7 @@ export async function deliverEventEmailById(params: {
     });
   } else if (delivery.delivery_type === "update") {
     result = await sendEventUpdateEmail({
-      eventId: delivery.event_id ?? 0,
+      eventId,
       restaurantName: delivery.restaurant_name,
       restaurantAddress: delivery.restaurant_address,
       eventDate: delivery.event_date,
@@ -1002,7 +1010,7 @@ export async function deliverEventEmailById(params: {
     });
   } else {
     result = await sendEventCancellationEmail({
-      eventId: delivery.event_id ?? 0,
+      eventId,
       restaurantName: delivery.restaurant_name,
       restaurantAddress: delivery.restaurant_address,
       eventDate: delivery.event_date,

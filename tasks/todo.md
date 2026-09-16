@@ -97,6 +97,12 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
+- [x] Preserve cancellation calendar IDs after deleting events; regression reproduced event-0 before the fix.
+- [x] Verify final patches and record audit limitations.
+Results (deleted event cancellation): the immutable dedupe key preserves the original calendar event ID after the event foreign key becomes NULL. The sender now uses that ID and rejects invalid snapshot IDs before sending. A real SQLite stage/delete/send regression inspects the actual cancellation attachment.
+
+Final verification: Node 24 lint, typecheck, secret-fixture scan, 722 tests in 92 suites with coverage, production client/SSR/Worker build, and git diff checks pass. Coverage: 81.31% statements, 72.38% branches, 73.07% functions, 81.79% lines. Reviewed scheduled Worker dispatch/config, SMS scheduling/tracking/consent, email outbox staging/sending/recovery, delivery callbacks, provider error handling, and event deletion handoff. No production callbacks or sends were triggered; live provider behavior is represented by signed contract requests and documented Resend responses. Browser checks and D1 schema/migration checks were not rerun for these server-only changes with no schema edits.
+
 - [x] Reproduce and repair delivery-status webhook transaction and ordering failures: five regressions failed before the fix; 719 tests and coverage pass.
 - [ ] Preserve cancellation calendar IDs after deleting events and verify the final patch (in progress).
 Results (delivery callbacks): delivery IDs and status changes now commit atomically, allowing retries after write failures. SQL enforces status progression so late sent/delayed callbacks cannot overwrite delivered or negative final outcomes. Signed callbacks execute against real SQLite for rollback, retry, duplicate, and out-of-order cases; all 719 tests and coverage gates pass.
@@ -253,3 +259,12 @@ Acceptance: callback persistence failures remain retryable, terminal delivery st
 - [x] Review the combined delivery module and run full tests, typecheck and lint before publication.
 
 Results: 821 tests in 99 files, TypeScript, ESLint and diff checks pass. Delivery code merged cleanly with stable calendar payloads; note conflicts preserve both parent histories. Required GitHub CI will validate the published revision before handoff.
+
+## PR #328 refresh for next merge
+
+Acceptance: deleting an event keeps queued calendar cancellation identity intact and preserves stable retry payloads and ordered delivery callbacks.
+
+- [x] Merge current main and preserve both sets of review notes.
+- [x] Review the combined delivery changes and run full tests, typecheck and lint before publishing.
+
+Results: 824 tests in 100 files, TypeScript, ESLint and diff checks pass. The cancellation identity change merged cleanly with stable retry payloads and ordered callback handling; both review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
