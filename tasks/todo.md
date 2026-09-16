@@ -162,7 +162,7 @@ Results: 733 tests in 93 files pass, with TypeScript, ESLint and diff checks. On
 - [x] Inspect current main and isolate SMS feature from unrelated checkout changes.
 - [x] Adapt automatic event SMS, admin pending default, and event-specific replies while retaining current delivery tracking.
 - [x] Verify tests, lint, typecheck, schema, build, and browser checks.
-- [ ] Publish a signed PR and confirm mergeability/CI.
+- [x] Publish signed PR #332; GitHub verification started.
 
 Acceptance: all event creation paths notify active SMS-consenting members independently of calendar invites; admin sends default to no RSVP with all-members option; event-specific YES/NO/MAYBE replies; preserve delivery callbacks and opt-outs; report failures without undoing events.
 
@@ -171,3 +171,5 @@ Results: current-main implementation preserves provider health and delivery call
 Verification: Node 24; lint, secret-fixture check, typecheck, coverage (797 tests in 95 files), local D1 baseline/migration verification, and production build passed. Browser suite: 10 passed initially; two existing voting checks failed, then both passed in isolation against a fresh fixture. The new admin control test and all desktop/mobile event-creation checks passed. Screenshot: `docs/screenshots/event-sms-admin.png`. No live SMS sends or deployment.
 
 Known limits: send success denotes Twilio acceptance; callbacks retain final delivery state. Automatic sends use the existing tracked-send path with bounded concurrency, not a durable outbox. Sequential repeated automatic notices skip accepted recipients; simultaneous duplicate invocations are not atomically deduplicated.
+
+PR: https://github.com/jeffspahr/meatup-club/pull/332 — feature commit `bfbb536`, based on current main. PR includes the admin screenshot and validation results.
