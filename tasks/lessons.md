@@ -60,6 +60,10 @@
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
 
+- 2026-09-16: Failure mode: date shape checks and lexical past-date comparisons accepted impossible calendar dates (including February 29 in non-leap years), producing records on unintended days. Detection: event parser and route regressions accepted 13 malformed date cases. Prevention: validate actual calendar-day round trips at every date write boundary before temporal comparisons.
+
+- 2026-09-16: Failure mode: fixing admin poll mutation validation while leaving the parallel JSON API path unchecked. Detection: real-schema API action tests still persisted impossible dates. Prevention: trace every route that calls a shared mutation before marking an invariant fix complete.
+
 - 2026-09-16: Failure mode: event edit paths persisted cancelled status but still staged calendar update requests. Detection: admin action mocks and real SQLite creator-edit tests showed update delivery for a cancelled event. Prevention: derive calendar delivery type from resulting event status at every mutation entry point, and cover both direct cancellation and later edits.
 
 - 2026-09-16: Failure mode: event deletion nulled the outbox foreign key before cancellation rendering, causing every cancellation to target calendar UID event-0. Detection: real SQLite staging/deletion followed by actual email serialization. Prevention: render queued messages from immutable snapshot identity, and test the complete lifecycle across foreign-key deletion effects.

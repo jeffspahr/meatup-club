@@ -98,6 +98,23 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
 
+## Review: calendar date validation
+
+Acceptance: event forms and date nominations only persist actual calendar dates in YYYY-MM-DD format; impossible dates and non-string submissions return form errors. Poll closure cannot copy an invalid legacy nomination into an event.
+
+- [x] Trace event parsing, date nominations, and poll-to-event creation.
+- [x] Reproduce invalid date acceptance: 13 regressions failed before the fix.
+- [x] Add shared calendar-date validation at write boundaries.
+- [x] Verify 735 full-suite tests, lint, typecheck, and diff checks.
+- [x] Record results and prevention lesson.
+
+Results: a shared validator requires strict YYYY-MM-DD input and a real calendar day, preventing JavaScript date rollover for invalid month lengths and leap years. Event forms, date nominations, and poll-to-event creation reject malformed dates before writes. Existing future-date and voting semantics remain intact.
+
+### Alternate poll API coverage
+- [x] Reproduce malformed persisted nominations creating invalid events through `/api/polls`.
+- [x] Apply the same calendar validator before API event creation; preserve poll state on rejection.
+- [x] Verify three baseline failures plus valid leap-day success with SQLite, full 722-test suite, typecheck, and lint.
+
 ## Review: cancelled event calendar delivery
 
 Acceptance: an admin marking an event cancelled, or its creator editing an already-cancelled event, stages calendar cancellation messages at the incremented sequence when notifications are enabled. Ordinary updates remain update messages and disabled notifications stage nothing.
@@ -290,3 +307,12 @@ Acceptance: cancelling events and editing already-cancelled events sends calenda
 - [x] Review combined event mutations and run full tests, typecheck and lint before publication.
 
 Results: 830 tests in 101 files, TypeScript, ESLint and diff checks pass. Both mutation paths merged cleanly with current event SMS and email-delivery behavior; both parent note histories were preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #324 refresh for next merge
+
+Acceptance: event and poll date inputs reject impossible calendar days while preserving current atomic mutations and notification staging across dashboard, admin and API routes.
+
+- [x] Merge current main and preserve both parent review-note histories.
+- [x] Review combined date boundaries and run full tests, typecheck and lint before publication.
+
+Results: 852 tests in 103 files, TypeScript, ESLint and diff checks pass. Event/poll code merged cleanly with current atomic mutations and notification staging; both review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
