@@ -58,7 +58,11 @@
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
 
+- 2026-09-16: Failure mode: session lookup used email alone and ignored its signed user ID, so a deleted account's cookie authenticated a later account reusing the email. Detection: a real-cookie SQLite lifecycle regression returned the replacement user. Prevention: bind sessions to immutable account IDs as well as email and test deletion/recreation, not only ordinary login.
+
 
 - 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
 
 - 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
+
+- 2026-09-16: Failure mode: a multiline conflict-marker expression consumed text after the closing marker. Detection: diff checks and review of the resolved notes. Prevention: constrain marker lines to non-newline characters and assert every nonempty line from both parent note files survives resolution.

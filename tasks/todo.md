@@ -82,6 +82,21 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
 
+## Session identity after account replacement — 2026-09-16
+
+### Acceptance criteria
+A signed session for a deleted account must never authenticate a later account with the same email. Valid sessions for the current account must continue working.
+
+- [x] Reproduce account replacement with real signed cookies and the canonical SQLite schema (old cookie incorrectly returned the replacement user).
+- [x] Require the loaded user ID to match the session's original user ID.
+- [x] Verify focused auth tests, full coverage, typecheck and lint.
+
+### Session results and audit boundaries
+- getUser now rejects cookies whose original account ID differs from the current row sharing that email. Valid replacement-account sessions still authenticate.
+- Verification: 23 focused auth tests; full 707 tests in 91 files pass with coverage gates (80.93% statements, 71.87% branches), typecheck, lint and diff checks pass.
+- Reviewed auth/session/OAuth, invitation, member/profile actions, and Places API authorization. Comment runtime modules are absent from current main (only legacy schema remains). No production writes or account changes were made.
+- Follow-up leads outside these patches: invitation creation precedes template validation; invitation email lookup remains case-sensitive; forced reauthentication uses a global flag rather than per-session revocation. These need separately scoped regressions and fixes.
+
 
 ## Review: RSVP persistence and input validation
 
@@ -100,3 +115,13 @@ Results: the initial insert now retains comments; the member action rejects unsu
 - [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
 - [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
 - [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
+
+## PR #322 refresh after invitation merge
+
+Acceptance: preserve current main invitation behavior and reject deleted-account cookies after email reuse.
+
+- [x] Merge current main and preserve both sets of task notes; source merged without conflict.
+- [x] Run full tests, typecheck and lint.
+- [ ] Publish and confirm required CI.
+
+Results: all regression tests, TypeScript and ESLint pass on the combined invitation/session branch; the merge changed no session-fix source. Both parent note histories were checked for preservation.
