@@ -68,3 +68,22 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+- [x] Record results and separately review member deletion.
+
+## Atomic member removal — 2026-09-16
+
+### Acceptance criteria
+A failed user deletion must preserve the user's votes and suggestions and other members' votes on those suggestions. Successful removal must still remove the intended member and participation without deleting global restaurants.
+
+- [x] Reproduce destructive partial deletion against the canonical schema (activity_log foreign key blocks user deletion after votes were removed).
+- [x] Move participation and user deletions into a single atomic D1 batch and return an actionable error.
+- [x] Run focused real-SQL and route tests, full coverage, typecheck and lint.
+
+### Working notes
+- Existing restrictive foreign keys intentionally protect authored records, including non-null poll creator and activity user IDs. Fully supporting removal of those authors requires a separate archive/anonymization policy; this fix preserves data on failure.
+
+### Removal results
+- Member deletion now uses one D1 transaction; the route clearly explains that linked history prevents deletion. Restrictive foreign keys and global restaurants remain preserved.
+- Real SQLite regressions cover successful deletion and complete rollback, including cascaded votes from other members.
+- Verification: 14 focused tests, all 706 tests in 90 files, coverage thresholds (80.90% statements, 71.82% branches), typecheck, lint and git diff checks pass. Cloudflare D1 documentation confirms batch statements roll back as a unit on failure.

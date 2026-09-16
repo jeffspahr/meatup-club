@@ -280,34 +280,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      // Delete user's votes and suggestions first (cascade)
-      await db
-        .prepare('DELETE FROM restaurant_votes WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      await db
-        .prepare('DELETE FROM date_votes WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      // Note: Restaurants are global and persist even when user is deleted
-      // The created_by field will remain to preserve history
-
-      await db
-        .prepare('DELETE FROM date_suggestions WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      // Delete the user
-      await db
-        .prepare('DELETE FROM users WHERE id = ?')
-        .bind(user_id)
-        .run();
+      // History can prevent the final user deletion. Roll back participation
+      // changes too, including other members' votes on this user's suggestions.
+      await db.batch([
+        db.prepare('DELETE FROM restaurant_votes WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM date_votes WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM date_suggestions WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM users WHERE id = ?').bind(user_id),
+      ]);
 
       return redirect('/dashboard/admin/members');
     } catch (err) {
-      return { error: 'Failed to remove member' };
+      return { error: 'Failed to remove member. No changes were saved. Members with linked activity or authored records cannot be deleted.' };
     }
   }
 
