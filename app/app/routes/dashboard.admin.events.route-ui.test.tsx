@@ -592,7 +592,7 @@ describe("dashboard.admin.events loader and UI", () => {
       params: {},
     } as never);
 
-    expect(success).toEqual({ success: "Twilio accepted 2 SMS reminders." });
+    expect(success).toEqual({ success: "Twilio accepted 2 SMS notifications." });
     expect(sendAdhocSmsReminder).toHaveBeenCalledWith({
       db,
       env: expect.objectContaining({ DB: db, TWILIO_ACCOUNT_SID: "sid" }),

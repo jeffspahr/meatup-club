@@ -1,4 +1,6 @@
 import type { D1Database, D1Result, Queue } from "@cloudflare/workers-types";
+import type { CloudflareEnv } from "../env";
+import { sendNewEventSmsNotification } from "./sms.server";
 import type { AuthUser } from "./auth.server";
 import { logActivity } from "./activity.server";
 import { logErrorEvent } from "./observability.server";
@@ -26,10 +28,12 @@ export type EventMutationResult = {
   ok?: true;
   performedAction?: "create" | "update" | "rsvp";
   error?: string;
+  warning?: string;
 };
 
 export interface EventActionContext {
   db: D1Database;
+  env: CloudflareEnv;
   queue?: Queue<EventEmailQueueMessage>;
   user: AuthUser;
   formData: FormData;
@@ -40,7 +44,7 @@ export interface EventActionContext {
 export async function runCreateEventAction(
   ctx: EventActionContext
 ): Promise<EventMutationResult> {
-  const { db, queue, user, formData, request, route } = ctx;
+  const { db, env, queue, user, formData, request, route } = ctx;
   const sendInvites = formData.get("send_invites") === "true";
   const parsed = parseEventMutationFormData(formData);
 
@@ -107,7 +111,25 @@ export async function runCreateEventAction(
       request,
     });
 
-    return { ok: true, performedAction: "create" };
+    const smsResult = await sendNewEventSmsNotification({
+      db,
+      env,
+      event: {
+        id: eventId,
+        restaurant_name: input.restaurantName,
+        restaurant_address: input.restaurantAddress,
+        event_date: input.eventDate,
+        event_time: input.eventTime,
+      },
+    });
+
+    return {
+      ok: true,
+      performedAction: "create",
+      ...(smsResult.errors.length > 0 ? {
+        warning: "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.",
+      } : {}),
+    };
   } catch (error) {
     logErrorEvent("event_creation_failed", error);
     return { error: "Failed to create event" };

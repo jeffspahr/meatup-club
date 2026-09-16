@@ -30,12 +30,13 @@ test("an admin closes a poll and creates its event entirely from the dashboard",
 
   page.once("dialog", async (dialog) => {
     expect(dialog.message()).toContain("E2E Chophouse");
-    expect(dialog.message()).toContain("Members will not be notified");
+    expect(dialog.message()).toContain("Calendar invites will not be sent.");
+    expect(dialog.message()).toContain("SMS notifications will be sent to active members who opted into SMS.");
     await dialog.accept();
   });
   await form.getByRole("button", { name: "Close poll & create event" }).click();
   await expect(poll).toHaveCount(0);
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/dashboard(?:\?sms_warning=1)?$/);
   await expect(page.getByRole("article", { name: "E2E Chophouse", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("article", { name: "E2E Chophouse", exact: true })).toBeVisible();

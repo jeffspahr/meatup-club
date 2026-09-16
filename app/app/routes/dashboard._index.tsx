@@ -320,6 +320,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       : [];
 
   return {
+    ...(new URL(request.url).searchParams.get("sms_warning") === "1" ? {
+      smsWarning: "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.",
+    } : {}),
     user,
     isAdmin,
     activePoll,
@@ -351,6 +354,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (intent === 'event_create' || intent === 'event_update' || intent === 'event_rsvp') {
     const ctx = {
       db,
+      env: getCloudflareContext(context).env,
       queue: getCloudflareContext(context).env.EMAIL_DELIVERY_QUEUE,
       user,
       formData,
@@ -723,6 +727,7 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
   const restaurantError = restaurantFetcher.data && 'error' in restaurantFetcher.data ? restaurantFetcher.data.error : null;
   const pollError = pollFetcher.data && 'error' in pollFetcher.data ? pollFetcher.data.error : null;
   const eventError = actionData && 'error' in actionData ? actionData.error : null;
+  const eventWarning = actionData && "warning" in actionData ? actionData.warning : loaderData.smsWarning;
   const navigation = useNavigation();
   const submittedEventActionRef = useRef<string | null>(null);
 
@@ -937,6 +942,10 @@ export default function Dashboard({ loaderData, actionData }: Route.ComponentPro
           <Alert variant="error" className="mb-4">
             {eventError}
           </Alert>
+        ) : null}
+
+        {eventWarning ? (
+          <Alert variant="warning" className="mb-4">{eventWarning}</Alert>
         ) : null}
 
         {showCreateEventForm ? (

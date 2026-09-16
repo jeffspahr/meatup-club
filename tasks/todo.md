@@ -1,5 +1,33 @@
 # Active Backlog
 
+## Background delivery and webhook bug review — 2026-09-16
+
+Acceptance: reproduce concrete failures with production handlers and real SQLite; keep failed webhook writes retryable and prevent duplicate callbacks from reverting newer member state.
+
+- [x] Read instructions, lessons, Worker configuration, outbox, SMS and webhook handlers.
+- [x] Reproduce SMS webhook persistence/replay bugs: four regressions fail on original code.
+- [x] Implement SMS atomic RSVP/consent fixes and controlled malformed-body response.
+- [x] Verify SMS changes with focused tests, all 708 tests, typecheck, lint, and diff checks.
+- [ ] Reproduce and repair unstable email retry payloads (in progress).
+- [ ] Run coverage and remaining verification for delivery fixes.
+- [ ] Record verification and remaining audit limitations.
+
+Working notes: SMS RSVP and Resend delivery callbacks reserve their IDs before applying state. SMS consent deduplicates audit rows but unconditionally changes consent, allowing an old START replay to undo a later STOP. Work is isolated in the jobs review worktree.
+
+Results (SMS): same-ID retries recover after failed RSVP writes; duplicate START/STOP receipts cannot reverse newer consent. Signed route tests execute real SQLite transactions, including failure rollback and preservation of RSVP comments/admin override semantics. Node 24 lint, typecheck, and 708 tests pass.
+
+## Invitation validation follow-up — 2026-09-16
+
+Acceptance: missing selected/default email templates must not create or promote a member, and correcting the template must permit retry. Newly entered invitation addresses must be trimmed/lowercased so Google sign-in finds them. Invitations without a configured email API key retain their existing behavior.
+
+- [x] Reproduce template-write ordering and email normalization failures against the real schema: all seven new cases fail before the fix.
+- [x] Validate templates before writes and normalize invitation input only.
+- [x] Run full tests, typecheck, lint and diff checks; record results and lessons.
+
+Scope: no shared DB helper changes or legacy account migration.
+
+Results: template lookup/validation now precedes both account insertion and pending-account promotion. Fixing a missing template permits the same invitation to retry. New addresses are trimmed/lowercased before lookup, persistence, email sending, and invite-link generation. Real-schema route coverage exercises default/selected templates, new/pending accounts, retry after template repair, Google sign-in routing, normalized provider payloads, and invitation without an API key/template. Full Node 24 tests, typecheck, lint and diff checks pass.
+
 Keep this file limited to current engineering follow-ups. GitHub issues are the source of truth for the product backlog, pull requests preserve completed work and verification history, and durable agent guidance belongs in `AGENTS.md` or `tasks/lessons.md`.
 
 ## Deferred Upgrades
@@ -74,6 +102,63 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - [ ] Reproduce and repair delivery-status webhook transaction and ordering failures (in progress).
 Results (email retries): event email bodies now use the persisted outbox creation timestamp and stable idempotency key as their entity reference. Provider acceptance followed by a lost response recovers with an identical payload on retry. Provider concurrent-request 409 errors retry; mismatched-payload 409 errors remain terminal. Verified current Resend contract at https://resend.com/docs/dashboard/emails/idempotency-keys. Node 24 lint, typecheck and 713 tests pass; coverage gates pass (81.06% statements, 72.13% branches).
 
+- [x] Record results and separately review member deletion.
+
+## Atomic member removal — 2026-09-16
+
+### Acceptance criteria
+A failed user deletion must preserve the user's votes and suggestions and other members' votes on those suggestions. Successful removal must still remove the intended member and participation without deleting global restaurants.
+
+- [x] Reproduce destructive partial deletion against the canonical schema (activity_log foreign key blocks user deletion after votes were removed).
+- [x] Move participation and user deletions into a single atomic D1 batch and return an actionable error.
+- [x] Run focused real-SQL and route tests, full coverage, typecheck and lint.
+
+### Working notes
+- Existing restrictive foreign keys intentionally protect authored records, including non-null poll creator and activity user IDs. Fully supporting removal of those authors requires a separate archive/anonymization policy; this fix preserves data on failure.
+
+### Removal results
+- Member deletion now uses one D1 transaction; the route clearly explains that linked history prevents deletion. Restrictive foreign keys and global restaurants remain preserved.
+- Real SQLite regressions cover successful deletion and complete rollback, including cascaded votes from other members.
+- Verification: 14 focused tests, all 706 tests in 90 files, coverage thresholds (80.90% statements, 71.82% branches), typecheck, lint and git diff checks pass. Cloudflare D1 documentation confirms batch statements roll back as a unit on failure.
+
+
+## Review: atomic poll replacement
+
+Acceptance: creating a poll closes the previous active poll and creates its replacement atomically; insert failure leaves the current poll open and preserves its votes; retry succeeds without duplicate active polls.
+
+- [x] Inspect poll create action and D1 batch contract.
+- [x] Reproduce insert-failure data loss with real SQLite.
+- [x] Batch poll closure and creation in one transaction.
+- [x] Verify focused regression, 717 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Working notes: Cloudflare documents D1 batch rollback on statement failure at https://developers.cloudflare.com/d1/worker-api/d1-database/#batch.
+
+Results: poll replacement now runs in one D1 batch, so the original poll closure rolls back if creation fails. The real SQLite failure test reproduced the original closed-without-replacement behavior; regressions cover successful creation, rollback, retry, vote preservation, and member authorization. All 717 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### API creation follow-up
+Acceptance: the API create action shares the admin action's atomic replacement behavior and still returns the inserted poll.
+- [x] Reproduce API insert failure against SQLite, batch close/create, and verify rollback/retry plus returned ID.
+- [x] Run focused/full tests, typecheck, lint and record results.
+
+API results: insertion failure originally closed the current poll; the route now batches closure and replacement, returns a controlled 500 on failure, and reads the new poll using the insert result ID. Four real SQLite API tests cover rollback/retry, success with returned ID, votes, authorization, and required title. All 17 focused tests, all 707 tests in this isolated branch, typecheck, lint and diff checks passed under Node 24.
+
+## Session identity after account replacement — 2026-09-16
+
+### Acceptance criteria
+A signed session for a deleted account must never authenticate a later account with the same email. Valid sessions for the current account must continue working.
+
+- [x] Reproduce account replacement with real signed cookies and the canonical SQLite schema (old cookie incorrectly returned the replacement user).
+- [x] Require the loaded user ID to match the session's original user ID.
+- [x] Verify focused auth tests, full coverage, typecheck and lint.
+
+### Session results and audit boundaries
+- getUser now rejects cookies whose original account ID differs from the current row sharing that email. Valid replacement-account sessions still authenticate.
+- Verification: 23 focused auth tests; full 707 tests in 91 files pass with coverage gates (80.93% statements, 71.87% branches), typecheck, lint and diff checks pass.
+- Reviewed auth/session/OAuth, invitation, member/profile actions, and Places API authorization. Comment runtime modules are absent from current main (only legacy schema remains). No production writes or account changes were made.
+- Follow-up leads outside these patches: invitation creation precedes template validation; invitation email lookup remains case-sensitive; forced reauthentication uses a global flag rather than per-session revocation. These need separately scoped regressions and fixes.
+
+
 ## Review: RSVP persistence and input validation
 
 Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
@@ -91,3 +176,67 @@ Results: the initial insert now retains comments; the member action rejects unsu
 - [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
 - [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
 - [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
+
+## PR #322 refresh after invitation merge
+
+Acceptance: preserve current main invitation behavior and reject deleted-account cookies after email reuse.
+
+- [x] Merge current main and preserve both sets of task notes; source merged without conflict.
+- [x] Run full tests, typecheck and lint.
+- [ ] Publish and confirm required CI.
+
+Results: all regression tests, TypeScript and ESLint pass on the combined invitation/session branch; the merge changed no session-fix source. Both parent note histories were checked for preservation.
+
+## PR #318 refresh after session fix merge
+
+Acceptance: preserve merged invitation/session behavior and keep existing polls/votes unchanged when replacement creation fails through either route.
+
+- [x] Merge current main and resolve shared notes while preserving both parent histories.
+- [x] Verify full tests, typecheck and lint.
+
+Results: 733 tests in 93 files pass, with TypeScript, ESLint and diff checks. Only task notes needed conflict resolution; both parent histories were preserved. The updated branch will run required GitHub CI before handoff.
+
+
+## Event SMS notifications PR — 2026-09-16
+- [x] Record default delivery preference: always open PRs for completed code changes.
+- [x] Inspect current main and isolate SMS feature from unrelated checkout changes.
+- [x] Adapt automatic event SMS, admin pending default, and event-specific replies while retaining current delivery tracking.
+- [x] Verify tests, lint, typecheck, schema, build, and browser checks.
+- [x] Publish signed PR #332; GitHub verification started.
+
+Acceptance: all event creation paths notify active SMS-consenting members independently of calendar invites; admin sends default to no RSVP with all-members option; event-specific YES/NO/MAYBE replies; preserve delivery callbacks and opt-outs; report failures without undoing events.
+
+Results: current-main implementation preserves provider health and delivery callbacks, adds tracked automatic notices across four creation paths, reports partial failures without undoing events, defaults admin recipients to pending, and supports event-specific YES/NO/MAYBE replies. No migration required.
+
+Verification: Node 24; lint, secret-fixture check, typecheck, coverage (797 tests in 95 files), local D1 baseline/migration verification, and production build passed. Browser suite: 10 passed initially; two existing voting checks failed, then both passed in isolation against a fresh fixture. The new admin control test and all desktop/mobile event-creation checks passed. Screenshot: `docs/screenshots/event-sms-admin.png`. No live SMS sends or deployment.
+
+Known limits: send success denotes Twilio acceptance; callbacks retain final delivery state. Automatic sends use the existing tracked-send path with bounded concurrency, not a durable outbox. Sequential repeated automatic notices skip accepted recipients; simultaneous duplicate invocations are not atomically deduplicated.
+
+PR: https://github.com/jeffspahr/meatup-club/pull/332 — feature commit `bfbb536`, based on current main. PR includes the admin screenshot and validation results.
+
+## PR #321 refresh for next merge
+
+Acceptance: failed member removal preserves participation and cascaded data while retaining current invitation and event SMS behavior.
+
+- [x] Merge current main and preserve both parent review-note histories.
+- [x] Review the combined member route and run full tests, typecheck, and lint before publication.
+
+Results: 799 tests in 96 files, TypeScript, ESLint and diff checks pass. Member-route code merged cleanly; shared note conflicts preserve both histories. Required CI will verify the published revision before handoff.
+
+## PR #320 integration with event SMS commands
+
+Acceptance: preserve explicit invitation targeting, MAYBE replies and event validation while keeping RSVP persistence/receipt writes atomic and consent replays harmless.
+
+- [x] Resolve conflicts preserving current routing and both note histories.
+- [x] Reproduce and fix MAYBE receipt interaction and verify regression coverage, full tests, typecheck and lint.
+
+Results: the new signed-request SQLite MAYBE rollback test failed before the integration fix. All 43 focused SMS tests and 810 full tests (97 files), coverage gates, TypeScript, lint and diff checks pass. Existing explicit invitation targeting, event eligibility, HELP copy and named confirmations are preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #323 refresh for next merge
+
+Acceptance: preserve current application behavior while ensuring retried calendar messages retain identical provider payloads and recover from concurrent-request conflicts.
+
+- [x] Merge current main and resolve shared notes, preserving both histories.
+- [x] Review the final diff and run full tests, typecheck and lint before publication.
+
+Results: all 815 tests in 98 files, TypeScript, ESLint and diff checks pass. Calendar retry source merged unchanged; both parent review-note histories are preserved. Required GitHub CI will validate the published revision before handoff.
