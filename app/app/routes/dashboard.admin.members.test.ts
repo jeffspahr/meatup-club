@@ -94,7 +94,15 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  return {
+    prepare,
+    runCalls,
+    batch: async (statements: Array<{ run: () => Promise<unknown> }>) => {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    },
+  };
 }
 
 function createRequest(formEntries: Record<string, string>) {

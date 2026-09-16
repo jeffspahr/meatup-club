@@ -58,6 +58,9 @@
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
 
+- 2026-09-16: Failure mode: member removal deleted votes and date suggestions before a restrictive user-history foreign key rejected the final deletion. Detection: real SQLite tests showed the account surviving while its participation and other members' votes disappeared. Prevention: batch every dependent destructive mutation atomically, and assert rollback of both direct changes and cascades against the canonical schema.
+- 2026-09-16: Failure mode: file-edit scripts used repository-root-relative paths while command execution was in app/. Detection: FileNotFoundError before tests. Prevention: use absolute worktree paths for scripted edits and reserve app/ working directory for application commands.
+
 - 2026-09-16: Failure mode: replacing the active poll used independent close/create writes, so insertion failure disabled voting with no replacement. Detection: a SQLite trigger rejecting the insert left the old poll closed. Prevention: group dependent state transitions in a D1 batch and prove rollback plus retry with a real database failure.
 
 - 2026-09-16: Failure mode: the admin poll-creation transaction fix left the equivalent API action non-atomic. Detection: the same SQLite insert-failure trigger closed the API's current poll without a replacement. Prevention: find all mutation entry points for a business operation and exercise the same rollback invariant at each route boundary.
