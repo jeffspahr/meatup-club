@@ -107,3 +107,6 @@
 - 2026-09-16: Failure mode: a repo-relative edit ran from app/ and failed before applying the change. Detection: FileNotFoundError. Prevention: use absolute worktree paths for all scripted edits and keep verification commands separate from mutation scripts.
 
 - 2026-09-16: Failure mode: repeating an event-creation browser test with repeat-each reused a shared seeded database and identical event names, creating locator collisions. Detection: strict locator matches found duplicate created-event articles on the second run. Prevention: isolate seeded state per diagnostic run or use repeat-specific fixture identities; separate fixture collisions from form-opening timeouts.
+
+- 2026-09-16: Failure mode: SMS send feedback appeared only at the page header while the action button was far below, and a default subset had no audience preview. Detection: user reported no confirmation and unexpectedly few recipients. Prevention: show notification audience counts/names before confirmation and keep pending/result feedback beside the originating form; test cancellation, failures, retries and event isolation.
+- 2026-09-16: Failure mode: an edit command used a repository-relative path while running from app/. Detection: FileNotFoundError before any write. Prevention: use absolute paths for scripted edits in isolated worktrees, and set app/ only for verification commands.

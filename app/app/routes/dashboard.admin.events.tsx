@@ -26,6 +26,7 @@ import {
   type EventEmailDeliveryStatus,
   type StagedEventEmailBatch,
 } from "../lib/event-email-delivery.server";
+import { AdminEventSmsForm } from "../components/AdminEventSmsForm";
 import VoteLeadersCard from "../components/VoteLeadersCard";
 import { EventRestaurantFields } from "../components/EventRestaurantFields";
 import { getActivePollLeaders } from "../lib/polls.server";
@@ -956,7 +957,6 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
   } = loaderData;
   const smsProviderDisplay = getSmsProviderHealthDisplay(smsProviderHealth.status);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [smsScopeByEvent, setSmsScopeByEvent] = useState<Record<number, string>>({});
   const [createData, setCreateData] = useState({
     restaurant_name: '',
     restaurant_address: '',
@@ -1389,84 +1389,12 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             Created {formatDateForDisplay(event.created_at)}
                           </p>
                           <div className="mt-4">
-                            {event.displayStatus === "upcoming" && <Form method="post" className="space-y-3">
-                              <input type="hidden" name="_action" value="send_sms_reminder" />
-                              <input type="hidden" name="event_id" value={event.id} />
-                              <div>
-                                <label htmlFor={`sms-message_type-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
-                                  SMS notification
-                                </label>
-                                <select
-                                  id={`sms-message_type-${event.id}`}
-                                  name="message_type"
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
-                                  defaultValue="default"
-                                >
-                                  <option value="default">Use default reminder template</option>
-                                  <option value="custom">Send custom message</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label htmlFor={`sms-recipient_scope-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
-                                  Recipients
-                                </label>
-                                <select
-                                  id={`sms-recipient_scope-${event.id}`}
-                                  name="recipient_scope"
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
-                                  value={smsScopeByEvent[event.id] || 'pending'}
-                                  onChange={(eventScope) =>
-                                    setSmsScopeByEvent((prev) => ({
-                                      ...prev,
-                                      [event.id]: eventScope.target.value,
-                                    }))
-                                  }
-                                >
-                                  <option value="pending">No RSVP yet</option>
-                                  <option value="all">All SMS-opted members</option>
-                                  <option value="yes">RSVP Yes</option>
-                                  <option value="no">RSVP No</option>
-                                  <option value="maybe">RSVP Maybe</option>
-                                  <option value="specific">Specific member</option>
-                                </select>
-                              </div>
-                              {(smsScopeByEvent[event.id] || 'pending') === 'specific' && (
-                                <div>
-                                  <label htmlFor={`sms-recipient_user_id-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
-                                    Specific Recipient
-                                  </label>
-                                  <select
-                                    id={`sms-recipient_user_id-${event.id}`}
-                                    name="recipient_user_id"
-                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
-                                    defaultValue=""
-                                  >
-                                    <option value="">Select a member</option>
-                                    {smsMembers.map((member: any) => (
-                                      <option key={member.id} value={member.id}>
-                                        {member.name || member.email}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              )}
-                              <div>
-                                <label htmlFor={`sms-custom_message-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
-                                  Custom Message (Optional)
-                                </label>
-                                <textarea
-                                  id={`sms-custom_message-${event.id}`}
-                                  name="custom_message"
-                                  rows={3}
-                                  placeholder="Add a custom note (RSVP + opt-out instructions are appended automatically)."
-                                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
-                                />
-                              </div>
-                              <Button type="submit" size="sm" disabled={navigation.state !== "idle"}>
-                                Send SMS notification
-                              </Button>
-                              <p className="text-xs text-muted-foreground">Only active members who opted into SMS receive messages. Replies update this event’s RSVP.</p>
-                            </Form>}
+                            {event.displayStatus === "upcoming" && <AdminEventSmsForm
+                              eventId={event.id}
+                              eventName={event.restaurant_name}
+                              smsMembers={smsMembers}
+                              eventMembers={eventMembersById[event.id] || []}
+                            />}
                             {(smsDeliveriesByEventId[event.id] || []).length > 0 ? (
                               <details className="mt-4 rounded-xl border border-border/70 bg-muted/20 p-3">
                                 <summary className="cursor-pointer text-sm font-semibold text-foreground">

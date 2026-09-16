@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminEventsPage, { action, loader } from "./dashboard.admin.events";
 import type { Route } from "./+types/dashboard.admin.events";
@@ -13,6 +14,11 @@ import {
 } from "../lib/dateUtils";
 import { maybeCheckTwilioProviderHealth, sendAdhocSmsReminder } from "../lib/sms.server";
 import { createLoadContext } from "~/lib/router-context";
+
+function TestRouter({ children }: { children: ReactNode }) {
+  const router = createMemoryRouter([{ path: "/dashboard/admin/events", element: children }], { initialEntries: ["/dashboard/admin/events"] });
+  return <RouterProvider router={router} />;
+}
 
 let navigationState: { state: string; formData: FormData | null } = {
   state: "idle",
@@ -338,7 +344,7 @@ describe("dashboard.admin.events loader and UI", () => {
 
   it("renders the empty state, action feedback, and create form toggle", () => {
     render(
-      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+      <TestRouter>
         <AdminEventsPage
           {...(({
             loaderData: {
@@ -359,7 +365,7 @@ describe("dashboard.admin.events loader and UI", () => {
             actionData: { success: "Saved successfully." },
           } as unknown) as Route.ComponentProps)}
         />
-      </MemoryRouter>
+      </TestRouter>
     );
 
     expect(screen.getByText("Saved successfully.")).toBeInTheDocument();
@@ -378,7 +384,7 @@ describe("dashboard.admin.events loader and UI", () => {
     vi.stubGlobal("confirm", confirmSpy);
 
     render(
-      <MemoryRouter initialEntries={["/dashboard/admin/events"]}>
+      <TestRouter>
         <AdminEventsPage
           {...(({
             loaderData: {
@@ -446,7 +452,7 @@ describe("dashboard.admin.events loader and UI", () => {
             actionData: undefined,
           } as unknown) as Route.ComponentProps)}
         />
-      </MemoryRouter>
+      </TestRouter>
     );
 
     expect(screen.getByRole("button", { name: "Prefill from Vote Leaders" })).toBeInTheDocument();
