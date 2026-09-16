@@ -223,9 +223,18 @@ export async function runRsvpEventAction(
     return { error: "Missing required fields" };
   }
 
+  const parsedEventId = Number(eventId);
+  if (!Number.isSafeInteger(parsedEventId) || parsedEventId <= 0) {
+    return { error: "Invalid event ID" };
+  }
+
+  if (status !== "yes" && status !== "no" && status !== "maybe") {
+    return { error: "Invalid RSVP status" };
+  }
+
   const result = await upsertRsvp({
     db,
-    eventId: Number(eventId),
+    eventId: parsedEventId,
     userId: user.id,
     status: String(status),
     comments: (comments as string) || null,

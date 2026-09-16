@@ -57,3 +57,7 @@
 
 
 - 2026-09-16: Failure mode: event edit paths persisted cancelled status but still staged calendar update requests. Detection: admin action mocks and real SQLite creator-edit tests showed update delivery for a cancelled event. Prevention: derive calendar delivery type from resulting event status at every mutation entry point, and cover both direct cancellation and later edits.
+
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.

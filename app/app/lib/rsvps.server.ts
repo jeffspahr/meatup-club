@@ -50,9 +50,9 @@ export async function upsertRsvp({
   const calendarVal = updatedViaCalendar ? 1 : 0;
   await db
     .prepare(
-      "INSERT INTO rsvps (event_id, user_id, status, admin_override, updated_via_calendar) VALUES (?, ?, ?, 0, ?)"
+      "INSERT INTO rsvps (event_id, user_id, status, comments, admin_override, updated_via_calendar) VALUES (?, ?, ?, ?, 0, ?)"
     )
-    .bind(eventId, userId, status, calendarVal)
+    .bind(eventId, userId, status, comments ?? null, calendarVal)
     .run();
   return "created";
 }
