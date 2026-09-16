@@ -7,6 +7,7 @@ CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   name TEXT,
+  requires_reauth INTEGER DEFAULT 0,
   phone_number TEXT
 );
 

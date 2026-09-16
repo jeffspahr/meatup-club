@@ -49,6 +49,7 @@ const baseUser = {
   is_admin: 0,
   status: "active",
   requires_reauth: 0,
+  session_version: 0,
   notify_poll_updates: 1,
   notify_event_updates: 1,
   phone_number: null,
@@ -297,10 +298,11 @@ describe("auth.server", () => {
     vi.mocked(getSession).mockResolvedValue(session as never);
     vi.mocked(commitSession).mockResolvedValue("__session=new" as never);
 
-    const response = await createUserSession(12, "new@example.com", "/dashboard");
+    const response = await createUserSession(12, "new@example.com", "/dashboard", 3);
 
     expect(session.set).toHaveBeenNthCalledWith(1, "userId", 12);
     expect(session.set).toHaveBeenNthCalledWith(2, "email", "new@example.com");
+    expect(session.set).toHaveBeenNthCalledWith(3, "sessionVersion", 3);
     expect(commitSession).toHaveBeenCalledWith(session);
     expect(response.status).toBe(302);
     expect(response.headers.get("Location")).toBe("/dashboard");

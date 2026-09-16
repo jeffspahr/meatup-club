@@ -59,7 +59,7 @@ export async function forceUserReauth(
   userId: number
 ): Promise<void> {
   await db
-    .prepare("UPDATE users SET requires_reauth = 1 WHERE id = ?")
+    .prepare("UPDATE users SET requires_reauth = 1, session_version = session_version + 1 WHERE id = ?")
     .bind(userId)
     .run();
 }

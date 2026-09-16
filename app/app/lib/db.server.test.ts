@@ -107,7 +107,7 @@ describe("db.server helpers", () => {
       prepare: vi.fn((sql: string) => ({
         bind: (...args: unknown[]) => ({
           run: async () => {
-            expect(sql).toBe("UPDATE users SET requires_reauth = 1 WHERE id = ?");
+            expect(sql).toBe("UPDATE users SET requires_reauth = 1, session_version = session_version + 1 WHERE id = ?");
             expect(args).toEqual([42]);
             return run();
           },

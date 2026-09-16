@@ -6,7 +6,7 @@ import {
   getGoogleTokens,
   getGoogleUserInfo,
 } from "../lib/auth.server";
-import { ensureUser, isUserActive } from "../lib/db.server";
+import { ensureUser, getUserByEmail } from "../lib/db.server";
 import { logActivity } from "../lib/activity.server";
 import { createLoadContext } from "~/lib/router-context";
 
@@ -22,7 +22,7 @@ vi.mock("../lib/auth.server", () => ({
 
 vi.mock("../lib/db.server", () => ({
   ensureUser: vi.fn(),
-  isUserActive: vi.fn(),
+  getUserByEmail: vi.fn(),
 }));
 
 vi.mock("../lib/activity.server", () => ({
@@ -55,7 +55,7 @@ describe("auth.google.callback route", () => {
       picture: "https://example.com/member.png",
     } as never);
     vi.mocked(ensureUser).mockResolvedValue(42 as never);
-    vi.mocked(isUserActive).mockResolvedValue(true as never);
+    vi.mocked(getUserByEmail).mockResolvedValue({ status: "active", session_version: 3 } as never);
     vi.mocked(logActivity).mockResolvedValue(undefined as never);
     vi.mocked(createUserSession).mockResolvedValue(
       new Response(null, {
@@ -111,7 +111,7 @@ describe("auth.google.callback route", () => {
       "Member",
       "https://example.com/member.png"
     );
-    expect(isUserActive).toHaveBeenCalledWith(db, "member@example.com");
+    expect(getUserByEmail).toHaveBeenCalledWith(db, "member@example.com");
     expect(logActivity).toHaveBeenCalledWith({
       db,
       userId: 42,
@@ -127,13 +127,14 @@ describe("auth.google.callback route", () => {
     expect(createUserSession).toHaveBeenCalledWith(
       42,
       "member@example.com",
-      "/dashboard"
+      "/dashboard",
+      3
     );
     expect(response.headers.get("Location")).toBe("/dashboard");
   });
 
   it("redirects inactive users to the pending page", async () => {
-    vi.mocked(isUserActive).mockResolvedValue(false as never);
+    vi.mocked(getUserByEmail).mockResolvedValue({ status: "pending", session_version: 3 } as never);
     vi.mocked(createUserSession).mockResolvedValue(
       new Response(null, {
         status: 302,
@@ -152,7 +153,8 @@ describe("auth.google.callback route", () => {
     expect(createUserSession).toHaveBeenCalledWith(
       42,
       "member@example.com",
-      "/pending"
+      "/pending",
+      3
     );
     expect(response.headers.get("Location")).toBe("/pending");
   });

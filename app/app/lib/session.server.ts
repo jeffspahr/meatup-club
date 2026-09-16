@@ -2,6 +2,7 @@ import { createCookieSessionStorage } from "react-router";
 
 type SessionData = {
   userId: number;
+  sessionVersion: number;
   email: string;
   oauth_state: string;
 };
