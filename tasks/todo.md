@@ -75,3 +75,20 @@ Results (deleted event cancellation): the immutable dedupe key preserves the ori
 
 Final verification: Node 24 lint, typecheck, secret-fixture scan, 722 tests in 92 suites with coverage, production client/SSR/Worker build, and git diff checks pass. Coverage: 81.31% statements, 72.38% branches, 73.07% functions, 81.79% lines. Reviewed scheduled Worker dispatch/config, SMS scheduling/tracking/consent, email outbox staging/sending/recovery, delivery callbacks, provider error handling, and event deletion handoff. No production callbacks or sends were triggered; live provider behavior is represented by signed contract requests and documented Resend responses. Browser checks and D1 schema/migration checks were not rerun for these server-only changes with no schema edits.
 
+## Review: RSVP persistence and input validation
+
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
+
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
