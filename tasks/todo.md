@@ -1,5 +1,21 @@
 # Active Backlog
 
+## Background delivery and webhook bug review — 2026-09-16
+
+Acceptance: reproduce concrete failures with production handlers and real SQLite; keep failed webhook writes retryable and prevent duplicate callbacks from reverting newer member state.
+
+- [x] Read instructions, lessons, Worker configuration, outbox, SMS and webhook handlers.
+- [x] Reproduce SMS webhook persistence/replay bugs: four regressions fail on original code.
+- [x] Implement SMS atomic RSVP/consent fixes and controlled malformed-body response.
+- [x] Verify SMS changes with focused tests, all 708 tests, typecheck, lint, and diff checks.
+- [ ] Reproduce and repair unstable email retry payloads (in progress).
+- [ ] Run coverage and remaining verification for delivery fixes.
+- [ ] Record verification and remaining audit limitations.
+
+Working notes: SMS RSVP and Resend delivery callbacks reserve their IDs before applying state. SMS consent deduplicates audit rows but unconditionally changes consent, allowing an old START replay to undo a later STOP. Work is isolated in the jobs review worktree.
+
+Results (SMS): same-ID retries recover after failed RSVP writes; duplicate START/STOP receipts cannot reverse newer consent. Signed route tests execute real SQLite transactions, including failure rollback and preservation of RSVP comments/admin override semantics. Node 24 lint, typecheck, and 708 tests pass.
+
 Keep this file limited to current engineering follow-ups. GitHub issues are the source of truth for the product backlog, pull requests preserve completed work and verification history, and durable agent guidance belongs in `AGENTS.md` or `tasks/lessons.md`.
 
 ## Deferred Upgrades

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./api.webhooks.sms";
-import { upsertRsvp } from "../lib/rsvps.server";
+import { persistSmsRsvp } from "../lib/sms-rsvp.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import {
   normalizePhoneNumber,
@@ -14,8 +14,8 @@ vi.mock("../lib/webhook-idempotency.server", () => ({
   reserveWebhookDelivery: vi.fn(),
 }));
 
-vi.mock("../lib/rsvps.server", () => ({
-  upsertRsvp: vi.fn(),
+vi.mock("../lib/sms-rsvp.server", () => ({
+  persistSmsRsvp: vi.fn(),
 }));
 
 vi.mock("../lib/dateUtils", async () => {
@@ -142,7 +142,7 @@ describe("api.webhooks.sms", () => {
     vi.mocked(parseSmsReply).mockReturnValue("yes");
     vi.mocked(parseTwilioOptOutType).mockReturnValue(null);
     vi.mocked(reserveWebhookDelivery).mockResolvedValue(true);
-    vi.mocked(upsertRsvp).mockResolvedValue("created");
+    vi.mocked(persistSmsRsvp).mockResolvedValue(true);
   });
 
   it("rejects requests with an invalid Twilio signature", async () => {
@@ -167,7 +167,7 @@ describe("api.webhooks.sms", () => {
   });
 
   it("ignores duplicate Twilio MessageSid deliveries", async () => {
-    vi.mocked(reserveWebhookDelivery).mockResolvedValue(false);
+    vi.mocked(persistSmsRsvp).mockResolvedValue(false);
     const db = createMockDb();
 
     const response = await action({
@@ -183,7 +183,7 @@ describe("api.webhooks.sms", () => {
 
     expect(response.status).toBe(200);
     expect(await getSmsBody(response)).toContain("already received that response");
-    expect(db.prepare).not.toHaveBeenCalled();
+    expect(reserveWebhookDelivery).not.toHaveBeenCalled();
   });
 
   it("returns a helpful message when the sender phone number cannot be normalized", async () => {
@@ -202,7 +202,7 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("couldn't read your phone number");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("handles unknown phone numbers without attempting an RSVP write", async () => {
@@ -220,7 +220,7 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("couldn't find your account");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("does not enroll an unknown phone number that texts START", async () => {
@@ -265,10 +265,6 @@ describe("api.webhooks.sms", () => {
     expect(await getSmsBody(response)).toContain("opted out of Meatup SMS");
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
-        bindArgs: [7],
-      },
-      {
         sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
         bindArgs: [
           7,
@@ -279,8 +275,12 @@ describe("api.webhooks.sms", () => {
           "SM123",
         ],
       },
+      {
+        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ? AND changes() > 0",
+        bindArgs: [7],
+      },
     ]);
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("syncs Advanced Opt-Out STOP without sending a duplicate reply", async () => {
@@ -304,10 +304,6 @@ describe("api.webhooks.sms", () => {
     );
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?",
-        bindArgs: [7],
-      },
-      {
         sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
         bindArgs: [
           7,
@@ -317,6 +313,10 @@ describe("api.webhooks.sms", () => {
           "sms-reminders-2026-08-22",
           "SM123",
         ],
+      },
+      {
+        sql: "UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ? AND changes() > 0",
+        bindArgs: [7],
       },
     ]);
   });
@@ -344,10 +344,6 @@ describe("api.webhooks.sms", () => {
     );
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
-        bindArgs: [7],
-      },
-      {
         sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
         bindArgs: [
           7,
@@ -358,8 +354,12 @@ describe("api.webhooks.sms", () => {
           "SM123",
         ],
       },
+      {
+        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ? AND changes() > 0",
+        bindArgs: [7],
+      },
     ]);
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("enrolls a known prefilled number when the member texts START", async () => {
@@ -382,10 +382,6 @@ describe("api.webhooks.sms", () => {
 
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?",
-        bindArgs: [7],
-      },
-      {
         sql: "INSERT OR IGNORE INTO sms_consent_events ( user_id, phone_number, event_type, source, disclosure_version, provider_message_sid ) VALUES (?, ?, ?, ?, ?, ?)",
         bindArgs: [
           7,
@@ -395,6 +391,10 @@ describe("api.webhooks.sms", () => {
           "sms-reminders-2026-08-22",
           "SM_PREFILLED",
         ],
+      },
+      {
+        sql: "UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ? AND changes() > 0",
+        bindArgs: [7],
       },
     ]);
   });
@@ -415,8 +415,9 @@ describe("api.webhooks.sms", () => {
       params: {},
     } as never);
 
-    expect(upsertRsvp).toHaveBeenCalledWith({
+    expect(persistSmsRsvp).toHaveBeenCalledWith({
       db,
+      deliveryId: "SM123",
       eventId: 42,
       userId: 7,
       status: "yes",
@@ -441,7 +442,7 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("Reply YES or NO to RSVP");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("does not duplicate Twilio's Advanced Opt-Out HELP response", async () => {
@@ -463,7 +464,7 @@ describe("api.webhooks.sms", () => {
     expect(await getSmsBody(response)).toBe(
       '<?xml version="1.0" encoding="UTF-8"?><Response></Response>'
     );
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("refuses to RSVP when SMS reminders are disabled on the account", async () => {
@@ -483,7 +484,7 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("SMS reminders are disabled");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("refuses to RSVP when the account is already opted out", async () => {
@@ -503,7 +504,7 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("opted out of SMS");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("uses the latest SMS reminder event for YES replies", async () => {
@@ -525,8 +526,9 @@ describe("api.webhooks.sms", () => {
       params: {},
     } as never);
 
-    expect(upsertRsvp).toHaveBeenCalledWith({
+    expect(persistSmsRsvp).toHaveBeenCalledWith({
       db,
+      deliveryId: "SM123",
       eventId: 42,
       userId: 7,
       status: "yes",
@@ -553,8 +555,9 @@ describe("api.webhooks.sms", () => {
       params: {},
     } as never);
 
-    expect(upsertRsvp).toHaveBeenCalledWith({
+    expect(persistSmsRsvp).toHaveBeenCalledWith({
       db,
+      deliveryId: "SM123",
       eventId: 91,
       userId: 7,
       status: "no",
@@ -581,6 +584,6 @@ describe("api.webhooks.sms", () => {
     } as never);
 
     expect(await getSmsBody(response)).toContain("couldn't find an upcoming event");
-    expect(upsertRsvp).not.toHaveBeenCalled();
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 });

@@ -7,7 +7,7 @@ import {
   verifyTwilioSignature,
 } from "../lib/sms.server";
 import { getAppTimeZone, getTodayDateStringInTimeZone } from "../lib/dateUtils";
-import { upsertRsvp } from "../lib/rsvps.server";
+import { persistSmsRsvp } from "../lib/sms-rsvp.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
 import { prepareSmsConsentEvent } from "../lib/sms-consent.server";
 import { getCloudflareContext } from "~/lib/router-context";
@@ -30,7 +30,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   const env = getCloudflareContext(context).env;
   const db = env.DB;
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return new Response("Invalid webhook payload", { status: 400 });
+  }
   const params = new URLSearchParams();
   for (const [key, value] of formData.entries()) {
     if (typeof value === "string") {
@@ -70,7 +75,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Consent commands are idempotent through the unique provider Message SID
   // on sms_consent_events. Do not reserve them here: a failed consent batch
   // must remain retryable so state and evidence cannot diverge.
-  if (messageSid && !isConsentCommand) {
+  if (messageSid && !isConsentCommand && replyType !== "yes" && replyType !== "no") {
     const isFirstDelivery = await reserveWebhookDelivery(db, "twilio", messageSid);
     if (!isFirstDelivery) {
       return twilioOptOutType
@@ -102,9 +107,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_out") {
     await db.batch([
-      db
-        .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ?")
-        .bind(user.id),
       prepareSmsConsentEvent(db, {
         userId: user.id,
         phoneNumber: from,
@@ -112,6 +114,10 @@ export async function action({ request, context }: Route.ActionArgs) {
         source: "sms",
         providerMessageSid: messageSid || null,
       }),
+      // A replayed consent receipt must not overwrite a more recent command.
+      db
+        .prepare("UPDATE users SET sms_opt_in = 0, sms_opt_out_at = CURRENT_TIMESTAMP, sms_opt_out_source = 'sms' WHERE id = ? AND changes() > 0")
+        .bind(user.id),
     ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
@@ -120,9 +126,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (replyType === "opt_in") {
     await db.batch([
-      db
-        .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ?")
-        .bind(user.id),
       prepareSmsConsentEvent(db, {
         userId: user.id,
         phoneNumber: from,
@@ -130,6 +133,9 @@ export async function action({ request, context }: Route.ActionArgs) {
         source: "sms",
         providerMessageSid: messageSid || null,
       }),
+      db
+        .prepare("UPDATE users SET sms_opt_in = 1, sms_opt_out_at = NULL, sms_opt_out_source = NULL WHERE id = ? AND changes() > 0")
+        .bind(user.id),
     ]);
     return twilioAlreadyReplied
       ? buildSmsResponse()
@@ -184,12 +190,17 @@ export async function action({ request, context }: Route.ActionArgs) {
     return buildSmsResponse("We couldn't find an upcoming event to RSVP for.");
   }
 
-  await upsertRsvp({
+  const processed = await persistSmsRsvp({
     db,
+    deliveryId: messageSid,
     eventId,
     userId: user.id,
     status: replyType,
   });
+
+  if (!processed) {
+    return buildSmsResponse("Thanks! We already received that response.");
+  }
 
   const confirmation = replyType === "yes" ? "Yes" : "No";
   return buildSmsResponse(`Thanks! Your RSVP is set to ${confirmation}.`);

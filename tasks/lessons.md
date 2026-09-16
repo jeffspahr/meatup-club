@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-09-16: Failure mode: SMS deduplicated consent audit rows but unconditionally reapplied consent; a replayed START could undo a later STOP. Detection: signed route tests against SQLite reproduced stale consent and permanently consumed RSVP IDs after failed writes. Prevention: gate the state mutation on its new receipt within the same transaction; exercise interleaved commands, replay, and rollback with real SQL.
+
 - 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
 
 - 2026-02-21: Initialized lessons log for remediation tracking.
