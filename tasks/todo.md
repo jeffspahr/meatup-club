@@ -68,3 +68,9 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+- [x] Reproduce and repair unstable email retry payloads: all three event message types failed before the fix.
+- [x] Verify email retry fix with all 713 tests/coverage, lint and typecheck.
+- [ ] Reproduce and repair delivery-status webhook transaction and ordering failures (in progress).
+Results (email retries): event email bodies now use the persisted outbox creation timestamp and stable idempotency key as their entity reference. Provider acceptance followed by a lost response recovers with an identical payload on retry. Provider concurrent-request 409 errors retry; mismatched-payload 409 errors remain terminal. Verified current Resend contract at https://resend.com/docs/dashboard/emails/idempotency-keys. Node 24 lint, typecheck and 713 tests pass; coverage gates pass (81.06% statements, 72.13% branches).
+
