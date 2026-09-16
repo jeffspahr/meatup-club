@@ -76,7 +76,9 @@ export async function getUser(
   const db = getCloudflareContext(context).env.DB;
   const user = await getUserByEmail(db, email);
 
-  if (!user) {
+  // Email addresses can be reused after deletion; a session belongs to its
+  // original account ID and must not authenticate a replacement account.
+  if (!user || user.id !== userId) {
     return null;
   }
 
