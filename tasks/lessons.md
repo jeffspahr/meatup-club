@@ -57,3 +57,7 @@
 
 
 - 2026-09-16: Failure mode: wall-time conversion used only the offset at its initial UTC guess, which can precede the event's DST transition and shift the event by one hour. Detection: valid 03:30 New York events converted incorrectly on both DST transition days and crossed past-event boundaries at the wrong instant. Prevention: verify the converted instant round-trips to the requested wall time, apply a bounded correction, and cover both DST directions plus ambiguous/nonexistent-time compatibility.
+
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.

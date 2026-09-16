@@ -2,9 +2,9 @@ PRAGMA foreign_keys = ON;
 
 DELETE FROM events WHERE restaurant_name LIKE 'E2E Created Steakhouse %';
 
-DELETE FROM rsvps WHERE event_id IN (-900001, -900002);
-DELETE FROM events WHERE id IN (-900001, -900002);
-DELETE FROM polls WHERE id = -900001;
+DELETE FROM rsvps WHERE event_id IN (900001, 900002);
+DELETE FROM events WHERE id IN (900001, 900002);
+DELETE FROM polls WHERE id = 900001;
 DELETE FROM restaurants WHERE id IN (900001, 900002);
 DELETE FROM activity_log
 WHERE user_id IN (SELECT id FROM users WHERE email = 'playwright@localhost');
@@ -43,7 +43,7 @@ VALUES
 
 INSERT INTO polls (id, title, status, created_by, created_at)
 VALUES (
-  -900001,
+  900001,
   'Playwright Dinner Poll',
   'active',
   (SELECT id FROM users WHERE email = 'playwright@localhost'),
@@ -59,7 +59,7 @@ INSERT INTO events (
   status
 ) VALUES
   (
-    -900001,
+    900001,
     'E2E Supper Club',
     '3 Browser Way',
     '9999-03-01',
@@ -67,7 +67,7 @@ INSERT INTO events (
     'upcoming'
   ),
   (
-    -900002,
+    900002,
     'E2E Grill',
     '4 Browser Way',
     '9999-03-02',
@@ -77,7 +77,7 @@ INSERT INTO events (
 
 INSERT INTO rsvps (event_id, user_id, status)
 VALUES (
-  -900001,
+  900001,
   (SELECT id FROM users WHERE email = 'playwright@localhost'),
   'yes'
 );
