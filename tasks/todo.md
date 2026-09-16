@@ -81,28 +81,25 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
-## Authentication and membership audit — 2026-09-16
 
-### Acceptance criteria
-Uninvited OAuth sign-ins cannot access member data; invited users reach invitation acceptance after OAuth; admins can invite an account that first signed in while uninvited. Existing active users retain access. Reproduce failures against the canonical SQLite schema and cover real route behavior.
 
-### Tasks
-- [x] Review authentication, invitation, member/profile actions and API authorization boundaries.
-- [x] Reproduce membership admission failures with real database regressions (3 failures before fix).
-- [x] Apply minimal membership-flow fixes.
-- [x] Run focused regressions, full tests, lint, typecheck and coverage.
-- [ ] Record results and separately review member deletion.
+## Review: RSVP persistence and input validation
 
-### Working notes
-- users.status defaults to active, but ensureUser omits status on first OAuth login.
-- OAuth callback sends every inactive account to /pending, including invited members.
-- Admin invitation rejects existing pending users, leaving no way to grant membership after their first sign-in.
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
 
-### Membership results
-- New OAuth accounts explicitly start pending. Invited accounts return to acceptance, while active accounts go to the dashboard. Admins may invite an existing pending account without creating a duplicate.
-- Four real-schema regressions exercise admission, acceptance, invitation after first sign-in, and active-member login.
-- Verification: 25 focused tests and all 704 tests across 89 files pass; coverage gates pass (80.89% statements, 71.82% branches), typecheck and lint pass.
-- No membership backfill is attempted: existing active rows cannot be distinguished safely as intended versus previously auto-admitted from the available data.
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
 
 ## Durable forced reauthentication — 2026-09-16
 
