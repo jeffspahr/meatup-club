@@ -80,3 +80,9 @@ Acceptance: the shared RSVP helper persists supplied comments on both initial an
 - [x] Record results and prevention lesson.
 
 Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
