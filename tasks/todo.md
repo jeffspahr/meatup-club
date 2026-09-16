@@ -81,3 +81,21 @@ Acceptance: create/update/default-selection failures and missing target IDs pres
 - [x] Record results and prevention lesson.
 
 Results: template creation, edits, and default selection now commit together with clearing the previous default. Missing update/default targets return a form error while preserving the current default. Trigger-based tests prove rollback if the second write fails.
+
+## Review: RSVP persistence and input validation
+
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
+
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
