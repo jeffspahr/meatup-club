@@ -141,6 +141,16 @@ describe("dashboard._index poll actions — gating", () => {
 });
 
 describe("dashboard._index poll actions — suggest_date", () => {
+  it.each(["tomorrow", "2099-02-29", "2100-02-29", "2099-04-31", "2099-13-01", "2099-1-1", "2099-01-01T00:00:00Z"])("rejects invalid calendar date %s before persistence", async suggested_date => {
+    const db = createMockDb();
+    const result = await action({
+      request: createRequest({ _action: "suggest_date", suggested_date }),
+      context: createLoadContext({ env: { DB: db } } as never),
+    } as never);
+    expect(result).toEqual({ error: "A valid date is required" });
+    expect(db.runCalls).toEqual([]);
+  });
+
   it("requires a date", async () => {
     const db = createMockDb();
     const result = await action({

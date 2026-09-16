@@ -358,6 +358,17 @@ describe("dashboard.admin.polls action coverage", () => {
     expect(result).toEqual({ error: expectedError });
   });
 
+  it("rejects event creation from an invalid legacy date suggestion", async () => {
+    const db = createMockDb({ date: { id: 20, suggested_date: "2099-02-29", vote_count: 3 } });
+    const result = await action({
+      request: createRequest({ _action: "close", poll_id: "1", winning_restaurant_id: "10", winning_date_id: "20", create_event: "true" }),
+      context: createLoadContext({ env: { DB: db } } as never),
+      params: {},
+    } as never);
+    expect(result).toEqual({ error: "Selected date is not a valid calendar date" });
+    expect(db.runCalls).toEqual([]);
+  });
+
   it("rejects event creation for past dates and invite sending for restaurants without addresses", async () => {
     vi.mocked(isDateInPastInTimeZone).mockReturnValue(true as never);
 

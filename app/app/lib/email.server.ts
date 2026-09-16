@@ -116,11 +116,17 @@ async function sendResendEmailRequest(params: {
     });
 
     if (!response.ok) {
+      // A matching request may still be running after a transport timeout.
+      // Only that 409 is retryable; a changed payload with the same key is not.
+      const failure = response.status === 409
+        ? await response.json().catch(() => null) as { name?: string } | null
+        : null;
       logErrorEvent("resend_email_request_rejected");
       return {
         success: false,
         error: `Failed to send email: ${response.statusText}`,
-        retryable: isRetryableResponseStatus(response.status),
+        retryable: isRetryableResponseStatus(response.status) ||
+          failure?.name === "concurrent_idempotent_requests",
         retryAfterSeconds: parseRetryDelaySeconds(response),
       };
     }
@@ -382,6 +388,7 @@ interface EventInviteEmailParams {
   userEmail: string;
   resendApiKey: string;
   idempotencyKey?: string;
+  calendarTimestamp?: Date;
 }
 
 const EVENT_INVITE_SEND_CONCURRENCY = 6;
@@ -398,6 +405,7 @@ export function generateCalendarInvite({
   eventTime = '18:00',
   attendeeEmail,
   sequence = 0,
+  calendarTimestamp = new Date(),
 }: {
   eventId: number;
   restaurantName: string;
@@ -406,6 +414,7 @@ export function generateCalendarInvite({
   eventTime?: string;
   attendeeEmail: string;
   sequence?: number;
+  calendarTimestamp?: Date;
 }): string {
   // Parse the date and time
   const [year, month, day] = eventDate.split('-').map(Number);
@@ -426,7 +435,7 @@ export function generateCalendarInvite({
 
   const dtStart = formatICalDate(startDate);
   const dtEnd = formatICalDate(endDate);
-  const dtStamp = formatICalDate(new Date());
+  const dtStamp = calendarTimestamp.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 
   // Create stable unique identifier (no timestamp so updates match)
   const uid = `event-${eventId}@meatup.club`;
@@ -484,6 +493,7 @@ export async function sendEventInviteEmail({
   userEmail,
   resendApiKey,
   idempotencyKey,
+  calendarTimestamp = new Date(),
 }: EventInviteEmailParams): Promise<ResendDeliveryResult> {
   const personalizedIcsContent = generateCalendarInvite({
     eventId,
@@ -493,6 +503,7 @@ export async function sendEventInviteEmail({
     eventTime,
     attendeeEmail: userEmail,
     sequence: 0,
+    calendarTimestamp,
   });
 
   const personalizedIcsBase64 = Buffer.from(personalizedIcsContent).toString("base64");
@@ -580,7 +591,7 @@ A calendar invite is attached to this email.
         },
       ],
       headers: {
-        "X-Entity-Ref-ID": `event-${eventId}-${crypto.randomUUID()}`,
+        "X-Entity-Ref-ID": idempotencyKey ?? `event-${eventId}-${crypto.randomUUID()}`,
       },
       tags: [
         {
@@ -869,6 +880,7 @@ interface EventUpdateParams {
   sequence: number;
   resendApiKey: string;
   idempotencyKey?: string;
+  calendarTimestamp?: Date;
 }
 
 /**
@@ -886,6 +898,7 @@ export async function sendEventUpdateEmail({
   sequence,
   resendApiKey,
   idempotencyKey,
+  calendarTimestamp = new Date(),
 }: EventUpdateParams): Promise<ResendDeliveryResult> {
   try {
     const [year, month, day] = eventDate.split('-').map(Number);
@@ -902,7 +915,7 @@ export async function sendEventUpdateEmail({
 
     const dtStart = formatICalDate(startDate);
     const dtEnd = formatICalDate(endDate);
-    const dtStamp = formatICalDate(new Date());
+    const dtStamp = calendarTimestamp.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 
     const uid = `event-${eventId}@meatup.club`;
 
@@ -1023,7 +1036,7 @@ An updated calendar invite is attached. It will update the existing event in you
           },
         ],
         headers: {
-          'X-Entity-Ref-ID': `event-update-${eventId}-${Date.now()}`,
+          'X-Entity-Ref-ID': idempotencyKey ?? `event-update-${eventId}-${Date.now()}`,
         },
         tags: [
           {
@@ -1055,6 +1068,7 @@ interface EventCancellationParams {
   sequence: number;
   resendApiKey: string;
   idempotencyKey?: string;
+  calendarTimestamp?: Date;
 }
 
 /**
@@ -1071,6 +1085,7 @@ export async function sendEventCancellationEmail({
   sequence,
   resendApiKey,
   idempotencyKey,
+  calendarTimestamp = new Date(),
 }: EventCancellationParams): Promise<ResendDeliveryResult> {
   try {
     const [year, month, day] = eventDate.split('-').map(Number);
@@ -1087,7 +1102,7 @@ export async function sendEventCancellationEmail({
 
     const dtStart = formatICalDate(startDate);
     const dtEnd = formatICalDate(endDate);
-    const dtStamp = formatICalDate(new Date());
+    const dtStamp = calendarTimestamp.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 
     const uid = `event-${eventId}@meatup.club`;
 
@@ -1195,7 +1210,7 @@ A cancellation notice is attached to remove the event from your calendar.
           },
         ],
         headers: {
-          'X-Entity-Ref-ID': `event-cancel-${eventId}-${Date.now()}`,
+          'X-Entity-Ref-ID': idempotencyKey ?? `event-cancel-${eventId}-${Date.now()}`,
         },
         tags: [
           {

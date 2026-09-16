@@ -1,6 +1,8 @@
+import { sendNewEventSmsNotification } from "../lib/sms.server";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { isValidCalendarDate } from "../lib/date-validation";
 import { buildCreateEventStatementForActivePoll } from "../lib/events.server";
 import { getCloudflareContext } from "~/lib/router-context";
 
@@ -38,24 +40,24 @@ export async function action({ request, context }: Route.ActionArgs) {
       return Response.json({ error: 'Poll title is required' }, { status: 400 });
     }
 
-    // Close any existing active polls first
-    await db
-      .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
-      .bind(user.id)
-      .run();
+    try {
+      // Keep the current poll open if creating its replacement fails.
+      const [, result] = await db.batch([
+        db.prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
+          .bind(user.id),
+        db.prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
+          .bind(title, user.id),
+      ]);
 
-    // Create new poll
-    const result = await db
-      .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
-      .bind(title, user.id)
-      .run();
+      const newPoll = await db
+        .prepare(`SELECT * FROM polls WHERE id = ?`)
+        .bind(result.meta.last_row_id)
+        .first();
 
-    const newPoll = await db
-      .prepare(`SELECT * FROM polls WHERE id = ?`)
-      .bind(result.meta.last_row_id)
-      .first();
-
-    return Response.json({ poll: newPoll });
+      return Response.json({ poll: newPoll });
+    } catch {
+      return Response.json({ error: 'Failed to create poll' }, { status: 500 });
+    }
   }
 
   if (action === 'close') {
@@ -133,6 +135,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     let createdEventId = null;
+    let smsWarning: string | undefined;
 
     // If creating an event, get the winner details and create event
     if (createEvent && parsedWinningRestaurantId && parsedWinningDateId) {
@@ -151,6 +154,10 @@ export async function action({ request, context }: Route.ActionArgs) {
           { error: 'Selected winning options were not found in the target poll' },
           { status: 400 }
         );
+      }
+
+      if (!isValidCalendarDate(date.suggested_date)) {
+        return Response.json({ error: 'Selected date is not a valid calendar date' }, { status: 400 });
       }
 
       try {
@@ -208,6 +215,21 @@ export async function action({ request, context }: Route.ActionArgs) {
         if (!createdEventId) {
           throw new Error('Poll close failed to persist the created event id');
         }
+
+        const smsResult = await sendNewEventSmsNotification({
+          db,
+          env: getCloudflareContext(context).env,
+          event: {
+            id: createdEventId,
+            restaurant_name: restaurant.name,
+            restaurant_address: restaurant.address,
+            event_date: date.suggested_date,
+            event_time: "18:00",
+          },
+        });
+        if (smsResult.errors.length > 0) {
+          smsWarning = "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.";
+        }
       } catch (error) {
         return Response.json({ error: 'Failed to close poll' }, { status: 500 });
       }
@@ -242,7 +264,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       .bind(parsedPollId)
       .first();
 
-    return Response.json({ poll: closedPoll, eventId: createdEventId });
+    return Response.json({ poll: closedPoll, eventId: createdEventId, ...(smsWarning ? { warning: smsWarning } : {}) });
   }
 
   return Response.json({ error: 'Invalid action' }, { status: 400 });

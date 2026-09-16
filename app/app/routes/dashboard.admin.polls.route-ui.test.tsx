@@ -450,6 +450,16 @@ describe("dashboard.admin.polls loader and UI", () => {
       expect(message).toContain("This cannot be undone.");
     });
 
+    it("still explains SMS notification when calendar invitations are disabled", () => {
+      renderWithLeaders();
+      fireEvent.click(screen.getByLabelText("Send calendar invites to all members"));
+      fireEvent.submit(getCloseForm());
+      const message = confirmMock.mock.calls[0][0];
+      expect(message).toContain("Calendar invites will not be sent.");
+      expect(message).toContain("SMS notifications will be sent to active members who opted into SMS.");
+      expect(message).not.toContain("Members will not be notified.");
+    });
+
     it("reflects unchecked event creation and invite options in the confirmation", () => {
       renderWithLeaders();
 
