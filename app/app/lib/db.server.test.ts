@@ -54,7 +54,7 @@ describe("ensureUser", () => {
 
     expect(userId).toBe(777);
     expect(db.prepare).toHaveBeenCalledWith(
-      "INSERT INTO users (email, name, picture) VALUES (?, ?, ?)"
+      "INSERT INTO users (email, name, picture, status) VALUES (?, ?, ?, 'pending')"
     );
   });
 });

@@ -1,5 +1,17 @@
 # Active Backlog
 
+## Invitation validation follow-up — 2026-09-16
+
+Acceptance: missing selected/default email templates must not create or promote a member, and correcting the template must permit retry. Newly entered invitation addresses must be trimmed/lowercased so Google sign-in finds them. Invitations without a configured email API key retain their existing behavior.
+
+- [x] Reproduce template-write ordering and email normalization failures against the real schema: all seven new cases fail before the fix.
+- [x] Validate templates before writes and normalize invitation input only.
+- [x] Run full tests, typecheck, lint and diff checks; record results and lessons.
+
+Scope: no shared DB helper changes or legacy account migration.
+
+Results: template lookup/validation now precedes both account insertion and pending-account promotion. Fixing a missing template permits the same invitation to retry. New addresses are trimmed/lowercased before lookup, persistence, email sending, and invite-link generation. Real-schema route coverage exercises default/selected templates, new/pending accounts, retry after template repair, Google sign-in routing, normalized provider payloads, and invitation without an API key/template. Full Node 24 tests, typecheck, lint and diff checks pass.
+
 Keep this file limited to current engineering follow-ups. GitHub issues are the source of truth for the product backlog, pull requests preserve completed work and verification history, and durable agent guidance belongs in `AGENTS.md` or `tasks/lessons.md`.
 
 ## Deferred Upgrades
@@ -85,6 +97,7 @@ A signed session for a deleted account must never authenticate a later account w
 - Reviewed auth/session/OAuth, invitation, member/profile actions, and Places API authorization. Comment runtime modules are absent from current main (only legacy schema remains). No production writes or account changes were made.
 - Follow-up leads outside these patches: invitation creation precedes template validation; invitation email lookup remains case-sensitive; forced reauthentication uses a global flag rather than per-session revocation. These need separately scoped regressions and fixes.
 
+
 ## Review: RSVP persistence and input validation
 
 Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
@@ -102,3 +115,13 @@ Results: the initial insert now retains comments; the member action rejects unsu
 - [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
 - [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
 - [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
+
+## PR #322 refresh after invitation merge
+
+Acceptance: preserve current main invitation behavior and reject deleted-account cookies after email reuse.
+
+- [x] Merge current main and preserve both sets of task notes; source merged without conflict.
+- [x] Run full tests, typecheck and lint.
+- [ ] Publish and confirm required CI.
+
+Results: all regression tests, TypeScript and ESLint pass on the combined invitation/session branch; the merge changed no session-fix source. Both parent note histories were checked for preservation.
