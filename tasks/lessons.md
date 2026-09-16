@@ -57,3 +57,6 @@
 
 - 2026-09-16: Failure mode: durable email retries reused a provider idempotency key while regenerating calendar DTSTAMP and entity-reference headers. Detection: provider-contract regression rejected all three event email types on retry with HTTP 409. Prevention: derive volatile message metadata from the persisted outbox record and compare complete retry payloads after simulated response loss.
 
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
