@@ -421,10 +421,12 @@ Acceptance: before sending, admins can see the selected recipient count and name
 - [x] Implement recipient preview and local send feedback.
 - [x] Add regression coverage for selection, confirmation, pending state, success/failure and event isolation.
 - [x] Verify full tests, typecheck, lint, build and browser layout.
-- [ ] Publish a DCO-signed PR (in progress).
+- [x] Publish a DCO-signed PR.
 
 Working notes: original checkout has unrelated edits and stale source; implementation isolated from current main in a separate worktree. Pending means no RSVP row/status, so existing Yes/No/Maybe responses are excluded. Provider acceptance is not delivery confirmation. No live texts are needed for verification.
 
 Results: extracted `AdminEventSmsForm` uses a separate fetcher per event, shows an audience preview and explicit confirmation, and renders sending/results beside the submit button. Selection remains controlled across revalidation; no React effects added. The server still rechecks eligibility and reports actual accepted counts. UI preview is a snapshot, not a guarantee if eligibility changes before submission.
 
 Verification: Node 24; all 901 tests passed, including 14 admin SMS component regressions; lint, secret-fixture scan, typecheck and production build passed. Chromium admin SMS browser regression passed against local D1, including audience switching and cancelling confirmation with no POST. Screenshot updated at `docs/screenshots/event-sms-admin.png` and visually reviewed. No server recipient logic, migrations, production writes or live SMS sends changed/performed.
+
+Published PR #338: https://github.com/jeffspahr/meatup-club/pull/338. GitHub reports mergeable; required application and browser CI checks are running.
