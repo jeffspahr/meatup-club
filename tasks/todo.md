@@ -1,5 +1,17 @@
 # Active Backlog
 
+## Invitation validation follow-up — 2026-09-16
+
+Acceptance: missing selected/default email templates must not create or promote a member, and correcting the template must permit retry. Newly entered invitation addresses must be trimmed/lowercased so Google sign-in finds them. Invitations without a configured email API key retain their existing behavior.
+
+- [x] Reproduce template-write ordering and email normalization failures against the real schema: all seven new cases fail before the fix.
+- [x] Validate templates before writes and normalize invitation input only.
+- [x] Run full tests, typecheck, lint and diff checks; record results and lessons.
+
+Scope: no shared DB helper changes or legacy account migration.
+
+Results: template lookup/validation now precedes both account insertion and pending-account promotion. Fixing a missing template permits the same invitation to retry. New addresses are trimmed/lowercased before lookup, persistence, email sending, and invite-link generation. Real-schema route coverage exercises default/selected templates, new/pending accounts, retry after template repair, Google sign-in routing, normalized provider payloads, and invitation without an API key/template. Full Node 24 tests, typecheck, lint and diff checks pass.
+
 Keep this file limited to current engineering follow-ups. GitHub issues are the source of truth for the product backlog, pull requests preserve completed work and verification history, and durable agent guidance belongs in `AGENTS.md` or `tasks/lessons.md`.
 
 ## Deferred Upgrades
@@ -91,6 +103,22 @@ Acceptance: the API create action shares the admin action's atomic replacement b
 
 API results: insertion failure originally closed the current poll; the route now batches closure and replacement, returns a controlled 500 on failure, and reads the new poll using the insert result ID. Four real SQLite API tests cover rollback/retry, success with returned ID, votes, authorization, and required title. All 17 focused tests, all 707 tests in this isolated branch, typecheck, lint and diff checks passed under Node 24.
 
+## Session identity after account replacement — 2026-09-16
+
+### Acceptance criteria
+A signed session for a deleted account must never authenticate a later account with the same email. Valid sessions for the current account must continue working.
+
+- [x] Reproduce account replacement with real signed cookies and the canonical SQLite schema (old cookie incorrectly returned the replacement user).
+- [x] Require the loaded user ID to match the session's original user ID.
+- [x] Verify focused auth tests, full coverage, typecheck and lint.
+
+### Session results and audit boundaries
+- getUser now rejects cookies whose original account ID differs from the current row sharing that email. Valid replacement-account sessions still authenticate.
+- Verification: 23 focused auth tests; full 707 tests in 91 files pass with coverage gates (80.93% statements, 71.87% branches), typecheck, lint and diff checks pass.
+- Reviewed auth/session/OAuth, invitation, member/profile actions, and Places API authorization. Comment runtime modules are absent from current main (only legacy schema remains). No production writes or account changes were made.
+- Follow-up leads outside these patches: invitation creation precedes template validation; invitation email lookup remains case-sensitive; forced reauthentication uses a global flag rather than per-session revocation. These need separately scoped regressions and fixes.
+
+
 ## Review: RSVP persistence and input validation
 
 Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
@@ -108,3 +136,22 @@ Results: the initial insert now retains comments; the member action rejects unsu
 - [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
 - [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
 - [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
+
+## PR #322 refresh after invitation merge
+
+Acceptance: preserve current main invitation behavior and reject deleted-account cookies after email reuse.
+
+- [x] Merge current main and preserve both sets of task notes; source merged without conflict.
+- [x] Run full tests, typecheck and lint.
+- [ ] Publish and confirm required CI.
+
+Results: all regression tests, TypeScript and ESLint pass on the combined invitation/session branch; the merge changed no session-fix source. Both parent note histories were checked for preservation.
+
+## PR #318 refresh after session fix merge
+
+Acceptance: preserve merged invitation/session behavior and keep existing polls/votes unchanged when replacement creation fails through either route.
+
+- [x] Merge current main and resolve shared notes while preserving both parent histories.
+- [x] Verify full tests, typecheck and lint.
+
+Results: 733 tests in 93 files pass, with TypeScript, ESLint and diff checks. Only task notes needed conflict resolution; both parent histories were preserved. The updated branch will run required GitHub CI before handoff.
