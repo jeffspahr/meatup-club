@@ -13,12 +13,15 @@ export function prepareSmsConsentEvent(
     eventType,
     source,
     providerMessageSid = null,
+    requirePreviousChange = false,
   }: {
     userId: number;
     phoneNumber: string;
     eventType: SmsConsentEventType;
     source: SmsConsentSource;
     providerMessageSid?: string | null;
+    // Use only immediately after a guarded mutation in the same atomic batch.
+    requirePreviousChange?: boolean;
   }
 ): D1PreparedStatement {
   return db
@@ -31,7 +34,9 @@ export function prepareSmsConsentEvent(
         disclosure_version,
         provider_message_sid
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      ${requirePreviousChange
+        ? 'SELECT ?, ?, ?, ?, ?, ? WHERE changes() > 0'
+        : 'VALUES (?, ?, ?, ?, ?, ?)'}
     `)
     .bind(
       userId,

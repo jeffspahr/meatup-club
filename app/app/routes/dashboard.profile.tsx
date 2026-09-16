@@ -83,8 +83,15 @@ export async function action({ request, context }: Route.ActionArgs) {
               ELSE 'profile'
             END
         WHERE id = ?
+          AND phone_number IS ?
+          AND sms_opt_in IS ?
+          AND sms_opt_out_at IS ?
+          AND sms_opt_out_source IS ?
       `)
-      .bind(normalizedPhone, smsOptIn, smsOptIn, smsOptIn, hasCarrierOptOut ? 1 : 0, user.id);
+      .bind(
+        normalizedPhone, smsOptIn, smsOptIn, smsOptIn, hasCarrierOptOut ? 1 : 0,
+        user.id, user.phone_number, user.sms_opt_in, user.sms_opt_out_at, user.sms_opt_out_source
+      );
 
     const wasSmsEnabled = user.sms_opt_in === 1 && !user.sms_opt_out_at;
     const phoneChanged = normalizedPhone !== user.phone_number;
@@ -103,11 +110,17 @@ export async function action({ request, context }: Route.ActionArgs) {
           phoneNumber: consentPhoneNumber,
           eventType: consentEventType,
           source: 'profile',
+          requirePreviousChange: true,
         })
       );
     }
 
-    await db.batch(statements);
+    // Compare the SMS snapshot at write time so a concurrent STOP, START, or
+    // phone edit cannot be overwritten by an already-running profile request.
+    const results = await db.batch(statements);
+    if (results[0].meta.changes === 0) {
+      return { error: 'SMS preferences changed. Please refresh and try again.' };
+    }
 
     return { success: 'SMS preferences updated successfully' };
   }
