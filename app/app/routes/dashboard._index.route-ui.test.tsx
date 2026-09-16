@@ -155,6 +155,18 @@ describe("dashboard._index UI", () => {
     expect(window.localStorage.getItem("dismissedSmsPrompt")).toBe("true");
   });
 
+  it.each([false, true])("shows dashboard poll closure only to admins (admin: %s)", (isAdmin) => {
+    renderDashboard({
+      user: { id: 1, name: "Member", email: "member@example.com", phone_number: "test" },
+      isAdmin,
+      activePoll: { id: 7, title: "Active dinner poll", created_at: "2026-09-01" },
+      topRestaurants: [], dateSuggestions: [], dateVotes: [], restaurantSuggestions: [],
+      previousPolls: [], upcomingEvents: [], pastEvents: [], restaurants: [],
+    } as unknown as Route.ComponentProps["loaderData"]);
+    expect(screen.queryByText("Admin only") !== null).toBe(isAdmin);
+    expect(document.querySelector('form[action="/dashboard/admin/polls"]') !== null).toBe(isAdmin);
+  });
+
   it("renders the returning-admin view with no active poll and an existing RSVP", async () => {
     window.localStorage.setItem("hasVisitedDashboard", "true");
 

@@ -112,8 +112,8 @@ function createMockDb({
 
   const batch = vi.fn(async (statements: Array<{ run?: () => Promise<unknown>; all?: () => Promise<unknown> }>) => {
     const results = [];
-    for (const [index, statement] of statements.entries()) {
-      if (index === statements.length - 1 && typeof statement.all === "function") {
+    for (const statement of statements) {
+      if (typeof statement.run !== "function" && typeof statement.all === "function") {
         results.push(await statement.all());
         continue;
       }
@@ -174,6 +174,34 @@ describe("dashboard.admin.polls action coverage", () => {
     } as never);
 
     expect(result).toEqual({ error: "Only admins can manage polls" });
+  });
+
+  it("rejects a non-admin closing a poll from the dashboard before database access", async () => {
+    vi.mocked(requireActiveUser).mockResolvedValue({
+      id: 2,
+      is_admin: 0,
+      status: "active",
+      email: "member@example.com",
+      name: "Member",
+    } as never);
+    const db = createMockDb();
+
+    const result = await action({
+      request: createRequest({
+        _action: "close",
+        poll_id: "1",
+        create_event: "true",
+        winning_restaurant_id: "10",
+        winning_date_id: "20",
+        return_to: "/dashboard",
+      }),
+      context: createLoadContext({ env: { DB: db } } as never) as never,
+      params: {},
+    } as never);
+
+    expect(result).toEqual({ error: "Only admins can manage polls" });
+    expect(db.prepare).not.toHaveBeenCalled();
+    expect(db.batch).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -251,6 +279,44 @@ describe("dashboard.admin.polls action coverage", () => {
       expect.objectContaining({
         sql: "UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP, winning_restaurant_id = ?, winning_date_id = ?, created_event_id = ? WHERE id = ? AND status = 'active'",
         bindArgs: [1, null, null, null, 1],
+      })
+    );
+  });
+
+  it.each([
+    [undefined, "/dashboard/admin/polls"],
+    ["/dashboard", "/dashboard"],
+    ["https://example.com", "/dashboard/admin/polls"],
+    ["//example.com", "/dashboard/admin/polls"],
+    ["/dashboard?next=https://example.com", "/dashboard/admin/polls"],
+    ["/dashboard/events", "/dashboard/admin/polls"],
+  ])("redirects a successful event-creating close with return_to=%s to %s", async (returnTo, expectedLocation) => {
+    const db = createMockDb();
+    const formEntries: Record<string, string> = {
+      _action: "close",
+      poll_id: "1",
+      winning_restaurant_id: "10",
+      winning_date_id: "20",
+      create_event: "true",
+      event_time: "19:30",
+    };
+    if (returnTo !== undefined) {
+      formEntries.return_to = returnTo;
+    }
+
+    const response = await action({
+      request: createRequest(formEntries),
+      context: createLoadContext({ env: { DB: db }, ctx: {} } as never) as never,
+      params: {},
+    } as never);
+
+    expect((response as Response).status).toBe(302);
+    expect((response as Response).headers.get("Location")).toBe(expectedLocation);
+    expect(db.batch).toHaveBeenCalledTimes(1);
+    expect(db.runCalls).toContainEqual(
+      expect.objectContaining({
+        sql: expect.stringContaining("INSERT INTO events"),
+        bindArgs: expect.arrayContaining(["Prime Steakhouse", "19:30"]),
       })
     );
   });

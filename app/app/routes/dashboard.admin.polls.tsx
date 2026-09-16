@@ -470,7 +470,11 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Failed to close poll. Please try again.' };
     }
 
-    return redirect('/dashboard/admin/polls');
+    return redirect(
+      formData.get('return_to') === '/dashboard'
+        ? '/dashboard'
+        : '/dashboard/admin/polls'
+    );
   }
 
   return { error: 'Invalid action' };
