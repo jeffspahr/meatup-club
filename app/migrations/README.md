@@ -21,6 +21,12 @@ apply D1 migrations automatically. The migration keeps ordinary accounts at
 generation zero so existing cookies remain valid, and assigns generation one to
 accounts already marked `requires_reauth = 1` so those revocations remain effective.
 
+Keep the application PR in draft until the production migration has completed.
+Confirm that `users.session_version` exists with a non-null default of zero, and
+that accounts still marked `requires_reauth = 1` have a nonzero generation. Then
+mark the PR ready and merge after required CI passes. Do not replay the `ALTER
+TABLE` migration if the column already exists; inspect migration history first.
+
 If rolling back the application, leave the additive column in place. Older code
 does not enforce session generations, so application rollback also removes the
 durable-revocation guarantee until the fixed code is deployed again.
