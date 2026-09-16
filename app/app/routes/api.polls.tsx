@@ -1,3 +1,4 @@
+import { sendNewEventSmsNotification } from "../lib/sms.server";
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/api.polls";
 import { requireActiveUser } from "../lib/auth.server";
@@ -133,6 +134,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     let createdEventId = null;
+    let smsWarning: string | undefined;
 
     // If creating an event, get the winner details and create event
     if (createEvent && parsedWinningRestaurantId && parsedWinningDateId) {
@@ -208,6 +210,21 @@ export async function action({ request, context }: Route.ActionArgs) {
         if (!createdEventId) {
           throw new Error('Poll close failed to persist the created event id');
         }
+
+        const smsResult = await sendNewEventSmsNotification({
+          db,
+          env: getCloudflareContext(context).env,
+          event: {
+            id: createdEventId,
+            restaurant_name: restaurant.name,
+            restaurant_address: restaurant.address,
+            event_date: date.suggested_date,
+            event_time: "18:00",
+          },
+        });
+        if (smsResult.errors.length > 0) {
+          smsWarning = "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.";
+        }
       } catch (error) {
         return Response.json({ error: 'Failed to close poll' }, { status: 500 });
       }
@@ -242,7 +259,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       .bind(parsedPollId)
       .first();
 
-    return Response.json({ poll: closedPoll, eventId: createdEventId });
+    return Response.json({ poll: closedPoll, eventId: createdEventId, ...(smsWarning ? { warning: smsWarning } : {}) });
   }
 
   return Response.json({ error: 'Invalid action' }, { status: 400 });
