@@ -97,6 +97,19 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
+
+## Review: cancelled event calendar delivery
+
+Acceptance: an admin marking an event cancelled, or its creator editing an already-cancelled event, stages calendar cancellation messages at the incremented sequence when notifications are enabled. Ordinary updates remain update messages and disabled notifications stage nothing.
+
+- [x] Trace status-form update and cancellation delivery helpers.
+- [x] Reproduce incorrect update delivery on admin cancellation and creator edits to cancelled events.
+- [x] Select the cancellation helper and delivery type for cancelled events in both entry points.
+- [x] Verify 749 full-suite tests, lint, typecheck, and diff checks.
+- [x] Record results and prevention lesson.
+
+Results: cancelled event edits now persist cancellation deliveries rather than calendar requests, retaining the incremented sequence and atomic staging. Route regressions verify delivery selection/notification opt-out; real SQLite tests cover cancelled/ordinary edits and rollback if staging fails. Corrected the admin test batch double to execute a lone UPDATE instead of treating its final statement as a SELECT.
+
 - [x] Preserve cancellation calendar IDs after deleting events; regression reproduced event-0 before the fix.
 - [x] Verify final patches and record audit limitations.
 Results (deleted event cancellation): the immutable dedupe key preserves the original calendar event ID after the event foreign key becomes NULL. The sender now uses that ID and rejects invalid snapshot IDs before sending. A real SQLite stage/delete/send regression inspects the actual cancellation attachment.
@@ -268,3 +281,12 @@ Acceptance: deleting an event keeps queued calendar cancellation identity intact
 - [x] Review the combined delivery changes and run full tests, typecheck and lint before publishing.
 
 Results: 824 tests in 100 files, TypeScript, ESLint and diff checks pass. The cancellation identity change merged cleanly with stable retry payloads and ordered callback handling; both review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #330 refresh for next merge
+
+Acceptance: cancelling events and editing already-cancelled events sends calendar cancellation notices in both admin and shared edit paths, while preserving current email/SMS delivery behavior.
+
+- [x] Merge current main and resolve shared review notes, preserving both histories.
+- [x] Review combined event mutations and run full tests, typecheck and lint before publication.
+
+Results: 830 tests in 101 files, TypeScript, ESLint and diff checks pass. Both mutation paths merged cleanly with current event SMS and email-delivery behavior; both parent note histories were preserved. Required GitHub CI will validate the published revision before handoff.
