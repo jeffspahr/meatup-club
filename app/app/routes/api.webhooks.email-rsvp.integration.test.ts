@@ -387,7 +387,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       // Verify the email was extracted correctly
       expect(mockDb.prepare).toHaveBeenCalledWith(
-        'SELECT id, email, name FROM users WHERE LOWER(email) = ?'
+        "SELECT id, email, name FROM users WHERE LOWER(email) = ? AND status = 'active'"
       );
       expect(mockDb.bind).toHaveBeenCalledWith('user@example.com');
     });
