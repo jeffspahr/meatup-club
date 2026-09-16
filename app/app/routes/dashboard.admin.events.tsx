@@ -33,6 +33,7 @@ import { formatDateForDisplay, formatTimeForDisplay, getAppTimeZone, isEventInPa
 import {
   maybeCheckTwilioProviderHealth,
   sendAdhocSmsReminder,
+  sendNewEventSmsNotification,
   type SmsDeliveryStatus,
   type SmsEvent,
   type SmsProviderHealth,
@@ -469,6 +470,20 @@ export async function action({ request, context }: Route.ActionArgs) {
         logErrorEvent("admin_event_invite_enqueue_failed", error);
       }
 
+      const smsResult = await sendNewEventSmsNotification({
+        db,
+        env: getCloudflareContext(context).env,
+        event: {
+          id: eventId,
+          restaurant_name: input.restaurantName,
+          restaurant_address: input.restaurantAddress,
+          event_date: input.eventDate,
+          event_time: input.eventTime,
+        },
+      });
+      if (smsResult.errors.length > 0) {
+        return { warning: 'Event created, but some SMS notifications could not be sent. Retry from Event Management.' };
+      }
       return redirect('/dashboard/admin/events');
     } catch (err) {
       logErrorEvent("admin_event_creation_failed", err);
@@ -596,6 +611,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
 
       const nextSequence = Number(existingEvent.calendar_sequence ?? 0) + 1;
+      const deliveryType = input.status === 'cancelled' ? 'cancel' : 'update';
       let stagedUpdateBatch: StagedEventEmailBatch | null = null;
       const updateBatchId = send_updates ? crypto.randomUUID() : null;
       const updateStatements = [
@@ -603,18 +619,24 @@ export async function action({ request, context }: Route.ActionArgs) {
       ];
 
       if (updateBatchId) {
+        const details = {
+          eventId,
+          restaurantName: input.restaurantName,
+          restaurantAddress: input.restaurantAddress,
+          eventDate: input.eventDate,
+          eventTime: input.eventTime,
+        };
         updateStatements.push(
-          buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
-            batchId: updateBatchId,
-            details: {
-              eventId,
-              restaurantName: input.restaurantName,
-              restaurantAddress: input.restaurantAddress,
-              eventDate: input.eventDate,
-              eventTime: input.eventTime,
-            },
-            calendarSequence: nextSequence,
-          }),
+          deliveryType === 'cancel'
+            ? buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
+                batchId: updateBatchId,
+                details: { ...details, sequence: nextSequence },
+              })
+            : buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
+                batchId: updateBatchId,
+                details,
+                calendarSequence: nextSequence,
+              }),
           buildSelectStagedDeliveryIdsStatement(db, updateBatchId)
         );
       }
@@ -624,7 +646,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       if (updateBatchId) {
         stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(
           updateBatchId,
-          'update',
+          deliveryType,
           updateResults[updateResults.length - 1] as D1Result<{ id: number }>
         );
       }
@@ -864,11 +886,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     const eventId = Number(formData.get('event_id'));
     const messageType = formData.get('message_type');
     const customMessage = String(formData.get('custom_message') || '').trim();
-    const recipientScope = String(formData.get('recipient_scope') || 'all');
+    const recipientScope = String(formData.get('recipient_scope') || 'pending');
     const recipientUserIdRaw = String(formData.get('recipient_user_id') || '').trim();
     const recipientUserId = recipientUserIdRaw ? Number(recipientUserIdRaw) : null;
 
-    if (!eventId) {
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
       return { error: 'Event ID is required for SMS reminders' };
     }
 
@@ -876,13 +898,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Custom SMS message cannot be empty' };
     }
 
-    const event = await db
-      .prepare('SELECT id, restaurant_name, restaurant_address, event_date, event_time FROM events WHERE id = ?')
-      .bind(eventId)
-      .first();
+    const event = await getEditableEventById(db, eventId);
 
     if (!event) {
       return { error: 'Event not found' };
+    }
+
+    if (event.status !== 'upcoming' || isEventInPastInTimeZone(
+      event.event_date, event.event_time || '18:00', getAppTimeZone(getCloudflareContext(context).env.APP_TIMEZONE)
+    )) {
+      return { error: 'SMS notifications can only be sent for upcoming events' };
     }
 
     const validScopes = new Set(['all', 'yes', 'no', 'maybe', 'pending', 'specific']);
@@ -890,7 +915,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Invalid recipient selection' };
     }
 
-    if (recipientScope === 'specific' && !recipientUserId) {
+    if (recipientScope === 'specific' && (!Number.isSafeInteger(recipientUserId) || !recipientUserId || recipientUserId <= 0)) {
       return { error: 'Select a specific recipient' };
     }
 
@@ -901,13 +926,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       customMessage: messageType === 'custom' ? customMessage : null,
       recipientScope: recipientScope as SmsRecipientScope,
       recipientUserId,
-    });
+    }).catch(() => ({ sent: 0, errors: ['SMS notifications could not be sent. Please try again.'] }));
     if (result.errors.length > 0) {
       const acceptedSummary = result.sent > 0 ? ` Twilio accepted ${result.sent}.` : '';
       return { error: `SMS send failed.${acceptedSummary} ${result.errors[0]}` };
     }
 
-    const reminderLabel = result.sent === 1 ? 'reminder' : 'reminders';
+    if (result.sent === 0) {
+      return { success: 'No SMS-eligible members match this recipient selection.' };
+    }
+    const reminderLabel = result.sent === 1 ? 'notification' : 'notifications';
     return { success: `Twilio accepted ${result.sent} SMS ${reminderLabel}.` };
   }
 
@@ -1060,6 +1088,8 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
         }
       />
 
+      {actionData?.warning && <Alert variant="warning" className="mb-6">{actionData.warning}</Alert>}
+
       {actionData?.error && (
         <Alert variant="error" className="mb-6">
           {actionData.error}
@@ -1126,6 +1156,7 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
           </p>
           <Form method="post" id="create-form" className="space-y-4">
             <input type="hidden" name="_action" value="create" />
+            <p className="text-sm text-muted-foreground">New events automatically send an RSVP text to active members who opted into SMS.</p>
 
             <EventRestaurantFields
               restaurantName={createData.restaurant_name}
@@ -1358,14 +1389,15 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                             Created {formatDateForDisplay(event.created_at)}
                           </p>
                           <div className="mt-4">
-                            <Form method="post" className="space-y-3">
+                            {event.displayStatus === "upcoming" && <Form method="post" className="space-y-3">
                               <input type="hidden" name="_action" value="send_sms_reminder" />
                               <input type="hidden" name="event_id" value={event.id} />
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">
-                                  SMS Reminder
+                                <label htmlFor={`sms-message_type-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
+                                  SMS notification
                                 </label>
                                 <select
+                                  id={`sms-message_type-${event.id}`}
                                   name="message_type"
                                   className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                   defaultValue="default"
@@ -1375,13 +1407,14 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">
+                                <label htmlFor={`sms-recipient_scope-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
                                   Recipients
                                 </label>
                                 <select
+                                  id={`sms-recipient_scope-${event.id}`}
                                   name="recipient_scope"
                                   className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
-                                  value={smsScopeByEvent[event.id] || 'all'}
+                                  value={smsScopeByEvent[event.id] || 'pending'}
                                   onChange={(eventScope) =>
                                     setSmsScopeByEvent((prev) => ({
                                       ...prev,
@@ -1389,20 +1422,21 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                     }))
                                   }
                                 >
-                                  <option value="all">All SMS-opted members</option>
                                   <option value="pending">No RSVP yet</option>
+                                  <option value="all">All SMS-opted members</option>
                                   <option value="yes">RSVP Yes</option>
                                   <option value="no">RSVP No</option>
                                   <option value="maybe">RSVP Maybe</option>
                                   <option value="specific">Specific member</option>
                                 </select>
                               </div>
-                              {(smsScopeByEvent[event.id] || 'all') === 'specific' && (
+                              {(smsScopeByEvent[event.id] || 'pending') === 'specific' && (
                                 <div>
-                                  <label className="block text-sm font-medium text-foreground mb-1">
+                                  <label htmlFor={`sms-recipient_user_id-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
                                     Specific Recipient
                                   </label>
                                   <select
+                                    id={`sms-recipient_user_id-${event.id}`}
                                     name="recipient_user_id"
                                     className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                     defaultValue=""
@@ -1417,20 +1451,22 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                                 </div>
                               )}
                               <div>
-                                <label className="block text-sm font-medium text-foreground mb-1">
+                                <label htmlFor={`sms-custom_message-${event.id}`} className="block text-sm font-medium text-foreground mb-1">
                                   Custom Message (Optional)
                                 </label>
                                 <textarea
+                                  id={`sms-custom_message-${event.id}`}
                                   name="custom_message"
                                   rows={3}
                                   placeholder="Add a custom note (RSVP + opt-out instructions are appended automatically)."
                                   className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-accent"
                                 />
                               </div>
-                              <Button type="submit" size="sm">
-                                Send SMS Reminder
+                              <Button type="submit" size="sm" disabled={navigation.state !== "idle"}>
+                                Send SMS notification
                               </Button>
-                            </Form>
+                              <p className="text-xs text-muted-foreground">Only active members who opted into SMS receive messages. Replies update this event’s RSVP.</p>
+                            </Form>}
                             {(smsDeliveriesByEventId[event.id] || []).length > 0 ? (
                               <details className="mt-4 rounded-xl border border-border/70 bg-muted/20 p-3">
                                 <summary className="cursor-pointer text-sm font-semibold text-foreground">
