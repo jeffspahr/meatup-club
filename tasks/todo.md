@@ -68,3 +68,11 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+## Admin form recovery review — 2026-09-16
+- [x] Reproduce missing content in preview submissions and permanently disabled refresh controls.
+- [x] Submit a hidden content field while previewing; derive refresh pending state from router navigation so completed/failed runs can retry.
+- [x] Add regression coverage for preview/edit FormData and refresh submitting/loading/idle transitions.
+- [x] Verify 702 tests, typecheck, lint, production build, and diff checks.
+
+Results: preview mode submits the exact draft once; refresh controls recover after successful or failed responses. No new effects or visual layout changes.
