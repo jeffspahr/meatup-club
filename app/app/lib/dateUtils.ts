@@ -222,20 +222,34 @@ export function getEventDateTimeUtc(
     minute: '2-digit',
     second: '2-digit',
   });
-  const parts = formatter.formatToParts(utcGuess).reduce((acc, part) => {
-    acc[part.type] = part.value;
-    return acc;
-  }, {} as Record<string, string>);
-  const asUtc = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second)
-  );
-  const offsetMs = asUtc - utcGuess.getTime();
-  return new Date(utcGuess.getTime() - offsetMs);
+  function getWallTimeAsUtc(date: Date): number {
+    const parts = formatter.formatToParts(date).reduce((acc, part) => {
+      acc[part.type] = part.value;
+      return acc;
+    }, {} as Record<string, string>);
+    return Date.UTC(
+      Number(parts.year),
+      Number(parts.month) - 1,
+      Number(parts.day),
+      Number(parts.hour),
+      Number(parts.minute),
+      Number(parts.second)
+    );
+  }
+
+  const targetWallTime = utcGuess.getTime();
+  const offsetMs = getWallTimeAsUtc(utcGuess) - targetWallTime;
+  const candidate = new Date(targetWallTime - offsetMs);
+  const wallTimeDifference = targetWallTime - getWallTimeAsUtc(candidate);
+  if (wallTimeDifference === 0) {
+    return candidate;
+  }
+
+  // The initial UTC guess may sit on the other side of a DST transition.
+  // Correct its offset only if the result matches the requested wall time.
+  // For a nonexistent time, retain the previous fallback instead of oscillating.
+  const corrected = new Date(candidate.getTime() + wallTimeDifference);
+  return getWallTimeAsUtc(corrected) === targetWallTime ? corrected : candidate;
 }
 
 /**

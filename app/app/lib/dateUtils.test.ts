@@ -12,6 +12,7 @@ import {
   isDateInPast,
   isDateInPastInTimeZone,
   isDateInPastUTC,
+  isEventInPastInTimeZone,
   isDateTodayOrFuture,
   isDateTodayOrFutureInTimeZone,
   isDateTodayOrFutureUTC,
@@ -93,5 +94,29 @@ describe("dateUtils", () => {
     expect(getEventDateTimeUtc("2026-07-04", null, "America/New_York").toISOString()).toBe(
       "2026-07-04T22:00:00.000Z"
     );
+  });
+
+  it.each([
+    ["2026-03-08", "03:30", "2026-03-08T07:30:00.000Z"],
+    ["2026-11-01", "03:30", "2026-11-01T08:30:00.000Z"],
+  ])("uses the offset at the actual event instant for %s %s", (date, time, expected) => {
+    expect(getEventDateTimeUtc(date, time, "America/New_York").toISOString()).toBe(expected);
+  });
+
+  it.each([
+    ["2026-03-08", "2026-03-08T07:30:00Z"],
+    ["2026-11-01", "2026-11-01T08:30:00Z"],
+  ])("classifies %s events as past only after their actual start time", (date, utcTime) => {
+    const start = new Date(utcTime).getTime();
+    expect(isEventInPastInTimeZone(date, "03:30", "America/New_York", new Date(start - 1))).toBe(false);
+    expect(isEventInPastInTimeZone(date, "03:30", "America/New_York", new Date(start))).toBe(false);
+    expect(isEventInPastInTimeZone(date, "03:30", "America/New_York", new Date(start + 1))).toBe(true);
+  });
+
+  it("preserves existing choices for ambiguous and nonexistent local times", () => {
+    expect(getEventDateTimeUtc("2026-11-01", "01:30", "America/New_York").toISOString())
+      .toBe("2026-11-01T05:30:00.000Z");
+    expect(getEventDateTimeUtc("2026-03-08", "02:30", "America/New_York").toISOString())
+      .toBe("2026-03-08T07:30:00.000Z");
   });
 });
