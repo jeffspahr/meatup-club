@@ -207,15 +207,14 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      await db
-        .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
-        .bind(user.id)
-        .run();
-
-      await db
-        .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
-        .bind(title, user.id)
-        .run();
+      await db.batch([
+        db
+          .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
+          .bind(user.id),
+        db
+          .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
+          .bind(title, user.id),
+      ]);
 
       return redirect('/dashboard/admin/polls');
     } catch (error) {

@@ -58,6 +58,10 @@
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
 
+- 2026-09-16: Failure mode: replacing the active poll used independent close/create writes, so insertion failure disabled voting with no replacement. Detection: a SQLite trigger rejecting the insert left the old poll closed. Prevention: group dependent state transitions in a D1 batch and prove rollback plus retry with a real database failure.
+
+- 2026-09-16: Failure mode: the admin poll-creation transaction fix left the equivalent API action non-atomic. Detection: the same SQLite insert-failure trigger closed the API's current poll without a replacement. Prevention: find all mutation entry points for a business operation and exercise the same rollback invariant at each route boundary.
+
 - 2026-09-16: Failure mode: session lookup used email alone and ignored its signed user ID, so a deleted account's cookie authenticated a later account reusing the email. Detection: a real-cookie SQLite lifecycle regression returned the replacement user. Prevention: bind sessions to immutable account IDs as well as email and test deletion/recreation, not only ordinary login.
 
 

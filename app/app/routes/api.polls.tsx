@@ -38,24 +38,24 @@ export async function action({ request, context }: Route.ActionArgs) {
       return Response.json({ error: 'Poll title is required' }, { status: 400 });
     }
 
-    // Close any existing active polls first
-    await db
-      .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
-      .bind(user.id)
-      .run();
+    try {
+      // Keep the current poll open if creating its replacement fails.
+      const [, result] = await db.batch([
+        db.prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
+          .bind(user.id),
+        db.prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
+          .bind(title, user.id),
+      ]);
 
-    // Create new poll
-    const result = await db
-      .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
-      .bind(title, user.id)
-      .run();
+      const newPoll = await db
+        .prepare(`SELECT * FROM polls WHERE id = ?`)
+        .bind(result.meta.last_row_id)
+        .first();
 
-    const newPoll = await db
-      .prepare(`SELECT * FROM polls WHERE id = ?`)
-      .bind(result.meta.last_row_id)
-      .first();
-
-    return Response.json({ poll: newPoll });
+      return Response.json({ poll: newPoll });
+    } catch {
+      return Response.json({ error: 'Failed to create poll' }, { status: 500 });
+    }
   }
 
   if (action === 'close') {
