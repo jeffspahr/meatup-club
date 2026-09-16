@@ -68,3 +68,18 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Review: atomic poll replacement
+
+Acceptance: creating a poll closes the previous active poll and creates its replacement atomically; insert failure leaves the current poll open and preserves its votes; retry succeeds without duplicate active polls.
+
+- [x] Inspect poll create action and D1 batch contract.
+- [x] Reproduce insert-failure data loss with real SQLite.
+- [x] Batch poll closure and creation in one transaction.
+- [x] Verify focused regression, 717 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Working notes: Cloudflare documents D1 batch rollback on statement failure at https://developers.cloudflare.com/d1/worker-api/d1-database/#batch.
+
+Results: poll replacement now runs in one D1 batch, so the original poll closure rolls back if creation fails. The real SQLite failure test reproduced the original closed-without-replacement behavior; regressions cover successful creation, rollback, retry, vote preservation, and member authorization. All 717 tests, typecheck, lint, and diff checks passed under Node 24.
