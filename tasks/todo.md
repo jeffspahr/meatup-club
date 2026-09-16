@@ -68,3 +68,8 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+- [x] Reproduce and repair delivery-status webhook transaction and ordering failures: five regressions failed before the fix; 719 tests and coverage pass.
+- [ ] Preserve cancellation calendar IDs after deleting events and verify the final patch (in progress).
+Results (delivery callbacks): delivery IDs and status changes now commit atomically, allowing retries after write failures. SQL enforces status progression so late sent/delayed callbacks cannot overwrite delivered or negative final outcomes. Signed callbacks execute against real SQLite for rollback, retry, duplicate, and out-of-order cases; all 719 tests and coverage gates pass.
+
