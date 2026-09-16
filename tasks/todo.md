@@ -69,10 +69,22 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
-## Admin form recovery review — 2026-09-16
-- [x] Reproduce missing content in preview submissions and permanently disabled refresh controls.
-- [x] Submit a hidden content field while previewing; derive refresh pending state from router navigation so completed/failed runs can retry.
-- [x] Add regression coverage for preview/edit FormData and refresh submitting/loading/idle transitions.
-- [x] Verify 702 tests, typecheck, lint, production build, and diff checks.
 
-Results: preview mode submits the exact draft once; refresh controls recover after successful or failed responses. No new effects or visual layout changes.
+
+## Review: RSVP persistence and input validation
+
+Acceptance: the shared RSVP helper persists supplied comments on both initial and subsequent responses, including explicit empty comments. Invalid statuses and malformed event IDs return form errors without writing.
+
+- [x] Inspect member action and shared RSVP persistence against the canonical schema.
+- [x] Reproduce initial-comment loss and malformed-input behavior using real SQLite.
+- [x] Include comments in the initial insert and validate status/event IDs before persistence.
+- [x] Verify focused regressions, 714 full-suite tests, typecheck, and lint.
+- [x] Record results and prevention lesson.
+
+Results: the initial insert now retains comments; the member action rejects unsupported statuses and invalid event IDs without changing existing responses or activity history. Two comment regressions and seven route validation regressions failed before their fixes. All 714 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### RSVP browser regression follow-up
+
+- [x] Diagnose PR browser failure: seeded events used negative IDs rejected by the production boundary.
+- [x] Switch seeded event/poll IDs and cleanup queries to reserved positive IDs.
+- [x] Verify all 11 browser journeys under CI mode, including RSVP persistence after reload.
