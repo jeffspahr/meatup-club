@@ -98,6 +98,18 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
 
+## Review: preserve default email templates
+
+Acceptance: create/update/default-selection failures and missing target IDs preserve the current default; successful changes atomically select one default.
+
+- [x] Trace template mutation paths.
+- [x] Reproduce failure and nonexistent-target behavior with real SQLite: five regressions failed.
+- [x] Batch dependent writes and guard default clearing on target existence.
+- [x] Verify eight SQLite cases, 743 full-suite tests, lint, and typecheck.
+- [x] Record results and prevention lesson.
+
+Results: template creation, edits, and default selection now commit together with clearing the previous default. Missing update/default targets return a form error while preserving the current default. Trigger-based tests prove rollback if the second write fails.
+
 ## Event timezone conversion at DST transitions — 2026-09-16
 
 ### Acceptance criteria
@@ -339,3 +351,12 @@ Acceptance: valid event wall times convert correctly across both DST transitions
 - [x] Review the conversion diff and run full tests, typecheck and lint before publication.
 
 Results: 857 tests in 103 files, TypeScript, ESLint and diff checks pass. Conversion source merged cleanly with current date validation; both parent review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #329 refresh for next merge
+
+Acceptance: failed replacement or missing template IDs preserve the existing default; successful replacements remain atomic with current membership/email behavior.
+
+- [x] Merge current main and resolve review notes while preserving both histories.
+- [x] Review template mutation changes and run full tests, typecheck and lint before publication.
+
+Results: 865 tests in 104 files, TypeScript, ESLint and diff checks pass. Template mutation source merged cleanly with current main; both parent review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.

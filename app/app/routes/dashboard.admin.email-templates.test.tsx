@@ -79,7 +79,15 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  return {
+    prepare,
+    runCalls,
+    batch: async (statements: Array<{ run: () => Promise<unknown> }>) => {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    },
+  };
 }
 
 describe("dashboard.admin.email-templates route", () => {
@@ -192,8 +200,8 @@ describe("dashboard.admin.email-templates route", () => {
     expect((response as Response).status).toBe(302);
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE email_templates SET is_default = 0",
-        bindArgs: [],
+        sql: "UPDATE email_templates SET is_default = 0 WHERE EXISTS (SELECT 1 FROM email_templates WHERE id = ?)",
+        bindArgs: ["2"],
       },
       {
         sql: "UPDATE email_templates SET is_default = 1 WHERE id = ?",
