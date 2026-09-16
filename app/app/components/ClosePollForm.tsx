@@ -33,9 +33,14 @@ export function ClosePollForm({ poll, restaurants, dates }: ClosePollFormProps) 
     lines.push(shouldCreateEvent
       ? `Create an event at ${formatTimeForDisplay(String(form.get("event_time") || "18:00"))}.`
       : "No event will be created.");
-    lines.push(shouldCreateEvent && form.get("send_invites") === "true"
-      ? "Calendar invites will be sent to all active members."
-      : "Members will not be notified.");
+    if (shouldCreateEvent) {
+      lines.push(form.get("send_invites") === "true"
+        ? "Calendar invites will be sent to all active members."
+        : "Calendar invites will not be sent.");
+      lines.push("SMS notifications will be sent to active members who opted into SMS.");
+    } else {
+      lines.push("Members will not be notified.");
+    }
     lines.push("Voting will end. This cannot be undone.");
     if (!confirmAction(lines.join("\n"))) event.preventDefault();
   }

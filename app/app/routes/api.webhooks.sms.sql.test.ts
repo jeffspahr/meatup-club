@@ -17,6 +17,7 @@ describe("SMS webhook persistence", () => {
       VALUES (1, 'member@example.com', 'active', '+15551234567', 1);
       INSERT INTO events (id, restaurant_name, event_date, status)
       VALUES (1, 'Steakhouse', '2099-01-01', 'upcoming');
+      INSERT INTO sms_reminders (event_id, user_id, reminder_type) VALUES (1, 1, 'invitation');
     `);
   });
   afterEach(() => harness.sqlite.close());
@@ -33,20 +34,22 @@ describe("SMS webhook persistence", () => {
     } as never);
   }
 
-  it("does not consume an RSVP message when its write fails, and accepts its retry", async () => {
+  it.each([["YES 1", "yes"], ["NO 1", "no"], ["MAYBE 1", "maybe"]])("retries %s after a failed write without consuming its receipt", async (body, status) => {
     harness.sqlite.exec(`CREATE TRIGGER fail_rsvp BEFORE INSERT ON rsvps
       BEGIN SELECT RAISE(ABORT, 'Temporary RSVP failure'); END;`);
-    await expect(receive("YES", "reply-1")).rejects.toThrow("Temporary RSVP failure");
+    await expect(receive(body, "reply-1")).rejects.toThrow("Temporary RSVP failure");
     expect(harness.all("SELECT * FROM webhook_deliveries")).toEqual([]);
     harness.sqlite.exec("DROP TRIGGER fail_rsvp");
-    expect((await receive("YES", "reply-1")).status).toBe(200);
-    expect(harness.get("SELECT status FROM rsvps")).toEqual({ status: "yes" });
+    expect((await receive(body, "reply-1")).status).toBe(200);
+    expect(harness.get("SELECT status FROM rsvps")).toEqual({ status });
+    expect(harness.all("SELECT delivery_id FROM webhook_deliveries")).toEqual([{ delivery_id: "reply-1" }]);
   });
 
-  it("ignores an old RSVP replay after a newer answer", async () => {
-    await receive("YES", "reply-1");
-    await receive("NO", "reply-2");
-    await receive("YES", "reply-1");
+  it.each(["YES 1", "MAYBE 1"])("ignores a replay of %s after a newer answer", async (body) => {
+    await receive(body, "reply-1");
+    expect(harness.get("SELECT status FROM rsvps")).toEqual({ status: body.startsWith("MAYBE") ? "maybe" : "yes" });
+    await receive("NO 1", "reply-2");
+    await receive(body, "reply-1");
     expect(harness.get("SELECT status FROM rsvps")).toEqual({ status: "no" });
   });
 

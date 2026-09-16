@@ -12,7 +12,7 @@ export async function persistSmsRsvp({
   deliveryId?: string;
   eventId: number;
   userId: number;
-  status: "yes" | "no";
+  status: "yes" | "no" | "maybe";
 }): Promise<boolean> {
   const upsert = db.prepare(`
     INSERT INTO rsvps (event_id, user_id, status, admin_override, updated_via_calendar)

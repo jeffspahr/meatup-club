@@ -1,13 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createHmac } from "node:crypto";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { action } from "./api.webhooks.sms";
 import { persistSmsRsvp } from "../lib/sms-rsvp.server";
 import { reserveWebhookDelivery } from "../lib/webhook-idempotency.server";
-import {
-  normalizePhoneNumber,
-  parseSmsReply,
-  parseTwilioOptOutType,
-  verifyTwilioSignature,
-} from "../lib/sms.server";
 import { createLoadContext } from "~/lib/router-context";
 
 vi.mock("../lib/webhook-idempotency.server", () => ({
@@ -18,93 +13,56 @@ vi.mock("../lib/sms-rsvp.server", () => ({
   persistSmsRsvp: vi.fn(),
 }));
 
-vi.mock("../lib/dateUtils", async () => {
-  const actual = await vi.importActual<typeof import("../lib/dateUtils")>("../lib/dateUtils");
-
-  return {
-    ...actual,
-    getAppTimeZone: vi.fn(() => "America/New_York"),
-    getTodayDateStringInTimeZone: vi.fn(() => "2026-05-10"),
-  };
-});
-
-vi.mock("../lib/sms.server", () => ({
-  buildSmsResponse: (message?: string) =>
-    new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response>${message ? `<Message>${message}</Message>` : ""}</Response>`,
-      {
-        headers: { "Content-Type": "text/xml" },
-      }
-    ),
-  normalizePhoneNumber: vi.fn(() => "+15551234567"),
-  parseSmsReply: vi.fn(() => "yes"),
-  parseTwilioOptOutType: vi.fn(() => null),
-  verifyTwilioSignature: vi.fn(() => true),
-}));
+const futureEvent = {
+  event_id: 42,
+  restaurant_name: "Test Steakhouse",
+  event_date: "2026-05-20",
+  event_time: "18:00",
+  status: "upcoming",
+};
 
 type MockDbOptions = {
-  user?: { id: number; sms_opt_in: number; sms_opt_out_at: string | null } | null;
+  user?: { id: number; status: string; sms_opt_in: number; sms_opt_out_at: string | null } | null;
   latestReminder?: { event_id: number } | null;
-  nextEvent?: { id: number } | null;
+  event?: typeof futureEvent | null;
 };
 
 function createMockDb({
-  user = { id: 7, sms_opt_in: 1, sms_opt_out_at: null },
+  user = { id: 7, status: "active", sms_opt_in: 1, sms_opt_out_at: null },
   latestReminder = { event_id: 42 },
-  nextEvent = { id: 91 },
+  event = futureEvent,
 }: MockDbOptions = {}) {
   const runCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
-
+  const readCalls: Array<{ sql: string; bindArgs: unknown[] }> = [];
   const prepare = vi.fn((sql: string) => {
     const normalizedSql = sql.replace(/\s+/g, " ").trim();
-
-    const firstForArgs = async (_bindArgs: unknown[]) => {
-      if (normalizedSql === "SELECT id, sms_opt_in, sms_opt_out_at FROM users WHERE phone_number = ?") {
-        return user;
-      }
-
-      if (
-        normalizedSql ===
-        "SELECT sr.event_id FROM sms_reminders sr JOIN events e ON e.id = sr.event_id WHERE sr.user_id = ? AND e.status = 'upcoming' AND e.event_date >= ? ORDER BY sr.sent_at DESC LIMIT 1"
-      ) {
-        return latestReminder;
-      }
-
-      if (
-        normalizedSql ===
-        "SELECT id FROM events WHERE status = 'upcoming' AND event_date >= ? ORDER BY event_date ASC LIMIT 1"
-      ) {
-        return nextEvent;
-      }
-
-      throw new Error(`Unexpected first() query: ${normalizedSql}`);
-    };
-
-    const runForArgs = async (bindArgs: unknown[]) => {
-      runCalls.push({ sql: normalizedSql, bindArgs });
-      return { meta: { changes: 1 } };
-    };
-
     return {
       bind: (...bindArgs: unknown[]) => ({
-        first: () => firstForArgs(bindArgs),
-        run: () => runForArgs(bindArgs),
+        first: async () => {
+          readCalls.push({ sql: normalizedSql, bindArgs });
+          if (normalizedSql.startsWith("SELECT id, status, sms_opt_in")) return user;
+          if (normalizedSql.startsWith("SELECT event_id FROM sms_reminders")) return latestReminder;
+          if (normalizedSql.startsWith("SELECT id AS event_id")) return event;
+          throw new Error(`Unexpected first() query: ${normalizedSql}`);
+        },
+        run: async () => {
+          runCalls.push({ sql: normalizedSql, bindArgs });
+          return { meta: { changes: 1 } };
+        },
       }),
     };
   });
-
   const batch = vi.fn(async (statements: Array<{ run: () => Promise<unknown> }>) =>
     await Promise.all(statements.map((statement) => statement.run()))
   );
-
-  return { prepare, batch, runCalls };
+  return { prepare, batch, runCalls, readCalls };
 }
 
 function createRequest({
   body = "YES",
   from = "+15551234567",
   sid = "SM123",
-  signature = "valid",
+  signature,
   optOutType,
 }: {
   body?: string;
@@ -121,36 +79,38 @@ function createRequest({
     formData.set("OptOutType", optOutType);
   }
 
-  return new Request("http://localhost/api/webhooks/sms", {
+  const url = "http://localhost/api/webhooks/sms";
+  const signedData = [...formData.keys()].sort().reduce(
+    (data, key) => `${data}${key}${formData.get(key)}`, url
+  );
+  return new Request(url, {
     method: "POST",
     headers: {
-      "X-Twilio-Signature": signature,
+      "X-Twilio-Signature": signature ?? createHmac("sha1", "token").update(signedData).digest("base64"),
     },
     body: formData,
   });
 }
 
 async function getSmsBody(response: Response) {
-  return await response.text();
+  return (await response.text()).replaceAll("&apos;", "'");
 }
 
 describe("api.webhooks.sms", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(verifyTwilioSignature).mockReturnValue(true);
-    vi.mocked(normalizePhoneNumber).mockReturnValue("+15551234567");
-    vi.mocked(parseSmsReply).mockReturnValue("yes");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue(null);
+    vi.spyOn(Date, "now").mockReturnValue(new Date("2026-05-10T16:00:00Z").getTime());
     vi.mocked(reserveWebhookDelivery).mockResolvedValue(true);
     vi.mocked(persistSmsRsvp).mockResolvedValue(true);
   });
 
+  afterEach(() => vi.restoreAllMocks());
+
   it("rejects requests with an invalid Twilio signature", async () => {
-    vi.mocked(verifyTwilioSignature).mockReturnValue(false);
     const db = createMockDb();
 
     const response = await action({
-      request: createRequest(),
+      request: createRequest({ signature: "invalid" }),
       context: createLoadContext({
           env: {
             DB: db,
@@ -187,11 +147,10 @@ describe("api.webhooks.sms", () => {
   });
 
   it("returns a helpful message when the sender phone number cannot be normalized", async () => {
-    vi.mocked(normalizePhoneNumber).mockReturnValue("");
     const db = createMockDb();
 
     const response = await action({
-      request: createRequest(),
+      request: createRequest({ from: "invalid" }),
       context: createLoadContext({
           env: {
             DB: db,
@@ -224,8 +183,6 @@ describe("api.webhooks.sms", () => {
   });
 
   it("does not enroll an unknown phone number that texts START", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
     const db = createMockDb({ user: null });
 
     const response = await action({
@@ -246,9 +203,8 @@ describe("api.webhooks.sms", () => {
   });
 
   it("opts the user out when they text STOP", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("opt_out");
     const db = createMockDb({
-      user: { id: 7, sms_opt_in: 1, sms_opt_out_at: null },
+      user: { id: 7, status: "active", sms_opt_in: 1, sms_opt_out_at: null },
     });
 
     const response = await action({
@@ -284,8 +240,6 @@ describe("api.webhooks.sms", () => {
   });
 
   it("syncs Advanced Opt-Out STOP without sending a duplicate reply", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("opt_out");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_out");
     const db = createMockDb();
 
     const response = await action({
@@ -322,10 +276,8 @@ describe("api.webhooks.sms", () => {
   });
 
   it("syncs Advanced Opt-Out START and restores application consent", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
     const db = createMockDb({
-      user: { id: 7, sms_opt_in: 0, sms_opt_out_at: "2026-03-01T10:00:00Z" },
+      user: { id: 7, status: "active", sms_opt_in: 0, sms_opt_out_at: "2026-03-01T10:00:00Z" },
     });
 
     const response = await action({
@@ -363,10 +315,8 @@ describe("api.webhooks.sms", () => {
   });
 
   it("enrolls a known prefilled number when the member texts START", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("opt_in");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
     const db = createMockDb({
-      user: { id: 7, sms_opt_in: 0, sms_opt_out_at: null },
+      user: { id: 7, status: "active", sms_opt_in: 0, sms_opt_out_at: null },
     });
 
     await action({
@@ -400,8 +350,6 @@ describe("api.webhooks.sms", () => {
   });
 
   it("keeps YES as an RSVP command if Twilio misclassifies it as START", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("yes");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("opt_in");
     const db = createMockDb();
 
     const response = await action({
@@ -422,12 +370,11 @@ describe("api.webhooks.sms", () => {
       userId: 7,
       status: "yes",
     });
-    expect(await getSmsBody(response)).toContain("RSVP is set to Yes");
+    expect(await getSmsBody(response)).toContain("(event 42) is set to Yes");
     expect(db.runCalls).toEqual([]);
   });
 
   it("returns instructions for help and unrecognized replies", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue(null);
     const db = createMockDb();
 
     const response = await action({
@@ -441,13 +388,11 @@ describe("api.webhooks.sms", () => {
       params: {},
     } as never);
 
-    expect(await getSmsBody(response)).toContain("Reply YES or NO to RSVP");
+    expect(await getSmsBody(response)).toContain("Reply YES, NO or MAYBE followed by the event number");
     expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
 
   it("does not duplicate Twilio's Advanced Opt-Out HELP response", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("help");
-    vi.mocked(parseTwilioOptOutType).mockReturnValue("help");
     const db = createMockDb();
 
     const response = await action({
@@ -469,7 +414,7 @@ describe("api.webhooks.sms", () => {
 
   it("refuses to RSVP when SMS reminders are disabled on the account", async () => {
     const db = createMockDb({
-      user: { id: 7, sms_opt_in: 0, sms_opt_out_at: null },
+      user: { id: 7, status: "active", sms_opt_in: 0, sms_opt_out_at: null },
     });
 
     const response = await action({
@@ -489,7 +434,7 @@ describe("api.webhooks.sms", () => {
 
   it("refuses to RSVP when the account is already opted out", async () => {
     const db = createMockDb({
-      user: { id: 7, sms_opt_in: 1, sms_opt_out_at: "2026-03-01T10:00:00Z" },
+      user: { id: 7, status: "active", sms_opt_in: 1, sms_opt_out_at: "2026-03-01T10:00:00Z" },
     });
 
     const response = await action({
@@ -508,10 +453,8 @@ describe("api.webhooks.sms", () => {
   });
 
   it("uses the latest SMS reminder event for YES replies", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("yes");
     const db = createMockDb({
       latestReminder: { event_id: 42 },
-      nextEvent: { id: 91 },
     });
 
     const response = await action({
@@ -533,42 +476,12 @@ describe("api.webhooks.sms", () => {
       userId: 7,
       status: "yes",
     });
-    expect(await getSmsBody(response)).toContain("RSVP is set to Yes");
-  });
-
-  it("falls back to the next upcoming event when there is no reminder match", async () => {
-    vi.mocked(parseSmsReply).mockReturnValue("no");
-    const db = createMockDb({
-      latestReminder: null,
-      nextEvent: { id: 91 },
-    });
-
-    const response = await action({
-      request: createRequest({ body: "NO" }),
-      context: createLoadContext({
-          env: {
-            DB: db,
-            TWILIO_AUTH_TOKEN: "token",
-            APP_TIMEZONE: "America/New_York",
-          },
-        } as never) as never,
-      params: {},
-    } as never);
-
-    expect(persistSmsRsvp).toHaveBeenCalledWith({
-      db,
-      deliveryId: "SM123",
-      eventId: 91,
-      userId: 7,
-      status: "no",
-    });
-    expect(await getSmsBody(response)).toContain("RSVP is set to No");
+    expect(await getSmsBody(response)).toContain("(event 42) is set to Yes");
   });
 
   it("returns a clear message when no upcoming event can be found", async () => {
     const db = createMockDb({
       latestReminder: null,
-      nextEvent: null,
     });
 
     const response = await action({
@@ -583,7 +496,91 @@ describe("api.webhooks.sms", () => {
       params: {},
     } as never);
 
-    expect(await getSmsBody(response)).toContain("couldn't find an upcoming event");
+    expect(await getSmsBody(response)).toContain("couldn't find an SMS invitation");
     expect(persistSmsRsvp).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["YES 42", "yes"], ["NO 42", "no"], ["MAYBE 42", "maybe"],
+  ])("records %s for the event in the sender's invitation", async (body, status) => {
+    const db = createMockDb();
+    const response = await action({
+      request: createRequest({ body }),
+      context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+      params: {},
+    } as never);
+    expect(persistSmsRsvp).toHaveBeenCalledWith({ db, deliveryId: "SM123", eventId: 42, userId: 7, status });
+    expect(db.readCalls).toContainEqual({
+      sql: "SELECT event_id FROM sms_reminders WHERE user_id = ? AND event_id = ? LIMIT 1",
+      bindArgs: [7, 42],
+    });
+    expect(await getSmsBody(response)).toContain("Test Steakhouse (event 42)");
+  });
+
+  it.each(["YES 0", "YES -42", "NO 42.5", "MAYBE 4e2", "YES 9007199254740992", "YES 42 43"])(
+    "rejects malformed event number in %s without falling back to another event", async (body) => {
+      const db = createMockDb();
+      const response = await action({
+        request: createRequest({ body }),
+        context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+        params: {},
+      } as never);
+      expect(await getSmsBody(response)).toContain("Use the event number from your invitation");
+      expect(persistSmsRsvp).not.toHaveBeenCalled();
+      expect(db.readCalls).toHaveLength(1);
+    }
+  );
+
+  it("rejects an explicit event that the sender was never invited to", async () => {
+    const db = createMockDb({ latestReminder: null });
+    const response = await action({
+      request: createRequest({ body: "YES 99" }),
+      context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+      params: {},
+    } as never);
+    expect(await getSmsBody(response)).toContain("couldn't find an SMS invitation");
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
+    expect(db.readCalls).toHaveLength(2);
+    expect(db.readCalls[1].bindArgs).toEqual([7, 99]);
+  });
+
+  it.each([
+    { ...futureEvent, status: "cancelled" },
+    { ...futureEvent, event_date: "2026-05-09" },
+    { ...futureEvent, event_date: "2026-05-10", event_time: "11:00" },
+    null,
+  ])("rejects an unavailable event instead of applying the RSVP elsewhere: %j", async (event) => {
+    const db = createMockDb({ event });
+    const response = await action({
+      request: createRequest({ body: "YES" }),
+      context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+      params: {},
+    } as never);
+    expect(await getSmsBody(response)).toContain("no longer accepting RSVPs");
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
+    expect(db.readCalls[1].sql).toBe("SELECT event_id FROM sms_reminders WHERE user_id = ? ORDER BY sent_at DESC, id DESC LIMIT 1");
+    expect(db.readCalls).toHaveLength(3);
+  });
+
+  it("rejects RSVP commands from an inactive member", async () => {
+    const db = createMockDb({ user: { id: 7, status: "inactive", sms_opt_in: 1, sms_opt_out_at: null } });
+    const response = await action({
+      request: createRequest({ body: "MAYBE 42" }),
+      context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+      params: {},
+    } as never);
+    expect(await getSmsBody(response)).toContain("account must be active");
+    expect(persistSmsRsvp).not.toHaveBeenCalled();
+  });
+
+  it("does not confirm an RSVP when persistence fails", async () => {
+    vi.mocked(persistSmsRsvp).mockRejectedValueOnce(new Error("Database write failed"));
+    const db = createMockDb();
+    await expect(action({
+      request: createRequest({ body: "MAYBE 42" }),
+      context: createLoadContext({ env: { DB: db, TWILIO_AUTH_TOKEN: "token" } } as never),
+      params: {},
+    } as never)).rejects.toThrow("Database write failed");
+  });
+
 });

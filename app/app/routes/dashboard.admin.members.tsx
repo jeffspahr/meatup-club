@@ -110,7 +110,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const actionType = formData.get('_action');
 
   if (actionType === 'invite') {
-    const email = formData.get('email');
+    const rawEmail = formData.get('email');
+    const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
     const name = formData.get('name');
     const templateId = formData.get('template_id');
     const rawPhone = String(formData.get('phone_number') || '').trim();
@@ -127,36 +128,30 @@ export async function action({ request, context }: Route.ActionArgs) {
     try {
       // Check if user already exists
       const existingUser = await db
-        .prepare('SELECT id FROM users WHERE email = ?')
+        .prepare('SELECT id, status FROM users WHERE email = ?')
         .bind(email)
-        .first();
+        .first<{ id: number; status: string }>();
 
-      if (existingUser) {
+      if (existingUser && existingUser.status !== 'pending') {
         return { error: 'User with this email already exists' };
       }
 
       if (normalizedPhone) {
         const existingPhoneUser = await db
-          .prepare('SELECT id FROM users WHERE phone_number = ?')
-          .bind(normalizedPhone)
+            .prepare('SELECT id FROM users WHERE phone_number = ? AND id != ?')
+            .bind(normalizedPhone, existingUser?.id ?? 0)
           .first();
         if (existingPhoneUser) {
           return { error: 'That phone number is already linked to another account.' };
         }
       }
 
-      // Create invited user
-      const result = await db
-        .prepare('INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)')
-        .bind(email, name || null, 'invited', normalizedPhone)
-        .run();
-
-      // Send invitation email if Resend API key is configured
+      // Validate email configuration before creating or promoting the member.
       const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;
 
+      let template;
       if (resendApiKey) {
         // Fetch the selected template (or default if none selected)
-        let template;
         if (templateId) {
           template = await db
             .prepare('SELECT * FROM email_templates WHERE id = ?')
@@ -171,12 +166,30 @@ export async function action({ request, context }: Route.ActionArgs) {
         if (!template) {
           return { error: 'Email template not found' };
         }
+      }
 
+      // A person may have signed in before their invitation was issued.
+      if (existingUser) {
+        const result = await db
+          .prepare("UPDATE users SET status = 'invited', name = COALESCE(?, name), phone_number = COALESCE(?, phone_number) WHERE id = ? AND status = 'pending'")
+          .bind(name || null, normalizedPhone, existingUser.id)
+          .run();
+        if (result.meta.changes === 0) {
+          return { error: 'Member status changed. Please refresh and try again.' };
+        }
+      } else {
+        await db
+          .prepare('INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)')
+          .bind(email, name || null, 'invited', normalizedPhone)
+          .run();
+      }
+
+      if (resendApiKey && template) {
         const url = new URL(request.url);
-        const acceptLink = `${url.origin}/accept-invite?email=${encodeURIComponent(email as string)}`;
+        const acceptLink = `${url.origin}/accept-invite?email=${encodeURIComponent(email)}`;
 
         const emailResult = await sendInviteEmail({
-          to: email as string,
+          to: email,
           inviteeName: (name as string) || null,
           inviterName: admin.name || admin.email,
           acceptLink,
@@ -280,34 +293,18 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      // Delete user's votes and suggestions first (cascade)
-      await db
-        .prepare('DELETE FROM restaurant_votes WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      await db
-        .prepare('DELETE FROM date_votes WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      // Note: Restaurants are global and persist even when user is deleted
-      // The created_by field will remain to preserve history
-
-      await db
-        .prepare('DELETE FROM date_suggestions WHERE user_id = ?')
-        .bind(user_id)
-        .run();
-
-      // Delete the user
-      await db
-        .prepare('DELETE FROM users WHERE id = ?')
-        .bind(user_id)
-        .run();
+      // History can prevent the final user deletion. Roll back participation
+      // changes too, including other members' votes on this user's suggestions.
+      await db.batch([
+        db.prepare('DELETE FROM restaurant_votes WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM date_votes WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM date_suggestions WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM users WHERE id = ?').bind(user_id),
+      ]);
 
       return redirect('/dashboard/admin/members');
     } catch (err) {
-      return { error: 'Failed to remove member' };
+      return { error: 'Failed to remove member. No changes were saved. Members with linked activity or authored records cannot be deleted.' };
     }
   }
 

@@ -15,11 +15,14 @@ import {
   recordSmsDeliveryStatus,
   recordPollSmsDeliveryStatus,
   sendAdhocSmsReminder,
+  sendNewEventSmsNotification,
   sendPollOpenSmsNotification,
   sendScheduledSmsReminders,
   sendSms,
   verifyTwilioSignature,
 } from "./sms.server";
+
+import { createSqliteD1Harness } from "../../test/support/sqlite-d1";
 
 const TEST_ACCOUNT_SID = `AC${"1".repeat(32)}`;
 
@@ -115,8 +118,15 @@ describe("parseSmsReply", () => {
     expect(parseSmsReply("unstop")).toBe("opt_in");
   });
 
+  it("parses explicit event replies, including maybe", () => {
+    expect(parseSmsReply("YES 12")).toBe("yes");
+    expect(parseSmsReply("NO 12")).toBe("no");
+    expect(parseSmsReply("MAYBE 12")).toBe("maybe");
+    expect(parseSmsReply("m")).toBe("maybe");
+  });
+
   it("returns null for unknown text", () => {
-    expect(parseSmsReply("maybe")).toBeNull();
+    expect(parseSmsReply("hello")).toBeNull();
   });
 });
 
@@ -197,7 +207,7 @@ describe("sms delivery and reminder flows", () => {
     expect(message).toContain("Details: https://meatup.club/dashboard");
     expect(message).not.toContain("/dashboard/events");
     expect(message).toContain(
-      "Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out."
+      "Reply YES 1, NO 1, or MAYBE 1 to RSVP. Reply HELP for help. Reply STOP to opt out."
     );
   });
 
@@ -836,5 +846,141 @@ describe("sms delivery and reminder flows", () => {
         "2026-08-22T18:00:00.000Z",
       ],
     }));
+  });
+});
+
+describe("new event notifications", () => {
+  const event = {
+    id: 91,
+    restaurant_name: "Prime Steakhouse",
+    event_date: "2099-04-03",
+    event_time: "18:00",
+  };
+  const env = {
+    TWILIO_ACCOUNT_SID: TEST_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: "secret",
+    TWILIO_FROM_NUMBER: "+15557654321",
+    APP_TIMEZONE: "UTC",
+  };
+  let harness: ReturnType<typeof createSqliteD1Harness>;
+
+  beforeEach(() => {
+    harness = createSqliteD1Harness();
+    harness.insert(
+      "INSERT INTO events (id, restaurant_name, event_date, event_time, status) VALUES (?, ?, ?, ?, 'upcoming')",
+      event.id, event.restaurant_name, event.event_date, event.event_time
+    );
+    // All RSVP states, then inactive, opted-out, non-consenting and phoneless members.
+    for (let id = 1; id <= 8; id += 1) {
+      harness.insert(
+        "INSERT INTO users (id, email, status, phone_number, sms_opt_in, sms_opt_out_at) VALUES (?, ?, ?, ?, ?, ?)",
+        id, `member${id}@example.com`, id === 5 ? "pending" : "active",
+        id === 8 ? null : `+1555000000${id}`, id === 7 ? 0 : 1,
+        id === 6 ? "2026-01-01" : null
+      );
+    }
+    for (const [index, status] of ["yes", "no", "maybe"].entries()) {
+      harness.insert("INSERT INTO rsvps (event_id, user_id, status) VALUES (?, ?, ?)", event.id, index + 1, status);
+    }
+    let messageNumber = 0;
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      text: async () => JSON.stringify({ sid: `SM${String(++messageNumber).padStart(32, "0")}`, status: "queued" }),
+      statusText: "OK",
+    } as Response)));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    harness.sqlite.close();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("notifies all consenting active members regardless of RSVP and suppresses repeat announcements", async () => {
+    expect(await sendNewEventSmsNotification({ db: harness.db, env, event })).toEqual({ sent: 4, errors: [] });
+    expect(harness.all("SELECT user_id, reminder_type FROM sms_reminders ORDER BY user_id")).toEqual(
+      [1, 2, 3, 4].map(user_id => ({ user_id, reminder_type: "new_event" }))
+    );
+    expect(harness.all("SELECT user_id, status FROM sms_deliveries ORDER BY user_id")).toEqual(
+      [1, 2, 3, 4].map(user_id => ({ user_id, status: "queued" }))
+    );
+    for (const [, init] of vi.mocked(global.fetch).mock.calls) {
+      const body = new URLSearchParams(String(init?.body));
+      expect(body.get("Body")).toContain("New event on Apr 3 at 6:00 PM at Prime Steakhouse.");
+      expect(body.get("Body")).toContain("Reply YES 91, NO 91, or MAYBE 91 to RSVP.");
+      expect(body.get("StatusCallback")).toMatch(/\/api\/webhooks\/sms-status\?delivery_id=/);
+    }
+    expect(await sendNewEventSmsNotification({ db: harness.db, env, event })).toEqual({ sent: 0, errors: [] });
+    expect(global.fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("defaults on-demand messages to no RSVP and supports explicitly selecting all", async () => {
+    expect(await sendAdhocSmsReminder({ db: harness.db, env, event })).toEqual({ sent: 1, errors: [] });
+    expect(harness.all("SELECT user_id FROM sms_reminders")).toEqual([{ user_id: 4 }]);
+    expect(await sendAdhocSmsReminder({ db: harness.db, env, event, recipientScope: "all" })).toEqual({ sent: 4, errors: [] });
+  });
+
+  it("tracks configuration failures and permits a successful retry", async () => {
+    const result = await sendNewEventSmsNotification({ db: harness.db, env: {}, event });
+    expect(result.sent).toBe(0);
+    expect(result.errors).toHaveLength(4);
+    expect(harness.all("SELECT status, error_code FROM sms_deliveries")).toEqual(
+      Array.from({ length: 4 }, () => ({ status: "failed", error_code: "CONFIG_MISSING" }))
+    );
+    expect(harness.all("SELECT * FROM sms_reminders")).toEqual([]);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(await sendNewEventSmsNotification({ db: harness.db, env, event })).toEqual({ sent: 4, errors: [] });
+  });
+
+  it("does not send past or invalid events and safely reports recipient selection failures", async () => {
+    for (const event_date of ["2020-01-01", "2099-99-99"]) {
+      const result = await sendNewEventSmsNotification({ db: harness.db, env, event: { ...event, event_date } });
+      expect(result.sent).toBe(0);
+    }
+    expect(global.fetch).not.toHaveBeenCalled();
+    const failingDb = { prepare: vi.fn(() => { throw new Error("private database error"); }) };
+    expect(await sendNewEventSmsNotification({ db: failingDb, env, event })).toEqual({
+      sent: 0,
+      errors: ["SMS notifications could not be sent. Retry from admin events."],
+    });
+  });
+
+  it("continues after a recipient delivery-tracking failure", async () => {
+    harness.sqlite.exec(`CREATE TRIGGER fail_one_sms_delivery BEFORE INSERT ON sms_deliveries
+      WHEN NEW.user_id = 2 BEGIN SELECT RAISE(FAIL, 'database unavailable'); END;`);
+    expect(await sendNewEventSmsNotification({ db: harness.db, env, event })).toEqual({
+      sent: 3,
+      errors: ["Member 2: SMS send or delivery tracking failed."],
+    });
+    expect(harness.all("SELECT user_id FROM sms_reminders ORDER BY user_id")).toEqual([
+      { user_id: 1 }, { user_id: 3 }, { user_id: 4 },
+    ]);
+  });
+
+  it("limits concurrent provider requests to five while attempting every recipient", async () => {
+    for (let id = 9; id <= 16; id += 1) {
+      harness.insert("INSERT INTO users (id, email, status, phone_number, sms_opt_in) VALUES (?, ?, 'active', ?, 1)",
+        id, `member${id}@example.com`, `+155500000${id}`);
+    }
+    let active = 0;
+    let maxActive = 0;
+    let messageNumber = 0;
+    vi.mocked(global.fetch).mockImplementation(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      active -= 1;
+      return {
+        ok: true,
+        status: 201,
+        text: async () => JSON.stringify({ sid: `SM${String(++messageNumber).padStart(32, "0")}`, status: "queued" }),
+        statusText: "OK",
+      } as Response;
+    });
+    expect(await sendNewEventSmsNotification({ db: harness.db, env, event })).toEqual({ sent: 12, errors: [] });
+    expect(global.fetch).toHaveBeenCalledTimes(12);
+    expect(maxActive).toBe(5);
   });
 });
