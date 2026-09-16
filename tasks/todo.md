@@ -68,3 +68,19 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+
+## Session identity after account replacement — 2026-09-16
+
+### Acceptance criteria
+A signed session for a deleted account must never authenticate a later account with the same email. Valid sessions for the current account must continue working.
+
+- [x] Reproduce account replacement with real signed cookies and the canonical SQLite schema (old cookie incorrectly returned the replacement user).
+- [x] Require the loaded user ID to match the session's original user ID.
+- [x] Verify focused auth tests, full coverage, typecheck and lint.
+
+### Session results and audit boundaries
+- getUser now rejects cookies whose original account ID differs from the current row sharing that email. Valid replacement-account sessions still authenticate.
+- Verification: 23 focused auth tests; full 707 tests in 91 files pass with coverage gates (80.93% statements, 71.87% branches), typecheck, lint and diff checks pass.
+- Reviewed auth/session/OAuth, invitation, member/profile actions, and Places API authorization. Comment runtime modules are absent from current main (only legacy schema remains). No production writes or account changes were made.
+- Follow-up leads outside these patches: invitation creation precedes template validation; invitation email lookup remains case-sensitive; forced reauthentication uses a global flag rather than per-session revocation. These need separately scoped regressions and fixes.

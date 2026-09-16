@@ -54,3 +54,6 @@
 
 - Failure mode: tests embedded calendar bodies directly in Resend webhook payloads and used `PARTSTAT:ACCEPTED`, concealing missing receiving-API retrieval and incorrect ICS parameter parsing. Detection: realistic metadata-only webhooks and folded `ATTENDEE;PARTSTAT=...` replies failed 11 regressions. Prevention: test provider-documented payload shapes and actual protocol syntax, including attachments and localized subjects.
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
+
+
+- 2026-09-16: Failure mode: session lookup used email alone and ignored its signed user ID, so a deleted account's cookie authenticated a later account reusing the email. Detection: a real-cookie SQLite lifecycle regression returned the replacement user. Prevention: bind sessions to immutable account IDs as well as email and test deletion/recreation, not only ordinary login.
