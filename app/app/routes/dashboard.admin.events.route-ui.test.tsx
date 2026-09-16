@@ -523,7 +523,7 @@ describe("dashboard.admin.events loader and UI", () => {
     expect(db.runCalls).toContainEqual(
       expect.objectContaining({
         sql: expect.stringContaining("UPDATE events"),
-        bindArgs: ["Updated Grill", "500 Market St", "2026-06-15", "18:00", "cancelled", 5, 42],
+        bindArgs: ["Updated Grill", "500 Market St", "2026-06-15", "18:00", "cancelled", 5, 42, 4],
       })
     );
     expect(queue.sendBatch).toHaveBeenCalledWith([
@@ -557,8 +557,8 @@ describe("dashboard.admin.events loader and UI", () => {
     ]);
     expect(db.runCalls).toContainEqual(
       expect.objectContaining({
-        sql: "DELETE FROM events WHERE id = ?",
-        bindArgs: [42],
+        sql: "DELETE FROM events WHERE id = ? AND COALESCE(calendar_sequence, 0) = ?",
+        bindArgs: [42, 4],
       })
     );
   });

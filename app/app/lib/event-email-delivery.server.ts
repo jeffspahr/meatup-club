@@ -473,7 +473,7 @@ export async function stageEventUpdateDeliveriesForUserIds(
   );
 }
 
-function buildStageEventUpdateDeliveriesStatementQuery(userIds: number[]): string {
+function buildStageEventUpdateDeliveriesStatementQuery(userIds: number[], onlyIfEventUpdated = false): string {
   const userPlaceholders = userIds.map(() => "?").join(", ");
 
   return `
@@ -508,6 +508,7 @@ function buildStageEventUpdateDeliveriesStatementQuery(userIds: number[]): strin
     LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = ?
     WHERE u.status = 'active'
       AND u.id IN (${userPlaceholders})
+      ${onlyIfEventUpdated ? 'AND changes() > 0' : ''}
     ORDER BY u.id ASC
   `;
 }
@@ -535,7 +536,7 @@ function buildStageEventUpdateDeliveriesStatementBindings(params: {
   ];
 }
 
-function buildStageEventUpdateDeliveriesForActiveMembersStatementQuery(): string {
+function buildStageEventUpdateDeliveriesForActiveMembersStatementQuery(onlyIfEventUpdated = false): string {
   return `
     INSERT INTO event_email_deliveries (
       batch_id,
@@ -567,6 +568,7 @@ function buildStageEventUpdateDeliveriesForActiveMembersStatementQuery(): string
     FROM users u
     LEFT JOIN rsvps r ON r.user_id = u.id AND r.event_id = ?
     WHERE u.status = 'active'
+      ${onlyIfEventUpdated ? 'AND changes() > 0' : ''}
     ORDER BY u.id ASC
   `;
 }
@@ -597,12 +599,14 @@ export function buildStageEventUpdateDeliveriesStatement(
     details: EventEmailDetails;
     userIds: number[];
     calendarSequence: number;
+    // Requires the event UPDATE immediately before this statement in the same batch.
+    onlyIfEventUpdated?: boolean;
   }
 ): D1PreparedStatement {
   const uniqueUserIds = getUniquePositiveNumbers(params.userIds);
 
   return db
-    .prepare(buildStageEventUpdateDeliveriesStatementQuery(uniqueUserIds))
+    .prepare(buildStageEventUpdateDeliveriesStatementQuery(uniqueUserIds, params.onlyIfEventUpdated))
     .bind(
       ...buildStageEventUpdateDeliveriesStatementBindings({
         batchId: params.batchId,
@@ -619,10 +623,12 @@ export function buildStageEventUpdateDeliveriesForActiveMembersStatement(
     batchId: string;
     details: EventEmailDetails;
     calendarSequence: number;
+    // Requires the event UPDATE immediately before this statement in the same batch.
+    onlyIfEventUpdated?: boolean;
   }
 ): D1PreparedStatement {
   return db
-    .prepare(buildStageEventUpdateDeliveriesForActiveMembersStatementQuery())
+    .prepare(buildStageEventUpdateDeliveriesForActiveMembersStatementQuery(params.onlyIfEventUpdated))
     .bind(
       ...buildStageEventUpdateDeliveriesForActiveMembersStatementBindings(params)
     );
@@ -692,6 +698,10 @@ export function buildStageEventCancellationDeliveriesForActiveMembersStatement(
   params: {
     batchId: string;
     details: EventCancellationEmailDetails;
+    // Requires the event UPDATE immediately before this statement in the same batch.
+    onlyIfEventUpdated?: boolean;
+    // Deletion stages cancellation before removing the matching event version.
+    expectedCalendarSequence?: number;
   }
 ): D1PreparedStatement {
   return db
@@ -726,6 +736,8 @@ export function buildStageEventCancellationDeliveriesForActiveMembersStatement(
           'cancel:' || ? || ':' || ? || ':' || u.id
         FROM users u
         WHERE u.status = 'active'
+          ${params.onlyIfEventUpdated ? 'AND changes() > 0' : ''}
+          ${params.expectedCalendarSequence === undefined ? '' : 'AND EXISTS (SELECT 1 FROM events WHERE id = ? AND COALESCE(calendar_sequence, 0) = ?)'}
       `
     )
     .bind(
@@ -737,7 +749,8 @@ export function buildStageEventCancellationDeliveriesForActiveMembersStatement(
       params.details.eventTime,
       params.details.sequence,
       params.details.eventId,
-      params.details.sequence
+      params.details.sequence,
+      ...(params.expectedCalendarSequence === undefined ? [] : [params.details.eventId, params.expectedCalendarSequence])
     );
 }
 

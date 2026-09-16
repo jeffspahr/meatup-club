@@ -190,10 +190,12 @@ export async function runUpdateEventAction(
         deliveryType === "cancel"
           ? buildStageEventCancellationDeliveriesForActiveMembersStatement(db, {
               batchId: updateBatchId,
+              onlyIfEventUpdated: true,
               details: { ...details, sequence: nextSequence },
             })
           : buildStageEventUpdateDeliveriesForActiveMembersStatement(db, {
               batchId: updateBatchId,
+              onlyIfEventUpdated: true,
               details,
               calendarSequence: nextSequence,
             }),
@@ -202,6 +204,10 @@ export async function runUpdateEventAction(
     }
 
     const updateResults = await db.batch(updateStatements);
+
+    if (updateResults[0].meta.changes === 0) {
+      return { error: "This event changed while you were saving. Please reload and try again." };
+    }
 
     if (updateBatchId) {
       stagedUpdateBatch = toStagedEventEmailBatchFromQueryResult(

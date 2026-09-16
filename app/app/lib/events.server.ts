@@ -226,7 +226,7 @@ export function buildUpdateEventStatement(
           event_time = ?,
           status = ?,
           calendar_sequence = ?
-      WHERE id = ?
+      WHERE id = ? AND COALESCE(calendar_sequence, 0) = ?
     `)
     .bind(
       input.restaurantName,
@@ -235,20 +235,23 @@ export function buildUpdateEventStatement(
       input.eventTime,
       input.status,
       calendarSequence,
-      eventId
+      eventId,
+      calendarSequence - 1
     );
 }
 
 export function buildDeleteEventStatement(
   db: D1Database,
-  eventId: number
+  eventId: number,
+  expectedCalendarSequence?: number
 ): D1PreparedStatement {
   return db
     .prepare(`
       DELETE FROM events
       WHERE id = ?
+        ${expectedCalendarSequence === undefined ? "" : "AND COALESCE(calendar_sequence, 0) = ?"}
     `)
-    .bind(eventId);
+    .bind(...(expectedCalendarSequence === undefined ? [eventId] : [eventId, expectedCalendarSequence]));
 }
 
 export async function incrementEventCalendarSequence(
