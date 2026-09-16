@@ -83,3 +83,10 @@ Acceptance: creating a poll closes the previous active poll and creates its repl
 Working notes: Cloudflare documents D1 batch rollback on statement failure at https://developers.cloudflare.com/d1/worker-api/d1-database/#batch.
 
 Results: poll replacement now runs in one D1 batch, so the original poll closure rolls back if creation fails. The real SQLite failure test reproduced the original closed-without-replacement behavior; regressions cover successful creation, rollback, retry, vote preservation, and member authorization. All 717 tests, typecheck, lint, and diff checks passed under Node 24.
+
+### API creation follow-up
+Acceptance: the API create action shares the admin action's atomic replacement behavior and still returns the inserted poll.
+- [x] Reproduce API insert failure against SQLite, batch close/create, and verify rollback/retry plus returned ID.
+- [x] Run focused/full tests, typecheck, lint and record results.
+
+API results: insertion failure originally closed the current poll; the route now batches closure and replacement, returns a controlled 500 on failure, and reads the new poll using the insert result ID. Four real SQLite API tests cover rollback/retry, success with returned ID, votes, authorization, and required title. All 17 focused tests, all 707 tests in this isolated branch, typecheck, lint and diff checks passed under Node 24.

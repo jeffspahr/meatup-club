@@ -57,3 +57,5 @@
 
 
 - 2026-09-16: Failure mode: replacing the active poll used independent close/create writes, so insertion failure disabled voting with no replacement. Detection: a SQLite trigger rejecting the insert left the old poll closed. Prevention: group dependent state transitions in a D1 batch and prove rollback plus retry with a real database failure.
+
+- 2026-09-16: Failure mode: the admin poll-creation transaction fix left the equivalent API action non-atomic. Detection: the same SQLite insert-failure trigger closed the API's current poll without a replacement. Prevention: find all mutation entry points for a business operation and exercise the same rollback invariant at each route boundary.
