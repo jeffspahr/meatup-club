@@ -70,6 +70,7 @@ interface EventEmailDeliveryRow {
   status: EventEmailDeliveryStatus;
   provider_message_id: string | null;
   attempt_count: number;
+  created_at: string;
 }
 
 export interface StagedEventEmailBatch {
@@ -923,7 +924,8 @@ export async function deliverEventEmailById(params: {
           dedupe_key,
           status,
           provider_message_id,
-          attempt_count
+          attempt_count,
+          created_at
         FROM event_email_deliveries
         WHERE id = ?
       `
@@ -982,6 +984,7 @@ export async function deliverEventEmailById(params: {
       userEmail: delivery.recipient_email,
       resendApiKey: params.resendApiKey,
       idempotencyKey: delivery.dedupe_key,
+      calendarTimestamp: new Date(delivery.created_at.replace(" ", "T") + "Z"),
     });
   } else if (delivery.delivery_type === "update") {
     result = await sendEventUpdateEmail({
@@ -995,6 +998,7 @@ export async function deliverEventEmailById(params: {
       sequence: delivery.calendar_sequence,
       resendApiKey: params.resendApiKey,
       idempotencyKey: delivery.dedupe_key,
+      calendarTimestamp: new Date(delivery.created_at.replace(" ", "T") + "Z"),
     });
   } else {
     result = await sendEventCancellationEmail({
@@ -1007,6 +1011,7 @@ export async function deliverEventEmailById(params: {
       sequence: delivery.calendar_sequence,
       resendApiKey: params.resendApiKey,
       idempotencyKey: delivery.dedupe_key,
+      calendarTimestamp: new Date(delivery.created_at.replace(" ", "T") + "Z"),
     });
   }
 
