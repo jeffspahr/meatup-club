@@ -95,7 +95,13 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  const batch = vi.fn(async (statements: Array<{ run: () => Promise<unknown> }>) => {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  });
+
+  return { prepare, runCalls, batch };
 }
 
 function createRequest(formEntries: Record<string, string>) {
@@ -195,7 +201,7 @@ describe("dashboard._index poll actions — suggest_date", () => {
       }),
       expect.objectContaining({
         sql: expect.stringContaining("INSERT INTO date_votes"),
-        bindArgs: [1, 777, 123],
+        bindArgs: [1, 123],
       }),
     ]);
     expect(logActivity).toHaveBeenCalledWith(
@@ -289,10 +295,6 @@ describe("dashboard._index poll actions — delete_date", () => {
     } as never);
     expect(result).toEqual({ ok: true });
     expect(db.runCalls).toEqual([
-      expect.objectContaining({
-        sql: expect.stringContaining("DELETE FROM date_votes"),
-        bindArgs: ["10"],
-      }),
       expect.objectContaining({
         sql: expect.stringContaining("DELETE FROM date_suggestions"),
         bindArgs: ["10"],

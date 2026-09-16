@@ -406,17 +406,16 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { error: 'This date has already been added for the current poll' };
       }
 
-      const result = await db
-        .prepare('INSERT INTO date_suggestions (user_id, poll_id, suggested_date) VALUES (?, ?, ?)')
-        .bind(user.id, activePoll.id, suggestedDate)
-        .run();
-
-      if (result.meta.last_row_id) {
-        await db
-          .prepare('INSERT INTO date_votes (poll_id, date_suggestion_id, user_id) VALUES (?, ?, ?)')
-          .bind(activePoll.id, result.meta.last_row_id, user.id)
-          .run();
-      }
+      // The nomination and its automatic vote must either both persist or both
+      // roll back. The second statement uses the ID inserted in this D1 batch.
+      await db.batch([
+        db
+          .prepare('INSERT INTO date_suggestions (user_id, poll_id, suggested_date) VALUES (?, ?, ?)')
+          .bind(user.id, activePoll.id, suggestedDate),
+        db
+          .prepare('INSERT INTO date_votes (poll_id, date_suggestion_id, user_id) VALUES (?, last_insert_rowid(), ?)')
+          .bind(activePoll.id, user.id),
+      ]);
 
       await logActivity({
         db,
@@ -509,11 +508,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         return { error: 'Permission denied' };
       }
 
-      await db
-        .prepare('DELETE FROM date_votes WHERE date_suggestion_id = ?')
-        .bind(suggestionId)
-        .run();
-
+      // The foreign key cascades vote deletion in the same atomic statement.
       await db
         .prepare('DELETE FROM date_suggestions WHERE id = ?')
         .bind(suggestionId)
