@@ -102,8 +102,10 @@ export function RestaurantAutocomplete({
         `/api/places/details?placeId=${encodeURIComponent(place.id)}`
       );
       const placeDetails = (await response.json()) as PlaceDetails;
-      onSelect(placeDetails);
       onChange(placeDetails.name);
+      // Commit the selection after updating the search text: text changes may
+      // invalidate a previously selected restaurant in the parent form.
+      onSelect(placeDetails);
     } catch (error) {
       console.error("Failed to fetch place details:", error);
     } finally {

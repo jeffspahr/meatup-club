@@ -396,6 +396,10 @@ export function buildStageEventInviteDeliveriesForLastInsertedEventStatement(
   return db
     .prepare(
       `
+        -- Capture the event ID before inserting delivery rows changes last_insert_rowid().
+        WITH created_event AS MATERIALIZED (
+          SELECT last_insert_rowid() AS id
+        )
         INSERT INTO event_email_deliveries (
           batch_id,
           event_id,
@@ -412,7 +416,7 @@ export function buildStageEventInviteDeliveriesForLastInsertedEventStatement(
         )
         SELECT
           ?,
-          last_insert_rowid(),
+          created_event.id,
           u.id,
           'invite',
           u.email,
@@ -422,8 +426,8 @@ export function buildStageEventInviteDeliveriesForLastInsertedEventStatement(
           ?,
           ?,
           0,
-          'invite:' || last_insert_rowid() || ':0:' || u.id
-        FROM users u
+          'invite:' || created_event.id || ':0:' || u.id
+        FROM created_event CROSS JOIN users u
         WHERE u.status = 'active'
       `
     )

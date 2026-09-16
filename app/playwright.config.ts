@@ -26,6 +26,11 @@ export default defineConfig({
       testIgnore: /\.no-js\.spec\.ts/,
     },
     {
+      name: "webkit-iphone",
+      testMatch: /event-creation\.spec\.ts/,
+      use: { ...devices["iPhone 17"] },
+    },
+    {
       name: "webkit-iphone-no-js",
       testMatch: /poll-voting\.no-js\.spec\.ts/,
       use: {

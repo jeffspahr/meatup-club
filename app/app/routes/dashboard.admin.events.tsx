@@ -1231,10 +1231,10 @@ export default function AdminEventsPage({ loaderData, actionData }: Route.Compon
                         restaurantName={editData.restaurant_name}
                         restaurantAddress={editData.restaurant_address}
                         onRestaurantNameChange={(value) =>
-                          setEditData({ ...editData, restaurant_name: value })
+                          setEditData((current) => ({ ...current, restaurant_name: value }))
                         }
                         onRestaurantAddressChange={(value) =>
-                          setEditData({ ...editData, restaurant_address: value })
+                          setEditData((current) => ({ ...current, restaurant_address: value }))
                         }
                       />
 

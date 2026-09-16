@@ -195,7 +195,7 @@ describe("workflow truth suite", () => {
     expect(events.isAdmin).toBe(false);
   });
 
-  it("carries member voting through poll closing and exposes the created event to members", async () => {
+  it.each([false, true])("carries member voting through poll closing and exposes the created event to members (send invites: %s)", async (sendInvites) => {
     const harness = createSqliteD1Harness();
     const adminId = createUser(harness, {
       email: "admin@example.com",
@@ -208,6 +208,8 @@ describe("workflow truth suite", () => {
       name: "Member",
       status: "active",
     });
+    // Model a database whose delivery sequence has advanced beyond its event IDs.
+    harness.sqlite.exec("INSERT INTO sqlite_sequence (name, seq) VALUES ('event_email_deliveries', 100)");
     const pollId = harness.insert(
       "INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)",
       "Q4 2099 Meatup",
@@ -303,7 +305,7 @@ describe("workflow truth suite", () => {
         winning_restaurant_id: String(restaurant?.id),
         winning_date_id: String(winningDate?.id),
         create_event: "true",
-        send_invites: "false",
+        send_invites: String(sendInvites),
         event_time: "18:30",
       }),
       context: adminContext,
@@ -326,6 +328,24 @@ describe("workflow truth suite", () => {
       winning_restaurant_id: restaurant?.id,
       winning_date_id: winningDate?.id,
     });
+
+    const stagedInvites = harness.all(
+      "SELECT id, event_id, user_id, dedupe_key FROM event_email_deliveries ORDER BY user_id"
+    );
+    expect(stagedInvites).toEqual(sendInvites ? [
+      {
+        id: 101,
+        event_id: closedPoll?.created_event_id,
+        user_id: adminId,
+        dedupe_key: `invite:${closedPoll?.created_event_id}:0:${adminId}`,
+      },
+      {
+        id: 102,
+        event_id: closedPoll?.created_event_id,
+        user_id: memberId,
+        dedupe_key: `invite:${closedPoll?.created_event_id}:0:${memberId}`,
+      },
+    ] : []);
 
     setCurrentUser(harness, memberId);
     const events = await eventsLoader({

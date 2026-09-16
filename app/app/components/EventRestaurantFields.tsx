@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { MapPinIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { RestaurantAutocomplete } from "./RestaurantAutocomplete";
 
@@ -31,14 +31,10 @@ export function EventRestaurantFields({
 }: EventRestaurantFieldsProps) {
   const searchId = useId();
   const addressId = useId();
-  const [searchValue, setSearchValue] = useState(restaurantName);
-
-  useEffect(() => {
-    setSearchValue(restaurantName);
-  }, [restaurantName]);
+  const [searchValue, setSearchValue] = useState("");
 
   function handleSelect(place: PlaceDetails) {
-    setSearchValue(place.name);
+    setSearchValue("");
     onRestaurantNameChange(place.name);
     onRestaurantAddressChange(place.address || "");
   }
@@ -66,7 +62,7 @@ export function EventRestaurantFields({
         </label>
         <RestaurantAutocomplete
           inputId={searchId}
-          value={searchValue}
+          value={restaurantName || searchValue}
           onChange={handleSearchChange}
           onSelect={handleSelect}
         />
