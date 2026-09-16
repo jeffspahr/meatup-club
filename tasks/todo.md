@@ -1,5 +1,21 @@
 # Active Backlog
 
+## Background delivery and webhook bug review — 2026-09-16
+
+Acceptance: reproduce concrete failures with production handlers and real SQLite; keep failed webhook writes retryable and prevent duplicate callbacks from reverting newer member state.
+
+- [x] Read instructions, lessons, Worker configuration, outbox, SMS and webhook handlers.
+- [x] Reproduce SMS webhook persistence/replay bugs: four regressions fail on original code.
+- [x] Implement SMS atomic RSVP/consent fixes and controlled malformed-body response.
+- [x] Verify SMS changes with focused tests, all 708 tests, typecheck, lint, and diff checks.
+- [ ] Reproduce and repair unstable email retry payloads (in progress).
+- [ ] Run coverage and remaining verification for delivery fixes.
+- [ ] Record verification and remaining audit limitations.
+
+Working notes: SMS RSVP and Resend delivery callbacks reserve their IDs before applying state. SMS consent deduplicates audit rows but unconditionally changes consent, allowing an old START replay to undo a later STOP. Work is isolated in the jobs review worktree.
+
+Results (SMS): same-ID retries recover after failed RSVP writes; duplicate START/STOP receipts cannot reverse newer consent. Signed route tests execute real SQLite transactions, including failure rollback and preservation of RSVP comments/admin override semantics. Node 24 lint, typecheck, and 708 tests pass.
+
 ## Invitation validation follow-up — 2026-09-16
 
 Acceptance: missing selected/default email templates must not create or promote a member, and correcting the template must permit retry. Newly entered invitation addresses must be trimmed/lowercased so Google sign-in finds them. Invitations without a configured email API key retain their existing behavior.
@@ -201,3 +217,12 @@ Acceptance: failed member removal preserves participation and cascaded data whil
 - [x] Review the combined member route and run full tests, typecheck, and lint before publication.
 
 Results: 799 tests in 96 files, TypeScript, ESLint and diff checks pass. Member-route code merged cleanly; shared note conflicts preserve both histories. Required CI will verify the published revision before handoff.
+
+## PR #320 integration with event SMS commands
+
+Acceptance: preserve explicit invitation targeting, MAYBE replies and event validation while keeping RSVP persistence/receipt writes atomic and consent replays harmless.
+
+- [x] Resolve conflicts preserving current routing and both note histories.
+- [x] Reproduce and fix MAYBE receipt interaction and verify regression coverage, full tests, typecheck and lint.
+
+Results: the new signed-request SQLite MAYBE rollback test failed before the integration fix. All 43 focused SMS tests and 810 full tests (97 files), coverage gates, TypeScript, lint and diff checks pass. Existing explicit invitation targeting, event eligibility, HELP copy and named confirmations are preserved. Required GitHub CI will validate the published revision before handoff.

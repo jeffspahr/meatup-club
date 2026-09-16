@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-09-16: Failure mode: SMS deduplicated consent audit rows but unconditionally reapplied consent; a replayed START could undo a later STOP. Detection: signed route tests against SQLite reproduced stale consent and permanently consumed RSVP IDs after failed writes. Prevention: gate the state mutation on its new receipt within the same transaction; exercise interleaved commands, replay, and rollback with real SQL.
+
 - 2026-09-16: Failure mode: invitation template checks ran after creating/promoting a member, so a validation error consumed the invitation state; unnormalized invitation addresses also failed to match Google login. Detection: seven real-schema route regressions for missing templates and mixed-case/whitespace addresses. Prevention: validate prerequisites before writes and normalize new email input at the invitation boundary. Missing-template fixtures must explicitly remove the canonical schema's seeded default template.
 
 - 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
@@ -77,3 +79,6 @@
 - 2026-09-16: User preference: always publish a PR for completed code changes without waiting for a separate request. Prior local-only SMS completion missed the expected delivery boundary. Refresh main, isolate the feature, verify, and open the signed PR by default.
 
 - 2026-09-16: Event-SMS PR verification caught a stale route assertion after renaming the send result from reminders to notifications. Keep existing route/UI expectations aligned when changing user-visible copy, in addition to new feature tests.
+
+- 2026-09-16: Failure mode: merging a new RSVP enum value into retry handling reserved MAYBE receipts before the atomic write, suppressing the write as a duplicate. Detection: a signed-request SQLite regression returned success during an injected write failure. Prevention: exercise every accepted RSVP command through receipt rollback, retry and replay after merging changes to command parsing.
+- 2026-09-16: Failure mode: a repo-relative edit ran from app/ and failed before applying the change. Detection: FileNotFoundError. Prevention: use absolute worktree paths for all scripted edits and keep verification commands separate from mutation scripts.
