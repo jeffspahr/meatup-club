@@ -113,9 +113,9 @@ export async function action({
       return Response.json({ message: 'No RSVP data found' });
     }
 
-    // Find the user
+    // Calendar replies require the same active membership as website and SMS RSVPs.
     const user = await db
-      .prepare('SELECT id, email, name FROM users WHERE LOWER(email) = ?')
+      .prepare("SELECT id, email, name FROM users WHERE LOWER(email) = ? AND status = 'active'")
       .bind(userEmail)
       .first() as WebhookUserRow | null;
 
