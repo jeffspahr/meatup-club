@@ -22,6 +22,7 @@ import { logErrorEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
 import {
   sendPollOpenSmsNotification,
+  sendNewEventSmsNotification,
   type PollSmsRecipientScope,
   type SmsPoll,
 } from "../lib/sms.server";
@@ -119,6 +120,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     .all();
 
   return {
+    ...(new URL(request.url).searchParams.get("sms_warning") === "1" ? {
+      smsWarning: "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.",
+    } : {}),
     activePoll,
     topRestaurant,
     topDate,
@@ -207,15 +211,14 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     try {
-      await db
-        .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
-        .bind(user.id)
-        .run();
-
-      await db
-        .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
-        .bind(title, user.id)
-        .run();
+      await db.batch([
+        db
+          .prepare(`UPDATE polls SET status = 'closed', closed_by = ?, closed_at = CURRENT_TIMESTAMP WHERE status = 'active'`)
+          .bind(user.id),
+        db
+          .prepare(`INSERT INTO polls (title, status, created_by) VALUES (?, 'active', ?)`)
+          .bind(title, user.id),
+      ]);
 
       return redirect('/dashboard/admin/polls');
     } catch (error) {
@@ -470,11 +473,26 @@ export async function action({ request, context }: Route.ActionArgs) {
       return { error: 'Failed to close poll. Please try again.' };
     }
 
-    return redirect(
-      formData.get('return_to') === '/dashboard'
-        ? '/dashboard'
-        : '/dashboard/admin/polls'
-    );
+    let smsWarning = false;
+    if (createdEventId && selectedRestaurant && selectedDate) {
+      const smsResult = await sendNewEventSmsNotification({
+        db,
+        env: getCloudflareContext(context).env,
+        event: {
+          id: createdEventId,
+          restaurant_name: selectedRestaurant.name as string,
+          restaurant_address: (selectedRestaurant.address as string | null) || null,
+          event_date: selectedDate.suggested_date as string,
+          event_time: eventTime,
+        },
+      });
+      smsWarning = smsResult.errors.length > 0;
+    }
+
+    const returnTo = formData.get('return_to') === '/dashboard'
+      ? '/dashboard'
+      : '/dashboard/admin/polls';
+    return redirect(`${returnTo}${smsWarning ? '?sms_warning=1' : ''}`);
   }
 
   return { error: 'Invalid action' };
@@ -536,11 +554,14 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
           ? `An event will be created at ${formatTime12h(eventTime)}.`
           : 'No event will be created.'
       );
-      lines.push(
-        createEvent && sendInvites
+      if (createEvent) {
+        lines.push(sendInvites
           ? 'All active members will be sent calendar invites.'
-          : 'Members will not be notified.'
-      );
+          : 'Calendar invites will not be sent.');
+        lines.push('SMS notifications will be sent to active members who opted into SMS.');
+      } else {
+        lines.push('Members will not be notified.');
+      }
       lines.push('');
       lines.push('This cannot be undone.');
     } else {
@@ -568,6 +589,9 @@ export default function AdminPollsPage({ loaderData, actionData }: Route.Compone
         </Alert>
       )}
 
+      {loaderData.smsWarning && (
+        <Alert variant="warning" className="mb-6">{loaderData.smsWarning}</Alert>
+      )}
       {actionData && 'success' in actionData && actionData.success && (
         <Alert variant="success" className="mb-6">
           {actionData.success}

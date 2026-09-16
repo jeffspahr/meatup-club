@@ -18,7 +18,7 @@ vi.mock("../lib/db.server", () => ({
 }));
 
 type MockDbOptions = {
-  existingUser?: { id: number } | null;
+  existingUser?: { id: number; status?: string } | null;
   existingPhoneUser?: { id: number } | null;
   currentMember?: { phone_number: string | null } | null;
   selectedTemplate?: {
@@ -46,7 +46,7 @@ function createMockDb({
     const normalizedSql = sql.replace(/\s+/g, " ").trim();
 
     const firstForArgs = async (_bindArgs: unknown[]) => {
-      if (normalizedSql.includes("SELECT id FROM users WHERE email = ?")) {
+      if (normalizedSql.includes("SELECT id, status FROM users WHERE email = ?")) {
         return existingUser;
       }
 
@@ -94,7 +94,15 @@ function createMockDb({
     };
   });
 
-  return { prepare, runCalls };
+  return {
+    prepare,
+    runCalls,
+    batch: async (statements: Array<{ run: () => Promise<unknown> }>) => {
+      const results = [];
+      for (const statement of statements) results.push(await statement.run());
+      return results;
+    },
+  };
 }
 
 function createRequest(formEntries: Record<string, string>) {

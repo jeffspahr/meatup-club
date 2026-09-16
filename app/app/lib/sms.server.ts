@@ -43,9 +43,10 @@ const OPT_IN_KEYWORDS = new Set(["start", "unstop"]);
 const HELP_KEYWORDS = new Set(["help", "info"]);
 const YES_KEYWORDS = new Set(["y", "yes"]);
 const NO_KEYWORDS = new Set(["n", "no"]);
+const MAYBE_KEYWORDS = new Set(["m", "maybe"]);
 const SMS_BRAND_PREFIX = "Meatup.Club (888-857-MEAT):";
 
-export type SmsReplyType = "yes" | "no" | "opt_out" | "opt_in" | "help";
+export type SmsReplyType = "yes" | "no" | "maybe" | "opt_out" | "opt_in" | "help";
 export type SmsDeliveryStatus =
   | "creating"
   | "accepted"
@@ -194,6 +195,10 @@ export function parseSmsReply(body: string): SmsReplyType | null {
     return "no";
   }
 
+  if (MAYBE_KEYWORDS.has(token)) {
+    return "maybe";
+  }
+
   return null;
 }
 
@@ -224,6 +229,7 @@ export function buildSmsReminderMessage({
   now,
   customMessage,
   appBaseUrl,
+  notificationType = "reminder",
 }: {
   event: SmsEvent;
   timeZone: string;
@@ -231,6 +237,7 @@ export function buildSmsReminderMessage({
   now?: Date;
   customMessage?: string | null;
   appBaseUrl?: string;
+  notificationType?: "reminder" | "new_event";
 }): string {
   const messageNow = now || new Date();
   const { dateLabel, timeLabel, relativeLabel } = formatEventDateTimeForSms(
@@ -239,14 +246,16 @@ export function buildSmsReminderMessage({
     messageNow
   );
   const statusLabel = formatRsvpStatus(rsvpStatus);
-  const reminderText = `Reminder for ${relativeLabel ?? dateLabel} at ${timeLabel} at ${event.restaurant_name}.`;
+  const reminderText = notificationType === "new_event"
+    ? `New event on ${dateLabel} at ${timeLabel} at ${event.restaurant_name}.`
+    : `Reminder for ${relativeLabel ?? dateLabel} at ${timeLabel} at ${event.restaurant_name}.`;
   const messageBody = customMessage
     ? `${SMS_BRAND_PREFIX} ${customMessage.trim()} ${reminderText}`
     : `${SMS_BRAND_PREFIX} ${reminderText}`;
   const baseUrl = normalizeAppBaseUrl(appBaseUrl);
   const eventUrl = `${baseUrl}/dashboard?event=${event.id}#event-${event.id}`;
   const base = `${messageBody} Your RSVP: ${statusLabel}. Details: ${eventUrl}`;
-  return appendSmsInstructions(base);
+  return appendSmsInstructions(base, event.id);
 }
 
 export function buildPollOpenSmsMessage({
@@ -704,8 +713,9 @@ export async function sendAdhocSmsReminder({
   env,
   event,
   customMessage,
-  recipientScope = "all",
+  recipientScope = "pending",
   recipientUserId,
+  notificationType = "reminder",
 }: {
   db: D1Database;
   env: SmsEnv;
@@ -713,6 +723,7 @@ export async function sendAdhocSmsReminder({
   customMessage?: string | null;
   recipientScope?: SmsRecipientScope;
   recipientUserId?: number | null;
+  notificationType?: "reminder" | "new_event";
 }): Promise<{ sent: number; errors: string[] }> {
   const timeZone = getAppTimeZone(env.APP_TIMEZONE);
   const recipientQuery = buildRecipientScopeQuery(recipientScope, recipientUserId);
@@ -726,8 +737,12 @@ export async function sendAdhocSmsReminder({
         AND u.sms_opt_out_at IS NULL
         AND u.phone_number IS NOT NULL
         ${recipientQuery.sql}
+        ${notificationType === "new_event" ? `AND NOT EXISTS (
+          SELECT 1 FROM sms_reminders sr
+          WHERE sr.event_id = ? AND sr.user_id = u.id AND sr.reminder_type = 'new_event'
+        )` : ""}
     `)
-    .bind(event.id, ...recipientQuery.bindings)
+    .bind(event.id, ...recipientQuery.bindings, ...(notificationType === "new_event" ? [event.id] : []))
     .all();
 
   const configuration = getTwilioConfigurationStatus(env);
@@ -735,38 +750,81 @@ export async function sendAdhocSmsReminder({
     logTwilioConfigurationError(configuration);
   }
 
-  const reminderType = `adhoc:${crypto.randomUUID()}`;
+  const reminderType = notificationType === "new_event" ? "new_event" : `adhoc:${crypto.randomUUID()}`;
+  const rows = (recipients.results || []) as SmsRecipientRow[];
   let sent = 0;
   const errors: string[] = [];
 
-  for (const recipient of (recipients.results || []) as SmsRecipientRow[]) {
-    const to = recipient.phone_number;
-    const rsvpStatus = recipient.rsvp_status;
-    const message = buildSmsReminderMessage({
-      event,
-      timeZone,
-      rsvpStatus,
-      customMessage,
-      appBaseUrl: env.APP_BASE_URL,
-    });
-    const result = await sendTrackedSms({
-      db,
-      env,
-      eventId: event.id,
-      userId: recipient.id,
-      reminderType,
-      to,
-      body: message,
-    });
-    if (result.success) {
-      sent += 1;
-      await recordAcceptedReminder(db, event.id, recipient.id, reminderType);
-    } else {
-      errors.push(`Member ${recipient.id}: ${result.error}`);
-    }
+  // Bound provider concurrency and isolate failures so all recipients are attempted.
+  for (let offset = 0; offset < rows.length; offset += 5) {
+    await Promise.all(rows.slice(offset, offset + 5).map(async (recipient) => {
+      try {
+        const body = buildSmsReminderMessage({
+          event,
+          timeZone,
+          rsvpStatus: recipient.rsvp_status,
+          customMessage,
+          appBaseUrl: env.APP_BASE_URL,
+          notificationType,
+        });
+        const result = await sendTrackedSms({
+          db,
+          env,
+          eventId: event.id,
+          userId: recipient.id,
+          reminderType,
+          to: recipient.phone_number,
+          body,
+        });
+        if (result.success) {
+          sent += 1;
+          await recordAcceptedReminder(db, event.id, recipient.id, reminderType);
+        } else {
+          errors.push(`Member ${recipient.id}: ${result.error}`);
+        }
+      } catch (error) {
+        logErrorEvent("sms_notification_failed", error);
+        errors.push(`Member ${recipient.id}: SMS send or delivery tracking failed.`);
+      }
+    }));
   }
 
   return { sent, errors };
+}
+
+/** Notification failures must not undo a successfully created event. */
+export async function sendNewEventSmsNotification({ db, env, event }: {
+  db: D1Database;
+  env: SmsEnv;
+  event: SmsEvent;
+}): Promise<{ sent: number; errors: string[] }> {
+  try {
+    const calendarDate = new Date(`${event.event_date}T00:00:00Z`);
+    if (!Number.isFinite(calendarDate.getTime()) || calendarDate.toISOString().slice(0, 10) !== event.event_date) {
+      return { sent: 0, errors: ["SMS notifications require a valid event date."] };
+    }
+    const eventTime = getEventDateTimeUtc(
+      event.event_date,
+      event.event_time,
+      getAppTimeZone(env.APP_TIMEZONE)
+    ).getTime();
+    if (!Number.isFinite(eventTime)) {
+      return { sent: 0, errors: ["SMS notifications require a valid event date."] };
+    }
+    if (eventTime <= Date.now()) {
+      return { sent: 0, errors: [] };
+    }
+    const result = await sendAdhocSmsReminder({
+      db, env, event, recipientScope: "all", notificationType: "new_event",
+    });
+    if (result.errors.length) {
+      logErrorEvent("new_event_sms_notification_failed");
+    }
+    return result;
+  } catch (error) {
+    logErrorEvent("new_event_sms_notification_failed", error);
+    return { sent: 0, errors: ["SMS notifications could not be sent. Retry from admin events."] };
+  }
 }
 
 export async function sendPollOpenSmsNotification({
@@ -895,8 +953,8 @@ function isWithinWindow(diffMs: number, targetMs: number, windowMs: number): boo
   return diffMs <= targetMs && diffMs > targetMs - windowMs;
 }
 
-function appendSmsInstructions(message: string): string {
-  return `${message} Reply YES or NO to RSVP. Reply HELP for help. Reply STOP to opt out.`;
+function appendSmsInstructions(message: string, eventId: number): string {
+  return `${message} Reply YES ${eventId}, NO ${eventId}, or MAYBE ${eventId} to RSVP. Reply HELP for help. Reply STOP to opt out.`;
 }
 
 async function sendTrackedSms({
