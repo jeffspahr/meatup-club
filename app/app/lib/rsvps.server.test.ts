@@ -21,6 +21,11 @@ describe("shared RSVP persistence", () => {
     });
   });
 
+  it.each(["I will arrive late", "", null, undefined])("preserves a comment on the first RSVP (%s)", async comments => {
+    expect(await upsertRsvp({ db: harness.db, eventId: 123, userId: 1, status: "yes", comments })).toBe("created");
+    expect(harness.get("SELECT comments FROM rsvps")).toEqual({ comments: comments ?? null });
+  });
+
   it("preserves comments and calendar origin while clearing an admin override", async () => {
     harness.sqlite.exec(`INSERT INTO rsvps (event_id, user_id, status, comments, admin_override, admin_override_by, admin_override_at, updated_via_calendar)
       VALUES (123, 1, 'yes', 'Keep my comment', 1, 1, '2026-09-01', 1)`);

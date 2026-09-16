@@ -57,3 +57,6 @@
 
 - 2026-09-16: Failure mode: delivery callbacks reserved their receipt before writing status and trusted arrival order. Detection: signed SQLite regressions showed lost retries and delivered/bounced/complained/failed states downgraded to delayed. Prevention: commit callback receipt and mutation atomically, and enforce delivery-state progression in SQL because providers can deliver callbacks out of order.
 
+- 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
+
+- 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
