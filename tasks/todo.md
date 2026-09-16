@@ -81,3 +81,8 @@ Acceptance: event forms and date nominations only persist actual calendar dates 
 - [x] Record results and prevention lesson.
 
 Results: a shared validator requires strict YYYY-MM-DD input and a real calendar day, preventing JavaScript date rollover for invalid month lengths and leap years. Event forms, date nominations, and poll-to-event creation reject malformed dates before writes. Existing future-date and voting semantics remain intact.
+
+### Alternate poll API coverage
+- [x] Reproduce malformed persisted nominations creating invalid events through `/api/polls`.
+- [x] Apply the same calendar validator before API event creation; preserve poll state on rejection.
+- [x] Verify three baseline failures plus valid leap-day success with SQLite, full 722-test suite, typecheck, and lint.

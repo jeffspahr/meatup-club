@@ -57,3 +57,5 @@
 
 
 - 2026-09-16: Failure mode: date shape checks and lexical past-date comparisons accepted impossible calendar dates (including February 29 in non-leap years), producing records on unintended days. Detection: event parser and route regressions accepted 13 malformed date cases. Prevention: validate actual calendar-day round trips at every date write boundary before temporal comparisons.
+
+- 2026-09-16: Failure mode: fixing admin poll mutation validation while leaving the parallel JSON API path unchecked. Detection: real-schema API action tests still persisted impossible dates. Prevention: trace every route that calls a shared mutation before marking an invariant fix complete.

@@ -1,6 +1,7 @@
 import type { D1Result } from "@cloudflare/workers-types";
 import type { Route } from "./+types/api.polls";
 import { requireActiveUser } from "../lib/auth.server";
+import { isValidCalendarDate } from "../lib/date-validation";
 import { buildCreateEventStatementForActivePoll } from "../lib/events.server";
 import { getCloudflareContext } from "~/lib/router-context";
 
@@ -151,6 +152,10 @@ export async function action({ request, context }: Route.ActionArgs) {
           { error: 'Selected winning options were not found in the target poll' },
           { status: 400 }
         );
+      }
+
+      if (!isValidCalendarDate(date.suggested_date)) {
+        return Response.json({ error: 'Selected date is not a valid calendar date' }, { status: 400 });
       }
 
       try {
