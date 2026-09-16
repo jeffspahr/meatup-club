@@ -77,7 +77,10 @@ export function AddRestaurantModal({
             </label>
             <RestaurantAutocomplete
               value={restaurantName}
-              onChange={setRestaurantName}
+              onChange={(value) => {
+                setRestaurantName(value);
+                setPlaceDetails(null);
+              }}
               onSelect={handleSelect}
             />
             <p className="text-xs text-muted-foreground mt-1">
