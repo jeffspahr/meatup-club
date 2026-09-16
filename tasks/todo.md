@@ -97,6 +97,11 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
+- [x] Reproduce and repair unstable email retry payloads: all three event message types failed before the fix.
+- [x] Verify email retry fix with all 713 tests/coverage, lint and typecheck.
+- [ ] Reproduce and repair delivery-status webhook transaction and ordering failures (in progress).
+Results (email retries): event email bodies now use the persisted outbox creation timestamp and stable idempotency key as their entity reference. Provider acceptance followed by a lost response recovers with an identical payload on retry. Provider concurrent-request 409 errors retry; mismatched-payload 409 errors remain terminal. Verified current Resend contract at https://resend.com/docs/dashboard/emails/idempotency-keys. Node 24 lint, typecheck and 713 tests pass; coverage gates pass (81.06% statements, 72.13% branches).
+
 - [x] Record results and separately review member deletion.
 
 ## Atomic member removal — 2026-09-16
@@ -226,3 +231,12 @@ Acceptance: preserve explicit invitation targeting, MAYBE replies and event vali
 - [x] Reproduce and fix MAYBE receipt interaction and verify regression coverage, full tests, typecheck and lint.
 
 Results: the new signed-request SQLite MAYBE rollback test failed before the integration fix. All 43 focused SMS tests and 810 full tests (97 files), coverage gates, TypeScript, lint and diff checks pass. Existing explicit invitation targeting, event eligibility, HELP copy and named confirmations are preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #323 refresh for next merge
+
+Acceptance: preserve current application behavior while ensuring retried calendar messages retain identical provider payloads and recover from concurrent-request conflicts.
+
+- [x] Merge current main and resolve shared notes, preserving both histories.
+- [x] Review the final diff and run full tests, typecheck and lint before publication.
+
+Results: all 815 tests in 98 files, TypeScript, ESLint and diff checks pass. Calendar retry source merged unchanged; both parent review-note histories are preserved. Required GitHub CI will validate the published revision before handoff.
