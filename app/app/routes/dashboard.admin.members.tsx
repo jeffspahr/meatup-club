@@ -127,29 +127,39 @@ export async function action({ request, context }: Route.ActionArgs) {
     try {
       // Check if user already exists
       const existingUser = await db
-        .prepare('SELECT id FROM users WHERE email = ?')
+        .prepare('SELECT id, status FROM users WHERE email = ?')
         .bind(email)
-        .first();
+        .first<{ id: number; status: string }>();
 
-      if (existingUser) {
+      if (existingUser && existingUser.status !== 'pending') {
         return { error: 'User with this email already exists' };
       }
 
       if (normalizedPhone) {
         const existingPhoneUser = await db
-          .prepare('SELECT id FROM users WHERE phone_number = ?')
-          .bind(normalizedPhone)
+            .prepare('SELECT id FROM users WHERE phone_number = ? AND id != ?')
+            .bind(normalizedPhone, existingUser?.id ?? 0)
           .first();
         if (existingPhoneUser) {
           return { error: 'That phone number is already linked to another account.' };
         }
       }
 
-      // Create invited user
-      const result = await db
-        .prepare('INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)')
-        .bind(email, name || null, 'invited', normalizedPhone)
-        .run();
+      // A person may have signed in before their invitation was issued.
+      if (existingUser) {
+        const result = await db
+          .prepare("UPDATE users SET status = 'invited', name = COALESCE(?, name), phone_number = COALESCE(?, phone_number) WHERE id = ? AND status = 'pending'")
+          .bind(name || null, normalizedPhone, existingUser.id)
+          .run();
+        if (result.meta.changes === 0) {
+          return { error: 'Member status changed. Please refresh and try again.' };
+        }
+      } else {
+        await db
+          .prepare('INSERT INTO users (email, name, status, phone_number, sms_opt_in) VALUES (?, ?, ?, ?, 0)')
+          .bind(email, name || null, 'invited', normalizedPhone)
+          .run();
+      }
 
       // Send invitation email if Resend API key is configured
       const resendApiKey = getCloudflareContext(context).env.RESEND_API_KEY;

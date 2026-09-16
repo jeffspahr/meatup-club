@@ -68,3 +68,26 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Updated receiving setup documentation and added direct coverage for the existing shared RSVP helper after removing its incidental webhook coverage.
 - `npm run verify` passed under Node 24: 700 tests in 88 files, all coverage gates, lint, secret scan, typecheck, D1 verification, production build, and 11 Playwright checks. `git diff --check` passed.
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
+
+## Authentication and membership audit — 2026-09-16
+
+### Acceptance criteria
+Uninvited OAuth sign-ins cannot access member data; invited users reach invitation acceptance after OAuth; admins can invite an account that first signed in while uninvited. Existing active users retain access. Reproduce failures against the canonical SQLite schema and cover real route behavior.
+
+### Tasks
+- [x] Review authentication, invitation, member/profile actions and API authorization boundaries.
+- [x] Reproduce membership admission failures with real database regressions (3 failures before fix).
+- [x] Apply minimal membership-flow fixes.
+- [x] Run focused regressions, full tests, lint, typecheck and coverage.
+- [ ] Record results and separately review member deletion.
+
+### Working notes
+- users.status defaults to active, but ensureUser omits status on first OAuth login.
+- OAuth callback sends every inactive account to /pending, including invited members.
+- Admin invitation rejects existing pending users, leaving no way to grant membership after their first sign-in.
+
+### Membership results
+- New OAuth accounts explicitly start pending. Invited accounts return to acceptance, while active accounts go to the dashboard. Admins may invite an existing pending account without creating a duplicate.
+- Four real-schema regressions exercise admission, acceptance, invitation after first sign-in, and active-member login.
+- Verification: 25 focused tests and all 704 tests across 89 files pass; coverage gates pass (80.89% statements, 71.82% branches), typecheck and lint pass.
+- No membership backfill is attempted: existing active rows cannot be distinguished safely as intended versus previously auto-admitted from the available data.
