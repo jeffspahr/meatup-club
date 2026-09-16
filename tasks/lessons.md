@@ -70,3 +70,7 @@
 - 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
 
 - 2026-09-16: Failure mode: a multiline conflict-marker expression consumed text after the closing marker. Detection: diff checks and review of the resolved notes. Prevention: constrain marker lines to non-newline characters and assert every nonempty line from both parent note files survives resolution.
+
+- 2026-09-16: User preference: always publish a PR for completed code changes without waiting for a separate request. Prior local-only SMS completion missed the expected delivery boundary. Refresh main, isolate the feature, verify, and open the signed PR by default.
+
+- 2026-09-16: Event-SMS PR verification caught a stale route assertion after renaming the send result from reminders to notifications. Keep existing route/UI expectations aligned when changing user-visible copy, in addition to new feature tests.
