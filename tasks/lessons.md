@@ -60,6 +60,8 @@
 - Failure mode: recording a webhook before processing permanently suppressed retries; deleting the reservation on failure still depended on a working database during an outage. Detection: review of persistence and cleanup failures. Prevention: commit the delivery record and corresponding mutation atomically, and prove rollback plus same-ID retry against a real database.
 
 
+
+
 - 2026-09-16: Failure mode: template mutations cleared the existing default before a failing or zero-row replacement write. Detection: real SQLite trigger failures and nonexistent IDs left no default. Prevention: batch replacement writes, guard clearing on target existence, and test both rollback and zero-row success. Schema-backed tests must account for baseline seeded rows before inserting explicit fixture IDs.
 
 - 2026-09-16: Failure mode: wall-time conversion used only the offset at its initial UTC guess, which can precede the event's DST transition and shift the event by one hour. Detection: valid 03:30 New York events converted incorrectly on both DST transition days and crossed past-event boundaries at the wrong instant. Prevention: verify the converted instant round-trips to the requested wall time, apply a bounded correction, and cover both DST directions plus ambiguous/nonexistent-time compatibility.

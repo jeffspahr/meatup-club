@@ -28,6 +28,7 @@ vi.mock("./RestaurantAutocomplete", () => ({
   }) => (
     <div>
       <div data-testid="autocomplete-value">{value}</div>
+      <input aria-label="Restaurant search" value={value} onChange={(event) => onChange(event.target.value)} />
       <button
         type="button"
         onClick={() => {
@@ -83,6 +84,20 @@ describe("AddRestaurantModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Restaurant Found")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Restaurant" })).toBeDisabled();
+  });
+
+  it("requires a new selection after the search text changes", () => {
+    const onSubmit = vi.fn();
+    render(<AddRestaurantModal isOpen onClose={vi.fn()} onSubmit={onSubmit} />);
+    fireEvent.click(screen.getByRole("button", { name: "Select Prime Steakhouse" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Restaurant search" }), { target: { value: "Oak" } });
+    expect(screen.queryByText("Restaurant Found")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Restaurant" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Add Restaurant" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Select Prime Steakhouse" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Restaurant" }));
+    expect(onSubmit).toHaveBeenCalledWith(selectedPlace);
   });
 
   it("clears the selected restaurant when the modal is cancelled", () => {

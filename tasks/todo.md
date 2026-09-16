@@ -98,6 +98,8 @@ Calendar accept/decline/tentative replies must update the corresponding member/e
 - Production remains unchanged; full receiving API-key permissions and recovery of previously ignored replies require deployment validation.
 
 
+
+
 ## Review: preserve default email templates
 
 Acceptance: create/update/default-selection failures and missing target IDs preserve the current default; successful changes atomically select one default.
@@ -360,3 +362,12 @@ Acceptance: failed replacement or missing template IDs preserve the existing def
 - [x] Review template mutation changes and run full tests, typecheck and lint before publication.
 
 Results: 865 tests in 104 files, TypeScript, ESLint and diff checks pass. Template mutation source merged cleanly with current main; both parent review-note histories were preserved. Required GitHub CI will validate the published revision before handoff.
+
+## PR #317 refresh for next merge
+
+Acceptance: stale search/details responses cannot overwrite newer input or selections; failed lookups remain recoverable and keyboard selection remains valid on current main.
+
+- [x] Merge current main and resolve shared review notes, preserving both histories.
+- [x] Review UI cancellation and selection changes and run full tests, typecheck and lint before publication.
+
+Results: 873 tests in 104 files, TypeScript, ESLint and diff checks pass. UI source merged cleanly; its effect synchronizes external Places requests and cancels obsolete work. Both parent review-note histories were preserved. Required GitHub CI will validate the build and browser journeys before handoff.
