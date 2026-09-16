@@ -23,6 +23,7 @@ vi.mock("../lib/event-email-delivery.server", () => ({
 
 vi.mock("../lib/sms.server", () => ({
   sendPollOpenSmsNotification: vi.fn(),
+  sendNewEventSmsNotification: vi.fn().mockResolvedValue({ sent: 0, errors: [] }),
 }));
 
 function createMockDb({

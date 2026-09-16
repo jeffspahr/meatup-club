@@ -155,6 +155,22 @@ describe("dashboard._index UI", () => {
     expect(window.localStorage.getItem("dismissedSmsPrompt")).toBe("true");
   });
 
+  it.each(["action", "redirect"] as const)("shows an SMS warning after successful event creation via %s", (source) => {
+    const warning = "Event created, but some SMS notifications could not be sent. An admin can retry from Event Management.";
+    const loaderData = {
+      user: { id: 1, name: "Member", email: "member@example.com", phone_number: "test" },
+      isAdmin: true, activePoll: null,
+      topRestaurants: [], dateSuggestions: [], dateVotes: [], restaurantSuggestions: [],
+      previousPolls: [], upcomingEvents: [], pastEvents: [], restaurants: [],
+      ...(source === "redirect" ? { smsWarning: warning } : {}),
+    };
+    render(<MemoryRouter><DashboardPage {...({
+      loaderData,
+      actionData: source === "action" ? { ok: true, performedAction: "create", warning } : undefined,
+    } as unknown as Route.ComponentProps)} /></MemoryRouter>);
+    expect(screen.getByText(warning)).toBeInTheDocument();
+  });
+
   it.each([false, true])("shows dashboard poll closure only to admins (admin: %s)", (isAdmin) => {
     renderDashboard({
       user: { id: 1, name: "Member", email: "member@example.com", phone_number: "test" },

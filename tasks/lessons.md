@@ -1,5 +1,7 @@
 # Lessons Learned
 
+- 2026-09-16: Failure mode: invitation template checks ran after creating/promoting a member, so a validation error consumed the invitation state; unnormalized invitation addresses also failed to match Google login. Detection: seven real-schema route regressions for missing templates and mixed-case/whitespace addresses. Prevention: validate prerequisites before writes and normalize new email input at the invitation boundary. Missing-template fixtures must explicitly remove the canonical schema's seeded default template.
+
 - 2026-08-22: Failure mode: treating the presence of Cloudflare secret binding names as proof that provider credentials were usable, while a background admin action returned success before inspecting its result; detection signal: no Twilio request and no delivery row despite a success banner; prevention rule: validate critical provider credentials with a cached authenticated health check, persist each attempt before provider validation, and never return background success without a durable job/attempt record.
 
 - 2026-02-21: Initialized lessons log for remediation tracking.
@@ -59,6 +61,19 @@
 - 2026-09-16: Failure mode: member removal deleted votes and date suggestions before a restrictive user-history foreign key rejected the final deletion. Detection: real SQLite tests showed the account surviving while its participation and other members' votes disappeared. Prevention: batch every dependent destructive mutation atomically, and assert rollback of both direct changes and cascades against the canonical schema.
 - 2026-09-16: Failure mode: file-edit scripts used repository-root-relative paths while command execution was in app/. Detection: FileNotFoundError before tests. Prevention: use absolute worktree paths for scripted edits and reserve app/ working directory for application commands.
 
+- 2026-09-16: Failure mode: replacing the active poll used independent close/create writes, so insertion failure disabled voting with no replacement. Detection: a SQLite trigger rejecting the insert left the old poll closed. Prevention: group dependent state transitions in a D1 batch and prove rollback plus retry with a real database failure.
+
+- 2026-09-16: Failure mode: the admin poll-creation transaction fix left the equivalent API action non-atomic. Detection: the same SQLite insert-failure trigger closed the API's current poll without a replacement. Prevention: find all mutation entry points for a business operation and exercise the same rollback invariant at each route boundary.
+
+- 2026-09-16: Failure mode: session lookup used email alone and ignored its signed user ID, so a deleted account's cookie authenticated a later account reusing the email. Detection: a real-cookie SQLite lifecycle regression returned the replacement user. Prevention: bind sessions to immutable account IDs as well as email and test deletion/recreation, not only ordinary login.
+
+
 - 2026-09-16: Failure mode: RSVP inserts omitted comments that updates persisted, and the member action accepted unsupported statuses despite the schema having no status CHECK. Detection: real SQLite helper/route regressions showed comment loss and existing responses overwritten by arbitrary strings. Prevention: exercise both insert/update field parity and validate enumerated input before database writes.
 
 - 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
+
+- 2026-09-16: Failure mode: a multiline conflict-marker expression consumed text after the closing marker. Detection: diff checks and review of the resolved notes. Prevention: constrain marker lines to non-newline characters and assert every nonempty line from both parent note files survives resolution.
+
+- 2026-09-16: User preference: always publish a PR for completed code changes without waiting for a separate request. Prior local-only SMS completion missed the expected delivery boundary. Refresh main, isolate the feature, verify, and open the signed PR by default.
+
+- 2026-09-16: Event-SMS PR verification caught a stale route assertion after renaming the send result from reminders to notifications. Keep existing route/UI expectations aligned when changing user-visible copy, in addition to new feature tests.
