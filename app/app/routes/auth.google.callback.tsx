@@ -39,9 +39,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     googleUser.picture
   );
 
-  // Preserve the invitation step for members who have not accepted yet.
+  // Read the current session generation after completing fresh authentication.
   const user = await getUserByEmail(db, googleUser.email);
-  const active = user?.status === "active";
+  if (!user) {
+    throw new Error("User no longer exists");
+  }
+  const active = user.status === "active";
 
   // Log the login activity
   await logActivity({
@@ -59,11 +62,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   // Create session and redirect
   if (active) {
-    return createUserSession(userId, googleUser.email, "/dashboard");
+    return createUserSession(userId, googleUser.email, "/dashboard", user.session_version);
   }
   return createUserSession(
     userId,
     googleUser.email,
-    user?.status === "invited" ? "/accept-invite" : "/pending"
+    user.status === "invited" ? "/accept-invite" : "/pending",
+    user.session_version
   );
 }

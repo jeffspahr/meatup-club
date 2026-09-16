@@ -1,5 +1,5 @@
 -- Meatup.Club canonical schema (fresh install)
--- Snapshot includes the canonical schema through 2026-03-12.
+-- Snapshot includes the canonical schema through 2026-09-16.
 -- Internal D1 tables (_cf_KV, d1_migrations) are intentionally excluded.
 
 PRAGMA foreign_keys = ON;
@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   is_admin BOOLEAN DEFAULT 0,
   status TEXT DEFAULT 'active',
   requires_reauth INTEGER DEFAULT 0,
+  session_version INTEGER NOT NULL DEFAULT 0,
   notify_comment_replies INTEGER DEFAULT 1,
   notify_poll_updates INTEGER DEFAULT 1,
   notify_event_updates INTEGER DEFAULT 1,

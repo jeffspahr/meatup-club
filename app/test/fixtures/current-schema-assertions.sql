@@ -45,4 +45,9 @@ SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
 FROM pragma_index_list('poll_sms_deliveries')
 WHERE name = 'idx_poll_sms_deliveries_provider_sid' AND "unique" = 1;
 
+INSERT INTO schema_verification (passed)
+SELECT CASE WHEN COUNT(*) = 1 THEN 1 ELSE 0 END
+FROM pragma_table_info('users')
+WHERE name = 'session_version' AND "notnull" = 1 AND dflt_value = '0';
+
 DROP TABLE schema_verification;

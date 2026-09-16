@@ -95,6 +95,8 @@
 
 - 2026-09-16: Failure mode: RSVP boundary validation correctly rejected negative event IDs still used by browser fixtures. Detection: PR CI showed a selected radio reverting after reload even though POST completed. Prevention: browser fixtures must use reserved positive IDs for every production entity and inspect server error responses before diagnosing UI races.
 
+- 2026-09-16: Failure mode: forced reauthentication set a shared flag that the next successful OAuth login cleared, reviving untouched older cookies. Detection: a two-browser test using real signed cookies and SQLite authenticated the old cookie after a fresh login. Prevention: advance a durable per-account session generation on revocation, validate it on every session lookup, and test repeated revocations plus migration compatibility for already-revoked accounts.
+
 - 2026-09-16: Failure mode: a multiline conflict-marker expression consumed text after the closing marker. Detection: diff checks and review of the resolved notes. Prevention: constrain marker lines to non-newline characters and assert every nonempty line from both parent note files survives resolution.
 
 - 2026-09-16: User preference: always publish a PR for completed code changes without waiting for a separate request. Prior local-only SMS completion missed the expected delivery boundary. Refresh main, isolate the feature, verify, and open the signed PR by default.
@@ -103,3 +105,5 @@
 
 - 2026-09-16: Failure mode: merging a new RSVP enum value into retry handling reserved MAYBE receipts before the atomic write, suppressing the write as a duplicate. Detection: a signed-request SQLite regression returned success during an injected write failure. Prevention: exercise every accepted RSVP command through receipt rollback, retry and replay after merging changes to command parsing.
 - 2026-09-16: Failure mode: a repo-relative edit ran from app/ and failed before applying the change. Detection: FileNotFoundError. Prevention: use absolute worktree paths for all scripted edits and keep verification commands separate from mutation scripts.
+
+- 2026-09-16: Failure mode: repeating an event-creation browser test with repeat-each reused a shared seeded database and identical event names, creating locator collisions. Detection: strict locator matches found duplicate created-event articles on the second run. Prevention: isolate seeded state per diagnostic run or use repeat-specific fixture identities; separate fixture collisions from form-opening timeouts.

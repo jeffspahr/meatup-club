@@ -11,6 +11,7 @@ export type AuthUser = {
   is_admin: number;
   status: string;
   requires_reauth: number;
+  session_version: number;
   notify_poll_updates: number;
   notify_event_updates: number;
   phone_number: string | null;
@@ -82,6 +83,12 @@ export async function getUser(
     return null;
   }
 
+  // Cookies issued before versioning belong to generation zero. Revocation
+  // remains effective after another browser completes a fresh OAuth login.
+  if ((session.get("sessionVersion") ?? 0) !== user.session_version) {
+    return null;
+  }
+
   return user as AuthUser;
 }
 
@@ -136,11 +143,13 @@ export async function requireAdmin(
 export async function createUserSession(
   userId: number,
   email: string,
-  redirectTo: string
+  redirectTo: string,
+  sessionVersion: number
 ) {
   const session = await getSession();
   session.set("userId", userId);
   session.set("email", email);
+  session.set("sessionVersion", sessionVersion);
 
   return redirect(redirectTo, {
     headers: {
