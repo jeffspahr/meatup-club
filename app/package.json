@@ -36,13 +36,13 @@
     "svix": "^2.1.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.54.9",
+    "@cloudflare/vite-plugin": "^1.55.0",
     "@playwright/test": "^1.63.0",
-    "@react-router/dev": "8.3.1",
+    "@react-router/dev": "8.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@types/node": "^24.13.4",
+    "@types/node": "^24.13.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
