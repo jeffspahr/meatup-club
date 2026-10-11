@@ -40,4 +40,14 @@ describe("shared RSVP persistence", () => {
     expect(await upsertRsvp({ db: harness.db, eventId: 123, userId: 1, status: "maybe", comments, updatedViaCalendar: true })).toBe("updated");
     expect(harness.get("SELECT status, comments, updated_via_calendar FROM rsvps")).toEqual({ status: "maybe", comments, updated_via_calendar: 1 });
   });
+  it.each([undefined, null, "Changed comment"])("accepts concurrent first responses with comment %s", async comments => {
+    await Promise.all([
+      upsertRsvp({ db: harness.db, eventId: 123, userId: 1, status: "yes", comments: "Arriving late", updatedViaCalendar: true }),
+      upsertRsvp({ db: harness.db, eventId: 123, userId: 1, status: "maybe", comments }),
+    ]);
+    expect(harness.all("SELECT status, comments, updated_via_calendar FROM rsvps")).toEqual([
+      { status: "maybe", comments: comments === undefined ? "Arriving late" : comments, updated_via_calendar: 1 },
+    ]);
+  });
+
 });
