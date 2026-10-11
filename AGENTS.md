@@ -234,7 +234,7 @@ Page-level layout decisions are centralized in `app/app/app.css`. Do not reintro
 ## Important Notes
 
 - This repo has historically accumulated stale agent notes. Verify claims against the live code before preserving them.
-- Do not assume existing type or test failures are acceptable. Run the relevant verification and record any inability to verify.
+- Do not chase TS or test errors unrelated to your change. If the root cause is in scope for what you are doing, fix it; otherwise leave it as-is and call it out in the PR description so reviewers can decide.
 - Cloudflare cache purging requires a zone ID, not an account ID.
 - Restaurants are global records; poll-specific voting is represented by join/vote tables and uniqueness constraints.
 - Voting and admin mutation flows commonly dispatch through `_action`; keep action names and response shapes consistent with nearby routes.
