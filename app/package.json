@@ -38,7 +38,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.65.0",
     "@playwright/test": "^1.64.1",
-    "@react-router/dev": "8.5.0",
+    "@react-router/dev": "8.3.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
@@ -63,7 +63,7 @@
     "wrangler": {
       "@cloudflare/workers-types": "^4.20260701.1"
     },
-    "miniflare@5.20261019.2-beta": {
+    "miniflare": {
       "undici": "7.30.1"
     }
   }
