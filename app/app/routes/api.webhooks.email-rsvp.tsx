@@ -1,15 +1,11 @@
 import type { RouterContextProvider } from "react-router";
 import type { CloudflareEnv } from "../env";
 import { Webhook } from "svix";
+import { parseReceivedPayload } from "../lib/resend-webhook-payload.server";
 import { persistCalendarRsvp } from "../lib/calendar-rsvp.server";
 import { logErrorEvent, logInfoEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
-import { getReceivedCalendarContents, type ReceivedEmailData } from "../lib/received-email.server";
-
-interface ResendEmailReceivedPayload {
-  type: string;
-  data: ReceivedEmailData;
-}
+import { getReceivedCalendarContents } from "../lib/received-email.server";
 
 interface WebhookUserRow {
   id: number;
@@ -68,14 +64,13 @@ export async function action({
 
     // Verify the webhook signature
     const wh = new Webhook(webhookSecret);
-    let payload;
 
     try {
-      payload = wh.verify(body, {
+      wh.verify(body, {
         'svix-id': svixId,
         'svix-timestamp': svixTimestamp,
         'svix-signature': svixSignature,
-      }) as ResendEmailReceivedPayload;
+      });
     } catch (err) {
       logErrorEvent("resend_rsvp_webhook_signature_invalid", err);
       return Response.json(
@@ -84,10 +79,17 @@ export async function action({
       );
     }
 
+    let payload;
+    try {
+      payload = parseReceivedPayload(body);
+    } catch {
+      return Response.json({ error: "Invalid webhook payload" }, { status: 400 });
+    }
+
     logInfoEvent("resend_rsvp_webhook_received");
 
     // Only process email.received events
-    if (payload.type !== 'email.received') {
+    if (payload === null) {
       return Response.json({ message: 'Ignored: not an email.received event' });
     }
 

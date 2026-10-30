@@ -1,21 +1,10 @@
 import type { RouterContextProvider } from "react-router";
 import { Webhook } from "svix";
+import { parseDeliveryPayload } from "../lib/resend-webhook-payload.server";
 import { applyResendDeliveryWebhookEvent } from "../lib/event-email-delivery.server";
 import { getProviderWebhookConfig } from "../lib/provider-webhooks.server";
 import { logErrorEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
-
-interface ResendDeliveryWebhookPayload {
-  type: string;
-  created_at?: string;
-  data?: {
-    email_id?: string;
-    to?: string | string[];
-    reason?: string;
-    response?: string;
-    created_at?: string;
-  };
-}
 
 async function getWebhookSecret(
   context: Readonly<RouterContextProvider>
@@ -53,17 +42,23 @@ export async function action({
       return Response.json({ error: "Missing signature headers" }, { status: 401 });
     }
 
-    let payload: ResendDeliveryWebhookPayload;
     try {
       const webhook = new Webhook(webhookSecret);
-      payload = webhook.verify(body, {
+      webhook.verify(body, {
         "svix-id": svixId,
         "svix-timestamp": svixTimestamp,
         "svix-signature": svixSignature,
-      }) as ResendDeliveryWebhookPayload;
+      });
     } catch (error) {
       logErrorEvent("resend_delivery_webhook_signature_invalid", error);
       return Response.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    let payload;
+    try {
+      payload = parseDeliveryPayload(body);
+    } catch {
+      return Response.json({ error: "Invalid webhook payload" }, { status: 400 });
     }
 
     const result = await applyResendDeliveryWebhookEvent(db, payload, svixId);

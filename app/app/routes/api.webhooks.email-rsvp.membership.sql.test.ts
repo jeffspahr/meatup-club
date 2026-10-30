@@ -8,8 +8,8 @@ import { action } from "./api.webhooks.email-rsvp";
 
 const secret = ["wh", "sec", "_"].join("") + btoa("membership-calendar-test-key");
 
-function replyRequest(validSignature = true) {
-  const body = JSON.stringify({
+function replyRequest(validSignature = true, rawBody?: string) {
+  const body = rawBody ?? JSON.stringify({
     type: "email.received",
     data: {
       from: "Member <MEMBER@example.com>",
@@ -68,6 +68,18 @@ describe("calendar RSVP membership authorization", () => {
     const duplicate = await action({ request: replyRequest(), context: context() });
     expect(await duplicate.json()).toEqual({ message: "Duplicate webhook ignored" });
     expect(harness.get("SELECT status FROM rsvps")).toEqual({ status: "no" });
+  });
+
+  it.each([
+    "not-json", "null", "[]", JSON.stringify({ type: 123 }),
+    JSON.stringify({ type: "email.received", data: null }),
+    JSON.stringify({ type: "email.received", data: { from: 12, subject: "Accepted" } }),
+    JSON.stringify({ type: "email.received", data: { from: "member@example.com", subject: "Accepted", text: {} } }),
+    JSON.stringify({ type: "email.received", data: { from: "member@example.com", subject: "Accepted", attachments: [null] } }),
+  ])("rejects signed malformed payload %s without recording or changing an RSVP", async body => {
+    expect((await action({ request: replyRequest(true, body), context: context() })).status).toBe(400);
+    expect(harness.get("SELECT status FROM rsvps")).toEqual({ status: "no" });
+    expect(harness.all("SELECT * FROM webhook_deliveries")).toEqual([]);
   });
 
   it("rejects an invalid signature without changing the response", async () => {

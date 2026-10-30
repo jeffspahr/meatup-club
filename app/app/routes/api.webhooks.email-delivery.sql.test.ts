@@ -24,8 +24,8 @@ describe("delivery status webhook persistence", () => {
   });
   afterEach(() => harness.sqlite.close());
 
-  function receive(type: string, id = type) {
-    const body = JSON.stringify({ type, data: { email_id: "email-1" } });
+  function receive(type: string, id = type, rawBody?: string, validSignature = true) {
+    const body = rawBody ?? JSON.stringify({ type, data: { email_id: "email-1" } });
     const timestamp = new Date();
     return action({
       request: new Request("https://meatup.club/api/webhooks/email-delivery", {
@@ -33,12 +33,32 @@ describe("delivery status webhook persistence", () => {
         headers: {
           "svix-id": id,
           "svix-timestamp": String(Math.floor(timestamp.getTime() / 1000)),
-          "svix-signature": new Webhook(secret).sign(id, timestamp, body),
+          "svix-signature": new Webhook(secret).sign(id, timestamp, validSignature ? body : "tampered"),
         },
       }),
       context: createLoadContext({ env: { DB: harness.db, RESEND_DELIVERY_WEBHOOK_SECRET: secret } } as never),
     });
   }
+
+  it.each(["invalid signature", "invalid JSON"])("rejects %s without recording or changing delivery state", async failure => {
+    const response = await receive("email.delivered", "invalid-delivery",
+      failure === "invalid JSON" ? "not-json" : undefined, failure !== "invalid signature");
+    expect(response.status).toBe(failure === "invalid signature" ? 401 : 400);
+    expect(harness.all("SELECT * FROM webhook_deliveries")).toEqual([]);
+    expect(harness.get("SELECT status FROM event_email_deliveries")).toEqual({ status: "provider_accepted" });
+  });
+
+  it.each([
+    "null", "[]", JSON.stringify({ type: 123 }),
+    JSON.stringify({ type: "email.delivered", data: null }),
+    JSON.stringify({ type: "email.delivered", data: { email_id: 123 } }),
+    JSON.stringify({ type: "email.failed", data: { email_id: "email-1", reason: {} } }),
+    JSON.stringify({ type: "email.delivered", data: { to: [123] } }),
+  ])("rejects signed malformed payload %s without changing delivery state", async body => {
+    expect((await receive("email.delivered", "invalid-shape", body)).status).toBe(400);
+    expect(harness.all("SELECT * FROM webhook_deliveries")).toEqual([]);
+    expect(harness.get("SELECT status FROM event_email_deliveries")).toEqual({ status: "provider_accepted" });
+  });
 
   it("rolls back the webhook receipt after a status write failure and accepts the retry", async () => {
     harness.sqlite.exec(`CREATE TRIGGER fail_delivery BEFORE UPDATE ON event_email_deliveries

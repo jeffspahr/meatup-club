@@ -198,8 +198,8 @@ describe("Svix webhook contracts", () => {
       context: createLoadContext({ env: { DB: db } } as never) as never,
     });
 
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "Invalid signature" });
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Invalid webhook payload" });
     expect(reserveWebhookDelivery).not.toHaveBeenCalled();
     expect(applyResendDeliveryWebhookEvent).not.toHaveBeenCalled();
   });

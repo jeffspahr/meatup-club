@@ -44,7 +44,7 @@ describe("api.webhooks.email-delivery", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockVerify = vi.fn((body: string) => JSON.parse(body));
+    mockVerify = vi.fn(() => undefined);
     vi.mocked(getProviderWebhookConfig).mockResolvedValue(null);
     vi.mocked(applyResendDeliveryWebhookEvent).mockResolvedValue({
       handled: true,
