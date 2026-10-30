@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Enable version updates for npm (Next.js app)
+  # Enable version updates for the React Router app
   - package-ecosystem: "npm"
     directory: "/app"
     schedule:
@@ -16,13 +16,27 @@ updates:
         versions: ["> 15.5.2"]
     # Group dependency updates to reduce PR noise
     groups:
+      # Router runtime, adapters, and build tools must move together.
+      react-router:
+        patterns:
+          - "react-router"
+          - "@react-router/*"
+        update-types:
+          - "minor"
+          - "patch"
       production-dependencies:
         dependency-type: "production"
+        exclude-patterns:
+          - "react-router"
+          - "@react-router/*"
         update-types:
           - "minor"
           - "patch"
       development-dependencies:
         dependency-type: "development"
+        exclude-patterns:
+          - "react-router"
+          - "@react-router/*"
         update-types:
           - "minor"
           - "patch"
