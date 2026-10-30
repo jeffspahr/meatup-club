@@ -64,8 +64,8 @@ describe('Webhook Handler - Signature Verification', () => {
         throw new Error('Invalid signature');
       }
 
-      // Return parsed payload for valid signatures
-      return JSON.parse(body);
+      // Svix verifies signatures without returning a payload.
+      return undefined;
     });
   });
 
@@ -315,8 +315,8 @@ describe('Webhook Handler - Database Operations', () => {
 
     // Setup default mock behavior for Svix verify
     mockVerify.mockImplementation((body: string, headers: any, secret: string) => {
-      // Return parsed payload for valid signatures
-      return JSON.parse(body);
+      // Svix verifies signatures without returning a payload.
+      return undefined;
     });
   });
 

@@ -57,7 +57,7 @@ vi.mock("svix", () => ({
         throw new Error("Missing webhook payload");
       }
 
-      return webhookState.payload;
+      return undefined;
     }
   },
 }));
@@ -402,7 +402,7 @@ describe("workflow truth suite", () => {
     const response = await emailWebhookAction({
       request: new Request("http://localhost/api/webhooks/email-rsvp", {
         method: "POST",
-        body: JSON.stringify({ ok: true }),
+        body: JSON.stringify(webhookState.payload),
         headers: {
           "content-type": "application/json",
           "svix-id": "delivery-1",
