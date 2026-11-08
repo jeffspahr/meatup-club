@@ -483,3 +483,15 @@ Working notes: live desktop baseline is 131 ms document / 357–490 ms load; use
 Diagnosis: stalled eager avatars hold the document load event in both browsers while all rows are already rendered. At 390px, the first row starts around y698 and is 437px tall, so only one fits above the fold. Lazy loading alone passed Chromium but still held load in WebKit with only the avatar request pending. Fix: render initials through SSR/hydration and create optional photos after document load; retain lazy loading, async decode and explicit dimensions. New effect is external sync with window load, removes its listener on unmount, and adds no effect chain.
 
 Results: Node 24 verification passed 1,030 tests, typecheck, lint, production build and all eight Chromium/iPhone WebKit member-page browser checks. Independent review found no actionable issues. No schema or membership changes; no production deployment. UI layout unchanged; optional photos appear after document load.
+
+
+## Member count and Safari follow-up (2026-11-08)
+Acceptance: header counts only displayed members; investigate reported iPhone Safari delay on deployed PR381 without treating a matching simulation as confirmed user root cause.
+- [x] Confirm PR381 merged and production deployment successful.
+- [x] Correct visible-member count and component expectations.
+- [x] Run production-SSR mobile WebKit experiments; actual iPhone delay remains unresolved.
+- [x] Verify count behavior.
+- [ ] Publish focused count PR.
+Working notes: device is iPhone Safari. Prior avatar fix did not resolve the reported delay. Existing task-note replacement belongs to another task and must remain untouched in commits.
+
+Results: count shows only the visible population with correct singular/plural. Node24: 1,030 tests, typecheck, lint, build, and 390px WebKit member-page check pass. Screenshot reviewed. Local production SSR with ten synthetic members: load127ms, FCP130ms, all rows156ms; client navigation80–97ms. Holding font/app CSS artificially delays whole rendering, not individual member data. No additional performance change is justified by these tests. Need real-device recording/trace to identify the user's remaining pause.
