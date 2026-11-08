@@ -415,7 +415,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     <main className="page-main page-main-wide">
       <PageHeader
         title="Member Management"
-        description={`Showing ${visibleMembers.length} of ${members.length} members`}
+        description={`${visibleMembers.length} ${visibleMembers.length === 1 ? 'member' : 'members'}`}
         actions={
           <Button
             onClick={() => setShowAddForm(!showAddForm)}

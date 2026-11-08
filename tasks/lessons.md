@@ -118,3 +118,5 @@
 
 - 2026-11-08: A fast desktop load did not reproduce a member page's apparent mobile stall. Detection: user reported one visible member while loading; stalled-avatar tests showed all rows ready but the load event waiting on an eager image, with one row fitting the initial viewport. Prevention: test slow third-party assets and mobile layout independently; distinguish load completion from DOM availability.
 - 2026-11-08: Native lazy loading alone still blocked document load for an in-view image in the tested WebKit browser. Detect with an intercepted, indefinitely pending image request and a load-event assertion; verify both engines and defer optional photo creation until document load when browser behavior differs.
+
+- 2026-11-08: A simulated slow-avatar stall matched symptoms but did not resolve the user's iPhone Safari delay after deployment. Confirm device and actual failing-path timings before attributing a report to a synthetic reproduction. When hiding inactive records, the default count should describe the visible population rather than advertise hidden records.
