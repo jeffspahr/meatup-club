@@ -1,5 +1,15 @@
 // Email templates for Meatup.Club
 
+// Escape values at the HTML boundary; retain original values for text and subjects.
+export function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 interface InviteEmailData {
   inviteeName: string | null;
   inviterName: string;
@@ -167,7 +177,7 @@ export function generateRsvpOverrideEmail(data: RsvpOverrideEmailData) {
                 Hi ${displayName},
               </p>
               <p style="margin: 0 0 16px; font-size: 16px; color: #374151; line-height: 1.6;">
-                ${data.adminName} updated your RSVP for <strong>${data.eventName}</strong>.
+                ${data.adminName} updated your RSVP for <strong>${escapeHtmlText(data.eventName)}</strong>.
               </p>
               <p style="margin: 0 0 16px; font-size: 16px; color: #374151; line-height: 1.6;">
                 New RSVP status: <strong>${statusLabel}</strong>

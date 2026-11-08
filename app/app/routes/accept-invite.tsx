@@ -33,11 +33,15 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const db = getCloudflareContext(context).env.DB;
 
-  // Update user status to active
-  await db
-    .prepare("UPDATE users SET status = ? WHERE id = ?")
+  // Membership may change after authentication; never reactivate a revoked invitation.
+  const result = await db
+    .prepare("UPDATE users SET status = ? WHERE id = ? AND status = 'invited'")
     .bind("active", user.id)
     .run();
+
+  if (result.meta.changes === 0) {
+    return { error: "Your invitation is no longer available. Please contact an admin." };
+  }
 
   return redirect("/dashboard");
 }
