@@ -25,7 +25,7 @@ describe("membership admission with the canonical schema", () => {
     vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(
       url.includes("api.resend.com") ? { id: "invite-message" } : url.includes("/token")
         ? { access_token: "test-token" }
-        : { id: "google-member", email: "member@example.com", verified_email: true, name: "Member" }
+        : { id: "google-member", email: "member@example.com", verified_email: true, hd: "example.com", name: "Member" }
     )));
   });
 
