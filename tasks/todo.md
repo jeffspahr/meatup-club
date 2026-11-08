@@ -513,7 +513,7 @@ Acceptance: every member's full details and actions remain rendered and reachabl
 - [x] Replace mobile table painting path with normal-flow layout without duplicate forms.
 - [x] Add multi-member mobile regression covering every field and action during pending photos.
 - [x] Run full tests, typecheck, lint, build, and browser checks.
-- [ ] Review and publish signed PR.
+- [x] Review and publish signed PR #384: https://github.com/jeffspahr/meatup-club/pull/384.
 Working notes: screenshot stops after SMS before Joined/actions. Current deployed code inserts photo only after document load; live DOM contains all ten rows. Avoid treating this as per-member data fetching. Safari table rendering is a plausible cause, not a proven physical-device diagnosis. Preserve unrelated working task notes.
 
 Results: one accessible table tree uses normal-flow mobile cards and aligned desktop grid columns, without native table painting or mobile nested overflow. Full 1,030 tests, typecheck, lint, build, ten browser checks pass; both desktop browser checks rerun after intrinsic column-width correction. Mobile/desktop screenshots inspected and independent review passed. Regression verifies complete row geometry and all controls while photos remain pending, but does not reproduce physical-iPhone compositor blanking. No production deployment.
