@@ -14,6 +14,14 @@ export interface ReceivedEmailData {
   attachments?: ReceivedAttachment[];
 }
 
+interface AuthenticatedCalendarReply {
+  from: string;
+  subject: string;
+  contents: string[];
+}
+
+export class UnauthenticatedReceivedEmailError extends Error {}
+
 const MAX_CALENDAR_BYTES = 1024 * 1024;
 
 async function getResendJson<T>(path: string, apiKey: string): Promise<T> {
@@ -62,19 +70,27 @@ async function downloadCalendar(url: string): Promise<string> {
 export async function getReceivedCalendarContents(
   data: ReceivedEmailData,
   apiKey: string | undefined,
-): Promise<string[]> {
+): Promise<AuthenticatedCalendarReply> {
   if (!data.email_id) {
-    // Preserve compatibility with older inline-body deliveries.
-    if (data.text == null && data.html == null) {
-      throw new Error("Received email is missing its email_id and content");
-    }
-    return [data.text || "", data.html || ""];
+    throw new UnauthenticatedReceivedEmailError("Received email requires an email_id");
   }
   if (!apiKey) throw new Error("Resend receiving API key is not configured");
 
   const emailPath = encodeURIComponent(data.email_id);
-  const email = await getResendJson<ReceivedEmailData>(emailPath, apiKey);
-  const calendars = (email.attachments ?? data.attachments ?? []).filter(attachment =>
+  const email = await getResendJson<ReceivedEmailData & {
+    authentication?: { dkim?: string; dmarc?: string } | null;
+  }>(emailPath, apiKey);
+  // These server-computed results include From-domain alignment; SPF alone does not.
+  // https://resend.com/docs/api-reference/emails/retrieve-received-email
+  if (!email || (email.authentication?.dkim !== "pass" && email.authentication?.dmarc !== "pass")) {
+    throw new UnauthenticatedReceivedEmailError("Received email sender is not authenticated");
+  }
+  // Use the receiving API's canonical mailbox, never a display-name header.
+  if (typeof email.from !== "string" || !/^[^\s\x00-\x1f\x7f<>@(),;:"\\]+@[^\s\x00-\x1f\x7f<>@(),;:"\\]+$/.test(email.from)
+    || typeof email.subject !== "string") {
+    throw new UnauthenticatedReceivedEmailError("Received email sender is invalid");
+  }
+  const calendars = (email.attachments ?? []).filter(attachment =>
     /^text\/calendar(?:;|$)/i.test(attachment.content_type) || /\.ics$/i.test(attachment.filename || ""),
   );
   const contents: string[] = [];
@@ -88,5 +104,9 @@ export async function getReceivedCalendarContents(
     contents.push(await downloadCalendar(details.download_url));
   }
   // A reply attachment is authoritative; do not parse a quoted invitation body instead.
-  return contents.length ? contents : [email.text || "", email.html || ""];
+  return {
+    from: email.from.toLowerCase(),
+    subject: email.subject,
+    contents: contents.length ? contents : [email.text || "", email.html || ""],
+  };
 }

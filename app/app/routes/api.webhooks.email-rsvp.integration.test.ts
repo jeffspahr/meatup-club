@@ -1,6 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { action } from './api.webhooks.email-rsvp';
 import { createLoadContext } from "~/lib/router-context";
+
+afterEach(() => vi.unstubAllGlobals());
 
 /**
  * Integration tests for webhook signature verification and database operations
@@ -14,6 +16,22 @@ import { createLoadContext } from "~/lib/router-context";
 
 // Mock verify function that will be reused
 const mockVerify = vi.fn();
+
+// These route tests model the receiving API boundary; sender validation is exercised
+// with real signed requests and SQLite in the membership suite.
+function receivedRequest(url: string, init: RequestInit) {
+  const payload = JSON.parse(init.body as string);
+  if (payload.type === "email.received" && payload.data) {
+    const fixture = payload.data;
+    const canonicalFrom = fixture.from?.match(/<([^>]+)>/)?.[1] ?? fixture.from;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async () => Response.json({
+      ...fixture, from: canonicalFrom,
+      authentication: { dkim: "pass", dmarc: "pass", spf: "pass" },
+    })));
+    payload.data = { email_id: "received-test-email", from: fixture.from, subject: fixture.subject };
+  }
+  return new Request(url, { ...init, body: JSON.stringify(payload) });
+}
 
 // Mock the Svix library
 vi.mock('svix', () => {
@@ -55,6 +73,7 @@ describe('Webhook Handler - Signature Verification', () => {
     mockEnv = {
       DB: mockDb,
       RESEND_WEBHOOK_SECRET: 'test-webhook-secret',
+      RESEND_API_KEY: 'test-receiving-key',
     };
 
     // Setup default mock behavior for Svix verify
@@ -71,7 +90,7 @@ describe('Webhook Handler - Signature Verification', () => {
 
   describe('Security: Missing Configuration', () => {
     it('should reject requests when webhook secret is not configured', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -106,7 +125,7 @@ describe('Webhook Handler - Signature Verification', () => {
 
   describe('Security: Missing Svix Headers', () => {
     it('should reject requests missing svix-id header', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -127,7 +146,7 @@ describe('Webhook Handler - Signature Verification', () => {
     });
 
     it('should reject requests missing svix-timestamp header', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -148,7 +167,7 @@ describe('Webhook Handler - Signature Verification', () => {
     });
 
     it('should reject requests missing svix-signature header', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -171,7 +190,7 @@ describe('Webhook Handler - Signature Verification', () => {
 
   describe('Security: Invalid Signature', () => {
     it('should reject requests with invalid signature', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -203,7 +222,7 @@ describe('Webhook Handler - Signature Verification', () => {
     it('should ignore duplicate deliveries by svix-id', async () => {
       mockDb.processed = true;
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -234,7 +253,7 @@ describe('Webhook Handler - Signature Verification', () => {
 
   describe('Valid Webhook Processing', () => {
     it('should ignore non-email.received events', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -262,7 +281,7 @@ describe('Webhook Handler - Signature Verification', () => {
     });
 
     it('should ignore emails without RSVP data', async () => {
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -311,6 +330,7 @@ describe('Webhook Handler - Database Operations', () => {
     mockEnv = {
       DB: mockDb,
       RESEND_WEBHOOK_SECRET: 'test-webhook-secret',
+      RESEND_API_KEY: 'test-receiving-key',
     };
 
     // Setup default mock behavior for Svix verify
@@ -325,7 +345,7 @@ describe('Webhook Handler - Database Operations', () => {
       // Mock: user not found
       mockDb.first.mockResolvedValueOnce(null);
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -360,7 +380,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -400,7 +420,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -432,7 +452,7 @@ describe('Webhook Handler - Database Operations', () => {
       // won't parse and will return 200 with "No RSVP data found"
       // The 400 check in the handler is defensive programming for future edge cases
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -463,7 +483,7 @@ describe('Webhook Handler - Database Operations', () => {
         .mockResolvedValueOnce({ id: 1, email: 'user@example.com', name: 'Test User' })
         .mockResolvedValueOnce(null); // Event not found
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -500,7 +520,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -543,7 +563,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -577,7 +597,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -613,7 +633,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -654,7 +674,7 @@ describe('Webhook Handler - Database Operations', () => {
 
       mockDb.run.mockResolvedValueOnce({ success: true });
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -685,7 +705,7 @@ describe('Webhook Handler - Database Operations', () => {
     it('should handle database errors gracefully', async () => {
       mockDb.first.mockRejectedValueOnce(new Error('Database connection failed'));
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -724,7 +744,7 @@ describe('Webhook Handler - Database Operations', () => {
         .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' }) // Event 3 (redirect target)
         .mockResolvedValueOnce(null); // No existing RSVP
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',
@@ -762,7 +782,7 @@ describe('Webhook Handler - Database Operations', () => {
         .mockResolvedValueOnce({ id: 3, restaurant_name: 'Test Restaurant', event_date: '2026-01-02' })
         .mockResolvedValueOnce(null);
 
-      const request = new Request('http://localhost/api/webhooks/email-rsvp', {
+      const request = receivedRequest('http://localhost/api/webhooks/email-rsvp', {
         method: 'POST',
         headers: {
           'svix-id': 'msg_123',

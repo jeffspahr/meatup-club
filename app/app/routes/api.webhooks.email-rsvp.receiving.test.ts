@@ -1,12 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Webhook } from "svix";
 import { action, parseCalendarRSVP } from "./api.webhooks.email-rsvp";
 import { createLoadContext } from "~/lib/router-context";
+
+afterEach(() => vi.unstubAllGlobals());
 
 const secret = ["wh", "sec", "_"].join("") + btoa("calendar-reply-test-key");
 const emailId = "received-email-123";
 const attachment = { id: "calendar-attachment", filename: "reply.ics", content_type: "text/calendar; method=REPLY" };
 const downloadUrl = "https://inbound-cdn.resend.com/reply.ics?signature=test";
+const authenticatedMetadata = {
+  from: "member@example.com", subject: "Réponse à l’invitation",
+  authentication: { dkim: "pass", dmarc: "gray", spf: "pass" },
+};
 const fetchMock = vi.fn<typeof fetch>();
 
 function calendar(partstat: string) {
@@ -81,7 +87,7 @@ function context(db: ReturnType<typeof database>["db"], apiKey: string | undefin
 
 function providerResponses(partstat = "ACCEPTED") {
   fetchMock
-    .mockResolvedValueOnce(Response.json({ text: null, html: "<p>Calendar response</p>", attachments: [attachment] }))
+    .mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, text: null, html: "<p>Calendar response</p>", attachments: [attachment] }))
     .mockResolvedValueOnce(Response.json({ ...attachment, download_url: downloadUrl }))
     .mockResolvedValueOnce(new Response(calendar(partstat)));
 }
@@ -143,7 +149,7 @@ describe("Real calendar replies received through Resend", () => {
 
   it.each(["metadata", "download", "network"])("does not record the delivery after attachment %s failure", async (stage) => {
     const state = database();
-    fetchMock.mockResolvedValueOnce(Response.json({ text: null, html: null, attachments: [attachment] }));
+    fetchMock.mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, text: null, html: null, attachments: [attachment] }));
     if (stage === "metadata") {
       fetchMock.mockResolvedValueOnce(new Response("Unavailable", { status: 503 }));
     } else {
@@ -161,7 +167,7 @@ describe("Real calendar replies received through Resend", () => {
 
   it("reads calendar data in the retrieved body and skips unrelated attachments", async () => {
     const state = database();
-    fetchMock.mockResolvedValueOnce(Response.json({ text: calendar("DECLINED"), html: null,
+    fetchMock.mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, text: calendar("DECLINED"), html: null,
       attachments: [{ id: "photo", filename: "photo.png", content_type: "image/png" }] }));
     expect((await action({ request: request(), context: context(state.db) })).status).toBe(200);
     expect(state.writes).toEqual([[123, 7, "no"]]);
@@ -170,7 +176,7 @@ describe("Real calendar replies received through Resend", () => {
 
   it("uses .ics attachments even when sent as application/octet-stream", async () => {
     const state = database();
-    fetchMock.mockResolvedValueOnce(Response.json({ attachments: [{ ...attachment, content_type: "application/octet-stream" }] }))
+    fetchMock.mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, attachments: [{ ...attachment, content_type: "application/octet-stream" }] }))
       .mockResolvedValueOnce(Response.json({ download_url: downloadUrl }))
       .mockResolvedValueOnce(new Response(calendar("ACCEPTED")));
     expect((await action({ request: request(), context: context(state.db) })).status).toBe(200);
@@ -179,7 +185,7 @@ describe("Real calendar replies received through Resend", () => {
 
   it("ignores ordinary mail with no calendar data", async () => {
     const state = database();
-    fetchMock.mockResolvedValueOnce(Response.json({ text: null, html: "<p>Thanks!</p>", attachments: [] }));
+    fetchMock.mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, text: null, html: "<p>Thanks!</p>", attachments: [] }));
     const response = await action({ request: request(), context: context(state.db) });
     expect(await response.json()).toEqual({ message: "No RSVP data found" });
     expect(state.writes).toEqual([]);
@@ -187,7 +193,7 @@ describe("Real calendar replies received through Resend", () => {
 
   it("rejects oversized calendar content without persisting an RSVP", async () => {
     const state = database();
-    fetchMock.mockResolvedValueOnce(Response.json({ attachments: [attachment] }))
+    fetchMock.mockResolvedValueOnce(Response.json({ ...authenticatedMetadata, attachments: [attachment] }))
       .mockResolvedValueOnce(Response.json({ download_url: downloadUrl }))
       .mockResolvedValueOnce(new Response("x".repeat(1024 * 1024 + 1)));
     expect((await action({ request: request(), context: context(state.db) })).status).toBe(500);

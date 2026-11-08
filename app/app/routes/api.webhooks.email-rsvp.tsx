@@ -5,7 +5,7 @@ import { parseReceivedPayload } from "../lib/resend-webhook-payload.server";
 import { persistCalendarRsvp } from "../lib/calendar-rsvp.server";
 import { logErrorEvent, logInfoEvent } from "../lib/observability.server";
 import { getCloudflareContext } from "~/lib/router-context";
-import { getReceivedCalendarContents } from "../lib/received-email.server";
+import { getReceivedCalendarContents, UnauthenticatedReceivedEmailError } from "../lib/received-email.server";
 
 interface WebhookUserRow {
   id: number;
@@ -99,10 +99,7 @@ export async function action({
       return Response.json({ message: 'Duplicate webhook ignored' });
     }
 
-    const { from, subject } = payload.data;
-    const emailMatch = from.match(/<([^>]+)>/) || [null, from];
-    const userEmail = emailMatch[1].trim().toLowerCase();
-    const contents = await getReceivedCalendarContents(
+    const { from: userEmail, subject, contents } = await getReceivedCalendarContents(
       payload.data, getCloudflareContext(context).env.RESEND_API_KEY,
     );
 
@@ -197,6 +194,9 @@ export async function action({
     });
 
   } catch (error) {
+    if (error instanceof UnauthenticatedReceivedEmailError) {
+      return Response.json({ success: false, error: "Unauthenticated email sender" }, { status: 403 });
+    }
     logErrorEvent("resend_rsvp_webhook_failed", error);
     return Response.json(
       {
