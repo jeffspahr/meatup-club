@@ -430,3 +430,16 @@ Results: extracted `AdminEventSmsForm` uses a separate fetcher per event, shows 
 Verification: Node 24; all 901 tests passed, including 14 admin SMS component regressions; lint, secret-fixture scan, typecheck and production build passed. Chromium admin SMS browser regression passed against local D1, including audience switching and cancelling confirmation with no POST. Screenshot updated at `docs/screenshots/event-sms-admin.png` and visually reviewed. No server recipient logic, migrations, production writes or live SMS sends changed/performed.
 
 Published PR #338: https://github.com/jeffspahr/meatup-club/pull/338. GitHub reports mergeable; required application and browser CI checks are running.
+
+## Admin members mobile layout (2026-11-07)
+
+Acceptance: all member details and actions fit a 320px phone without horizontal scrolling; desktop retains its table; editing remains usable.
+
+- [x] Inspect current implementation and shared layout.
+- [x] Implement stacked mobile member rows.
+- [x] Verify browser widths, editing, lint, tests, typecheck, and build.
+- [ ] Open a focused DCO-signed PR.
+
+Working notes: current main already has a scroll container around a minimum-width seven-column table. Use one responsive table and existing handlers, without duplicating forms or introducing effects. Original checkout has unrelated edits; isolated worktree starts at origin/main.
+
+Results: scoped phone-only stacked rows retain desktop columns, explicit table semantics, and existing mutation handlers. Lint, typecheck, all 931 tests, production build, and six Playwright checks (320/390/1280px in Chromium and iPhone WebKit) passed. Screenshot visually reviewed. Independent diff review found no actionable issues. Verification ran with host Node 26; CI uses the repository Node 24 version.

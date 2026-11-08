@@ -27,7 +27,7 @@ export default defineConfig({
     },
     {
       name: "webkit-iphone",
-      testMatch: /(?:event-creation|poll-close)\.spec\.ts/,
+      testMatch: /(?:event-creation|poll-close|admin-members)\.spec\.ts/,
       use: { ...devices["iPhone 17"] },
     },
     {

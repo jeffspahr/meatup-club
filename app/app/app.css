@@ -794,3 +794,50 @@ body {
   background: rgb(var(--accent) / 0.25);
   color: rgb(var(--foreground));
 }
+
+/* Stack member details on phones while preserving the desktop table. */
+@media (width < 40rem) {
+  .admin-members-table,
+  .admin-members-table tbody,
+  .admin-members-table tr,
+  .admin-members-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-members-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .admin-members-table tr {
+    padding: 1rem 0;
+  }
+
+  .admin-members-table td {
+    padding: 0.375rem 1rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-members-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(var(--muted-foreground));
+  }
+
+  .admin-members-table .member-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    text-align: left;
+  }
+}
