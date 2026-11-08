@@ -491,7 +491,7 @@ Acceptance: header counts only displayed members; investigate reported iPhone Sa
 - [x] Correct visible-member count and component expectations.
 - [x] Run production-SSR mobile WebKit experiments; actual iPhone delay remains unresolved.
 - [x] Verify count behavior.
-- [ ] Publish focused count PR.
+- [x] Publish count PR #382: https://github.com/jeffspahr/meatup-club/pull/382.
 Working notes: device is iPhone Safari. Prior avatar fix did not resolve the reported delay. Existing task-note replacement belongs to another task and must remain untouched in commits.
 
 Results: count shows only the visible population with correct singular/plural. Node24: 1,030 tests, typecheck, lint, build, and 390px WebKit member-page check pass. Screenshot reviewed. Local production SSR with ten synthetic members: load127ms, FCP130ms, all rows156ms; client navigation80–97ms. Holding font/app CSS artificially delays whole rendering, not individual member data. No additional performance change is justified by these tests. Need real-device recording/trace to identify the user's remaining pause.
