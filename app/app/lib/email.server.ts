@@ -2,6 +2,7 @@
 
 import { renderAnnouncementMessageHtml } from "./announcement-markdown.server";
 import { logErrorEvent } from "./observability.server";
+import { escapeHtmlText } from "./email-templates";
 
 interface EmailTemplate {
   subject: string;
@@ -393,6 +394,15 @@ interface EventInviteEmailParams {
 
 const EVENT_INVITE_SEND_CONCURRENCY = 6;
 
+// RFC 5545 TEXT values must not introduce content lines or property delimiters.
+function escapeCalendarText(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\r\n|\r|\n/g, "\\n")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,");
+}
+
 /**
  * Generate an iCalendar (.ics) file content for an event
  * Exported for testing
@@ -446,7 +456,7 @@ export function generateCalendarInvite({
     : restaurantName;
 
   // Build description
-  const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
+  const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\n\nLocation: ${restaurantAddress}` : ''}\n\nRSVP and view details at https://meatup.club/dashboard/events`;
 
   // Generate iCalendar content (RFC 5545 format)
   const icsContent = [
@@ -460,9 +470,9 @@ export function generateCalendarInvite({
     `DTSTAMP:${dtStamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
-    `SUMMARY:Meatup.Club - ${restaurantName}`,
-    `DESCRIPTION:${description}`,
-    `LOCATION:${location}`,
+    `SUMMARY:${escapeCalendarText(`Meatup.Club - ${restaurantName}`)}`,
+    `DESCRIPTION:${escapeCalendarText(description)}`,
+    `LOCATION:${escapeCalendarText(location)}`,
     'STATUS:CONFIRMED',
     `SEQUENCE:${sequence}`,
     'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
@@ -472,7 +482,7 @@ export function generateCalendarInvite({
     'BEGIN:VALARM',
     'TRIGGER:-PT24H',
     'ACTION:DISPLAY',
-    `DESCRIPTION:Reminder: Meatup at ${restaurantName} tomorrow`,
+    `DESCRIPTION:${escapeCalendarText(`Reminder: Meatup at ${restaurantName} tomorrow`)}`,
     'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR',
@@ -538,8 +548,8 @@ export async function sendEventInviteEmail({
                         You're invited to our next quarterly meatup!
                       </p>
                       <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 20px; margin: 0 0 24px; border-radius: 4px;">
-                        <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${restaurantName}</p>
-                        ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${restaurantAddress}</p>` : ""}
+                        <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${escapeHtmlText(restaurantName)}</p>
+                        ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${escapeHtmlText(restaurantAddress)}</p>` : ""}
                         <p style="margin: 0; font-size: 16px; color: #1f2937;">📅 ${new Date(eventDate + "T" + eventTime).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })} at ${new Date("2000-01-01T" + eventTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
                       </div>
                       <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -717,7 +727,7 @@ export async function sendCalendarUpdate({
       ? `${restaurantName}, ${restaurantAddress}`
       : restaurantName;
 
-    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
+    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\n\nLocation: ${restaurantAddress}` : ''}\n\nRSVP and view details at https://meatup.club/dashboard/events`;
 
     // Map website RSVP status to calendar PARTSTAT
     const partstatMap: Record<string, string> = {
@@ -741,9 +751,9 @@ export async function sendCalendarUpdate({
       `DTSTAMP:${dtStamp}`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
-      `SUMMARY:Meatup.Club - ${restaurantName}`,
-      `DESCRIPTION:${description}`,
-      `LOCATION:${location}`,
+      `SUMMARY:${escapeCalendarText(`Meatup.Club - ${restaurantName}`)}`,
+      `DESCRIPTION:${escapeCalendarText(description)}`,
+      `LOCATION:${escapeCalendarText(location)}`,
       'STATUS:CONFIRMED',
       'SEQUENCE:1',
       'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
@@ -753,7 +763,7 @@ export async function sendCalendarUpdate({
       'BEGIN:VALARM',
       'TRIGGER:-PT24H',
       'ACTION:DISPLAY',
-      `DESCRIPTION:Reminder: Meatup at ${restaurantName} tomorrow`,
+      `DESCRIPTION:${escapeCalendarText(`Reminder: Meatup at ${restaurantName} tomorrow`)}`,
       'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR',
@@ -801,11 +811,11 @@ export async function sendCalendarUpdate({
                       <td style="padding: 40px;">
                         <h2 style="margin: 0 0 20px; font-size: 24px; color: #1f2937;">RSVP Updated</h2>
                         <p style="margin: 0 0 24px; font-size: 16px; color: #4b5563; line-height: 1.6;">
-                          You've ${statusVerb} the invitation to our meatup at ${restaurantName}.
+                          You've ${statusVerb} the invitation to our meatup at ${escapeHtmlText(restaurantName)}.
                         </p>
                         <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 20px; margin: 0 0 24px; border-radius: 4px;">
-                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${restaurantName}</p>
-                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${restaurantAddress}</p>` : ''}
+                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${escapeHtmlText(restaurantName)}</p>
+                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${escapeHtmlText(restaurantAddress)}</p>` : ''}
                           <p style="margin: 0; font-size: 16px; color: #1f2937;">📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                         </div>
                         <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
@@ -923,7 +933,7 @@ export async function sendEventUpdateEmail({
       ? `${restaurantName}, ${restaurantAddress}`
       : restaurantName;
 
-    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\\n\\nLocation: ${restaurantAddress}` : ''}\\n\\nRSVP and view details at https://meatup.club/dashboard/events`;
+    const description = `Join us for our quarterly meatup at ${restaurantName}!${restaurantAddress ? `\n\nLocation: ${restaurantAddress}` : ''}\n\nRSVP and view details at https://meatup.club/dashboard/events`;
 
     const partstatMap: Record<string, string> = {
       'yes': 'ACCEPTED',
@@ -944,9 +954,9 @@ export async function sendEventUpdateEmail({
       `DTSTAMP:${dtStamp}`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
-      `SUMMARY:Meatup.Club - ${restaurantName}`,
-      `DESCRIPTION:${description}`,
-      `LOCATION:${location}`,
+      `SUMMARY:${escapeCalendarText(`Meatup.Club - ${restaurantName}`)}`,
+      `DESCRIPTION:${escapeCalendarText(description)}`,
+      `LOCATION:${escapeCalendarText(location)}`,
       'STATUS:CONFIRMED',
       `SEQUENCE:${sequence}`,
       'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
@@ -956,7 +966,7 @@ export async function sendEventUpdateEmail({
       'BEGIN:VALARM',
       'TRIGGER:-PT24H',
       'ACTION:DISPLAY',
-      `DESCRIPTION:Reminder: Meatup at ${restaurantName} tomorrow`,
+      `DESCRIPTION:${escapeCalendarText(`Reminder: Meatup at ${restaurantName} tomorrow`)}`,
       'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR',
@@ -994,8 +1004,8 @@ export async function sendEventUpdateEmail({
                           The event details have changed. Your calendar invite has been updated.
                         </p>
                         <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 20px; margin: 0 0 24px; border-radius: 4px;">
-                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${restaurantName}</p>
-                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${restaurantAddress}</p>` : ''}
+                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${escapeHtmlText(restaurantName)}</p>
+                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${escapeHtmlText(restaurantAddress)}</p>` : ''}
                           <p style="margin: 0; font-size: 16px; color: #1f2937;">📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                         </div>
                         <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">
@@ -1123,9 +1133,9 @@ export async function sendEventCancellationEmail({
       `DTSTAMP:${dtStamp}`,
       `DTSTART:${dtStart}`,
       `DTEND:${dtEnd}`,
-      `SUMMARY:Meatup.Club - ${restaurantName}`,
-      `DESCRIPTION:${description}`,
-      `LOCATION:${location}`,
+      `SUMMARY:${escapeCalendarText(`Meatup.Club - ${restaurantName}`)}`,
+      `DESCRIPTION:${escapeCalendarText(description)}`,
+      `LOCATION:${escapeCalendarText(location)}`,
       'STATUS:CANCELLED',
       `SEQUENCE:${sequence}`,
       'ORGANIZER;CN=Meatup.Club:mailto:rsvp@mail.meatup.club',
@@ -1168,8 +1178,8 @@ export async function sendEventCancellationEmail({
                           This event has been cancelled and removed from the schedule.
                         </p>
                         <div style="background-color: #fef2f2; border-left: 4px solid #991b1b; padding: 20px; margin: 0 0 24px; border-radius: 4px;">
-                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${restaurantName}</p>
-                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${restaurantAddress}</p>` : ''}
+                          <p style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #991b1b;">📍 ${escapeHtmlText(restaurantName)}</p>
+                          ${restaurantAddress ? `<p style="margin: 0 0 12px; font-size: 14px; color: #4b5563;">${escapeHtmlText(restaurantAddress)}</p>` : ''}
                           <p style="margin: 0; font-size: 16px; color: #1f2937;">📅 ${new Date(eventDate + 'T' + eventTime).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date('2000-01-01T' + eventTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
                         </div>
                         <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 1.6;">

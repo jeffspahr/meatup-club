@@ -172,7 +172,7 @@ describe('Calendar Invite Generation', () => {
         attendeeEmail: 'user@example.com',
       });
 
-      expect(ics).toContain('LOCATION:Prime Steakhouse, 123 Main St, City, State');
+      expect(ics).toContain('LOCATION:Prime Steakhouse\\, 123 Main St\\, City\\, State');
     });
 
     it('should fallback to restaurant name when address is null', () => {
@@ -302,7 +302,7 @@ describe('Calendar Invite Generation', () => {
         attendeeEmail: 'user@example.com',
       });
 
-      expect(ics).toContain('LOCATION:Test Steakhouse, 123 Main St, Suite 100, City, State 12345');
+      expect(ics).toContain('LOCATION:Test Steakhouse\\, 123 Main St\\, Suite 100\\, City\\, State 12345');
     });
 
     it('should handle email addresses with special characters', () => {
