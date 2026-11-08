@@ -37,10 +37,15 @@ function memberEvent(restaurantName: string, restaurantAddress: string) {
 }
 
 const senders = [
-  { name: "invitation", send: sendEventInviteEmail },
-  { name: "RSVP update", send: sendCalendarUpdate },
-  { name: "event update", send: sendEventUpdateEmail },
-  { name: "cancellation", send: sendEventCancellationEmail },
+  {
+    name: "invitation",
+    send: sendEventInviteEmail,
+    heading: "Save the Date!",
+    links: ["https://meatup.club/dashboard/events"],
+  },
+  { name: "RSVP update", send: sendCalendarUpdate, heading: "RSVP Updated", links: [] },
+  { name: "event update", send: sendEventUpdateEmail, heading: "Event Updated", links: [] },
+  { name: "cancellation", send: sendEventCancellationEmail, heading: "Event Cancelled", links: [] },
 ];
 
 function sentEmail(): SentEmail {
@@ -60,7 +65,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
-describe.each(senders)("member event fields in $name", ({ send }) => {
+describe.each(senders)("member event fields in $name", ({ send, heading, links }) => {
   it("renders member-supplied HTML as text without introducing links", async () => {
     const restaurantName = '<a href="https://untrusted.invalid/name">Example & Steak</a>';
     const restaurantAddress = '<a href="https://untrusted.invalid/address">123 Main St</a>';
@@ -71,7 +76,8 @@ describe.each(senders)("member event fields in $name", ({ send }) => {
     const document = new DOMParser().parseFromString(message.html, "text/html");
     expect(document.querySelector('a[href="https://untrusted.invalid/name"]')).toBeNull();
     expect(document.querySelector('a[href="https://untrusted.invalid/address"]')).toBeNull();
-    expect(document.querySelector('a[href="https://meatup.club/dashboard/events"]')).not.toBeNull();
+    expect(document.querySelector("h2")?.textContent?.trim()).toBe(heading);
+    expect(Array.from(document.querySelectorAll("a"), link => link.getAttribute("href"))).toEqual(links);
     expect(document.body.textContent).toContain(restaurantName);
     expect(document.body.textContent).toContain(restaurantAddress);
     expect(message.text).toContain(restaurantName);

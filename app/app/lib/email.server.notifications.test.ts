@@ -10,7 +10,8 @@ import {
   sendRsvpOverrideEmail,
 } from "./email.server";
 
-vi.mock("./email-templates", () => ({
+vi.mock("./email-templates", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./email-templates")>()),
   generateRsvpOverrideEmail: ({
     recipientName,
     adminName,
