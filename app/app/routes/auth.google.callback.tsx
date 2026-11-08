@@ -30,6 +30,23 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   // Get user info from Google
   const googleUser = await getGoogleUserInfo(tokens.access_token);
 
+  // Validate the provider's email claim before looking up or changing an account.
+  if (
+    googleUser?.verified_email !== true ||
+    typeof googleUser.email !== "string" ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(googleUser.email)
+  ) {
+    throw new Response("Google did not provide a verified email address", { status: 403 });
+  }
+
+  // Google is authoritative for Gmail and verified Workspace addresses only.
+  // A verified external address without hd may have changed mailbox owners.
+  const isGmail = googleUser.email.toLowerCase().endsWith("@gmail.com");
+  const isWorkspace = typeof googleUser.hd === "string" && googleUser.hd.trim().length > 0;
+  if (!isGmail && !isWorkspace) {
+    throw new Response("Sign in with a Gmail or Google Workspace account", { status: 403 });
+  }
+
   // Ensure user exists in database
   const db = getCloudflareContext(context).env.DB;
   const userId = await ensureUser(

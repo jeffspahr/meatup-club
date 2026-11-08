@@ -33,6 +33,7 @@ export type GoogleUserInfo = {
   id: string;
   email: string;
   verified_email?: boolean;
+  hd?: string;
   name: string;
   given_name?: string;
   family_name?: string;
