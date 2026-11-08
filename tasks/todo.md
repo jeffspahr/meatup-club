@@ -495,3 +495,14 @@ Acceptance: header counts only displayed members; investigate reported iPhone Sa
 Working notes: device is iPhone Safari. Prior avatar fix did not resolve the reported delay. Existing task-note replacement belongs to another task and must remain untouched in commits.
 
 Results: count shows only the visible population with correct singular/plural. Node24: 1,030 tests, typecheck, lint, build, and 390px WebKit member-page check pass. Screenshot reviewed. Local production SSR with ten synthetic members: load127ms, FCP130ms, all rows156ms; client navigation80–97ms. Holding font/app CSS artificially delays whole rendering, not individual member data. No additional performance change is justified by these tests. Need real-device recording/trace to identify the user's remaining pause.
+
+## Remove external font loading stalls (2026-11-08)
+Acceptance: Members renders and its controls work in iPhone WebKit even when external font services never respond. Keep Inter typography by serving fonts locally. User's reported 30-second delay is accepted; no recording required.
+- [x] Inspect remaining critical dependencies and existing WebKit timings.
+- [x] Add browser regression and demonstrate pre-fix failure.
+- [x] Self-host Inter and remove the external blocking stylesheet.
+- [x] Run browser regression, full tests, typecheck, lint, and build.
+- [x] Review and publish signed PR #383: https://github.com/jeffspahr/meatup-club/pull/383.
+Working notes: holding Google Fonts CSS delayed FCP/DCL/load by the full injected delay. This establishes a blocking path, not proof of the user's network conditions. Preserve unrelated working tasks/todo.md content.
+
+Results: pre-fix iPhone WebKit failed the 3-second load assertion with external fonts held indefinitely; after fix all 10 Chromium/WebKit member checks pass, including edit/cancel with external fonts unavailable. Full 1,030 tests, typecheck, lint, and build pass. Font subsets retain Unicode coverage and 48KB Latin download; Vite fingerprints assets. Independent review passed; license also served publicly. Actual phone timing remains unmeasured; no production deployment performed.

@@ -78,3 +78,26 @@ test("slow avatars do not hold page loading or member controls", async ({ page }
     await page.unrouteAll({ behavior: "wait" });
   }
 });
+
+test("unavailable external fonts do not block member controls", async ({ page }) => {
+  let releaseFonts!: () => void;
+  const fontsPending = new Promise<void>(resolve => { releaseFonts = resolve; });
+  await page.route(/https:\/\/fonts\.(googleapis|gstatic)\.com\//, async route => {
+    await fontsPending;
+    await route.abort();
+  });
+
+  try {
+    await page.goto("/dashboard/admin/members", { waitUntil: "commit" });
+    await page.waitForLoadState("load", { timeout: 3_000 });
+    const row = page.getByRole("row").filter({ hasText: "playwright@localhost" });
+    await row.scrollIntoViewIfNeeded();
+    await row.getByRole("button", { name: "Edit", exact: true }).click();
+    await expect(page.getByRole("textbox", { name: "Name", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(row.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  } finally {
+    releaseFonts();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+});

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts/inter.css";
 @config "../tailwind.config.js";
 
 /* Preserve Tailwind 3's Preflight defaults while moving to Tailwind 4. */
