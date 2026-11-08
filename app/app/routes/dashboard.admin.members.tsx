@@ -21,6 +21,10 @@ type MemberSmsStatus = {
 };
 
 function getMemberSmsStatus(member: Member): MemberSmsStatus {
+  if (member.status === 'inactive') {
+    return { label: 'Inactive', detail: 'Not eligible', variant: 'muted', title: 'Inactive members do not receive SMS reminders.' };
+  }
+
   if (!member.phone_number) {
     return {
       label: "No number",
@@ -286,25 +290,29 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (actionType === 'delete') {
-    const user_id = formData.get('user_id');
+    const userId = formData.get('user_id');
 
-    if (!user_id) {
-      return { error: 'User ID is required' };
+    if (typeof userId !== 'string' || !/^[1-9]\d*$/.test(userId) || !Number.isSafeInteger(Number(userId))) {
+      return { error: 'A valid user ID is required' };
+    }
+    if (Number(userId) === admin.id) {
+      return { error: 'You cannot deactivate your own account' };
     }
 
     try {
-      // History can prevent the final user deletion. Roll back participation
-      // changes too, including other members' votes on this user's suggestions.
-      await db.batch([
-        db.prepare('DELETE FROM restaurant_votes WHERE user_id = ?').bind(user_id),
-        db.prepare('DELETE FROM date_votes WHERE user_id = ?').bind(user_id),
-        db.prepare('DELETE FROM date_suggestions WHERE user_id = ?').bind(user_id),
-        db.prepare('DELETE FROM users WHERE id = ?').bind(user_id),
-      ]);
-
+      // Preserve participation and authorship while revoking access and cookies.
+      const result = await db.prepare(`
+        UPDATE users SET status = 'inactive', is_admin = 0,
+          session_version = session_version + 1
+        WHERE id = ? AND status != 'inactive'
+      `).bind(userId).run();
+      if (result.meta.changes === 0) {
+        return { error: 'Member not found or already inactive' };
+      }
       return redirect('/dashboard/admin/members');
     } catch (err) {
-      return { error: 'Failed to remove member. No changes were saved. Members with linked activity or authored records cannot be deleted.' };
+      logErrorEvent('member_deactivation_failed', err);
+      return { error: 'Failed to deactivate member. No changes were saved.' };
     }
   }
 
@@ -379,7 +387,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
   }, [actionData, navigation.state]);
 
   function handleDelete(memberId: number) {
-    if (!confirmAction('Are you sure you want to remove this member? This will also delete all their votes and suggestions.')) {
+    if (!confirmAction('Deactivate this member? They will lose access to the club. Their history, votes, and RSVPs will be preserved.')) {
       return;
     }
 
@@ -684,8 +692,10 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                     <td role="cell" data-label="Status" className="px-6 py-4 whitespace-nowrap">
                       {member.status === 'active' ? (
                         <Badge variant="success">Active</Badge>
+                      ) : member.status === 'inactive' ? (
+                        <Badge variant="muted">Inactive</Badge>
                       ) : (
-                        <Badge variant="warning">Invited</Badge>
+                        <Badge variant="warning">{member.status === 'invited' ? 'Invited' : 'Pending'}</Badge>
                       )}
                     </td>
                     <MemberSmsStatusCell member={member} />
@@ -714,8 +724,9 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         variant="danger"
                         size="sm"
                         onClick={() => handleDelete(member.id)}
+                        disabled={member.status === 'inactive'}
                       >
-                        Remove
+                        Deactivate
                       </Button>
                     </td>
                   </>

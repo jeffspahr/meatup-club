@@ -146,7 +146,7 @@ describe("dashboard.admin.members loader and UI", () => {
     );
   });
 
-  it("supports edit reset plus re-login and delete submit wiring", () => {
+  it("supports edit reset plus re-login and deactivation submit wiring", () => {
     const confirmSpy = vi.fn(() => true);
     vi.stubGlobal("confirm", confirmSpy);
 
@@ -231,7 +231,7 @@ describe("dashboard.admin.members loader and UI", () => {
     expect(screen.queryByRole("button", { name: "Save Changes" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Re-login" })[0]!);
-    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]!);
+    fireEvent.click(screen.getAllByRole("button", { name: "Deactivate" })[0]!);
 
     expect(confirmSpy).toHaveBeenNthCalledWith(
       1,
@@ -239,7 +239,7 @@ describe("dashboard.admin.members loader and UI", () => {
     );
     expect(confirmSpy).toHaveBeenNthCalledWith(
       2,
-      "Are you sure you want to remove this member? This will also delete all their votes and suggestions."
+      "Deactivate this member? They will lose access to the club. Their history, votes, and RSVPs will be preserved."
     );
     expect(submitSpy).toHaveBeenNthCalledWith(
       1,
@@ -250,6 +250,44 @@ describe("dashboard.admin.members loader and UI", () => {
     expect((submitSpy.mock.calls[0]?.[0] as FormData).get("user_id")).toBe("7");
     expect((submitSpy.mock.calls[1]?.[0] as FormData).get("_action")).toBe("delete");
     expect((submitSpy.mock.calls[1]?.[0] as FormData).get("user_id")).toBe("7");
+  });
+
+  it("labels inactive members and prevents redundant deactivation even with SMS consent", () => {
+    const member = {
+      id: 7, name: "Inactive Member", email: "inactive@example.com", picture: null,
+      is_admin: 0, status: "inactive", phone_number: "+15550000001", sms_opt_in: 1,
+      sms_opt_out_at: null, sms_opt_out_source: null, created_at: "2026-03-01T00:00:00.000Z",
+    };
+    const loaderData = { members: [member], templates: [] };
+    const props: Route.ComponentProps = {
+      params: {}, loaderData, actionData: undefined,
+      matches: [
+        { id: "root", params: {}, pathname: "/", loaderData: undefined, handle: undefined },
+        {
+          id: "routes/dashboard", params: {}, pathname: "/dashboard", handle: undefined,
+          loaderData: { user: { ...member, requires_reauth: 0, session_version: 1,
+            notify_poll_updates: 1, notify_event_updates: 1 } },
+        },
+        { id: "routes/dashboard.admin.members", params: {}, pathname: "/dashboard/admin/members",
+          loaderData, handle: undefined },
+      ],
+    };
+    render(
+      <MemoryRouter initialEntries={["/dashboard/admin/members"]}>
+        <AdminMembersPage {...props} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("cell", { name: /^Inactive$/ })).toBeInTheDocument();
+    expect(screen.queryByText("Invited")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("SMS: Inactive. Not eligible.")).toHaveAttribute(
+      "title", "Inactive members do not receive SMS reminders."
+    );
+    expect(screen.queryByLabelText("SMS: Enabled. Eligible.")).not.toBeInTheDocument();
+    const deactivateButton = screen.getByRole("button", { name: "Deactivate" });
+    expect(deactivateButton).toBeDisabled();
+    fireEvent.click(deactivateButton);
+    expect(submitSpy).not.toHaveBeenCalled();
   });
 
   it("shows each member's operational SMS eligibility without exposing phone numbers", () => {

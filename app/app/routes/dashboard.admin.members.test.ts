@@ -349,7 +349,7 @@ describe("dashboard.admin.members action flows", () => {
     expect(db.runCalls).toEqual([]);
   });
 
-  it("deletes a member and their related votes/suggestions before redirecting", async () => {
+  it("deactivates a member before redirecting", async () => {
     const db = createMockDb();
     const request = createRequest({
       _action: "delete",
@@ -365,19 +365,7 @@ describe("dashboard.admin.members action flows", () => {
     expect((response as Response).status).toBe(302);
     expect(db.runCalls).toEqual([
       expect.objectContaining({
-        sql: "DELETE FROM restaurant_votes WHERE user_id = ?",
-        bindArgs: ["7"],
-      }),
-      expect.objectContaining({
-        sql: "DELETE FROM date_votes WHERE user_id = ?",
-        bindArgs: ["7"],
-      }),
-      expect.objectContaining({
-        sql: "DELETE FROM date_suggestions WHERE user_id = ?",
-        bindArgs: ["7"],
-      }),
-      expect.objectContaining({
-        sql: "DELETE FROM users WHERE id = ?",
+        sql: "UPDATE users SET status = 'inactive', is_admin = 0, session_version = session_version + 1 WHERE id = ? AND status != 'inactive'",
         bindArgs: ["7"],
       }),
     ]);
