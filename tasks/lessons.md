@@ -110,3 +110,5 @@
 
 - 2026-09-16: Failure mode: SMS send feedback appeared only at the page header while the action button was far below, and a default subset had no audience preview. Detection: user reported no confirmation and unexpectedly few recipients. Prevention: show notification audience counts/names before confirmation and keep pending/result feedback beside the originating form; test cancellation, failures, retries and event isolation.
 - 2026-09-16: Failure mode: an edit command used a repository-relative path while running from app/. Detection: FileNotFoundError before any write. Prevention: use absolute paths for scripted edits in isolated worktrees, and set app/ only for verification commands.
+
+- 2026-11-07: Mobile member management was constrained by a desktop minimum-width table. Detect with real-browser width assertions at 320px, including action buttons and editing. Preserve desktop widths only above the mobile breakpoint and verify against current main before diagnosing from a stale checkout. Keep repository-root file edits separate from app-directory npm verification.
