@@ -51,6 +51,8 @@ describe("auth.google.callback route", () => {
     vi.mocked(getGoogleTokens).mockResolvedValue({ access_token: "token-123" } as never);
     vi.mocked(getGoogleUserInfo).mockResolvedValue({
       email: "member@example.com",
+      verified_email: true,
+      hd: "example.com",
       name: "Member",
       picture: "https://example.com/member.png",
     } as never);
@@ -131,6 +133,74 @@ describe("auth.google.callback route", () => {
       3
     );
     expect(response.headers.get("Location")).toBe("/dashboard");
+  });
+
+  it.each([
+    { email: "member@example.com", verified_email: true },
+    { email: "member@example.com", verified_email: true, hd: "" },
+    { email: "member@example.com", verified_email: true, hd: "   " },
+    { email: "member@example.com", verified_email: true, hd: 42 },
+    { email: "member@gmail.com", verified_email: false },
+    { email: "member@example.com", verified_email: false, hd: "example.com" },
+    { email: "member@example.com", verified_email: false },
+    { email: "member@example.com" },
+    { email: "member@example.com", verified_email: "true" },
+    { email: "member@example.com", verified_email: 1 },
+    { verified_email: true },
+    { email: null, verified_email: true },
+    { email: 42, verified_email: true },
+    { email: "", verified_email: true },
+    { email: "   ", verified_email: true },
+    { email: "not-an-email", verified_email: true },
+    { email: "member@@example.com", verified_email: true },
+    { email: " member@example.com", verified_email: true },
+    null,
+  ])("rejects invalid Google email claims before changing an account: %j", async (claims) => {
+    vi.mocked(getGoogleUserInfo).mockResolvedValue(claims as never);
+
+    await expect(loader({
+      request: new Request(
+        "http://localhost/auth/google/callback?code=code-123&state=expected-state"
+      ),
+      context: createLoadContext({ env: { DB: {} } } as never),
+      params: {},
+    } as never)).rejects.toMatchObject({ status: 403 });
+
+    expect(ensureUser).not.toHaveBeenCalled();
+    expect(getUserByEmail).not.toHaveBeenCalled();
+    expect(logActivity).not.toHaveBeenCalled();
+    expect(createUserSession).not.toHaveBeenCalled();
+  });
+
+  it("accepts a verified Gmail address without a hosted-domain claim", async () => {
+    vi.mocked(getGoogleUserInfo).mockResolvedValue({
+      id: "google-subject", email: "member@gmail.com", verified_email: true, name: "Member",
+    });
+    await loader({
+      request: new Request(
+        "http://localhost/auth/google/callback?code=code-123&state=expected-state"
+      ),
+      context: createLoadContext({ env: { DB: {} } } as never),
+      params: {},
+    } as never);
+    expect(ensureUser).toHaveBeenCalledWith(expect.anything(), "member@gmail.com", "Member", undefined);
+    expect(createUserSession).toHaveBeenCalledWith(42, "member@gmail.com", "/dashboard", 3);
+  });
+
+  it("does not change an account when the Google userinfo request fails", async () => {
+    vi.mocked(getGoogleUserInfo).mockRejectedValue(new Error("Provider unavailable"));
+
+    await expect(loader({
+      request: new Request(
+        "http://localhost/auth/google/callback?code=code-123&state=expected-state"
+      ),
+      context: createLoadContext({ env: { DB: {} } } as never),
+      params: {},
+    } as never)).rejects.toThrow("Provider unavailable");
+
+    expect(ensureUser).not.toHaveBeenCalled();
+    expect(logActivity).not.toHaveBeenCalled();
+    expect(createUserSession).not.toHaveBeenCalled();
   });
 
   it("redirects inactive users to the pending page", async () => {
