@@ -452,7 +452,7 @@ Acceptance: admins can remove membership with linked history under the selected 
 - [x] Confirm retention policy and implement minimal fix.
 - [x] Add real-schema regression tests.
 - [x] Verify tests, typecheck, lint and build.
-- [ ] Publish DCO-signed PR.
+- [x] Publish DCO-signed PR #375: https://github.com/jeffspahr/meatup-club/pull/375.
 
 Working notes: isolated from unrelated original checkout edits at main 57c9e80. Current deletion safely rolls back but rejects non-cascading references, including login activity. User selected deactivation with preserved history. Set inactive, clear admin privileges and increment session generation in one update; preserve all participation. Show inactive status and block queued event emails. No migration needed.
 
