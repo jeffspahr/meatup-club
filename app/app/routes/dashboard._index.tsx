@@ -666,9 +666,17 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   if (intent === 'delete_restaurant') {
-    const restaurantId = formData.get('restaurant_id');
-    if (!restaurantId) {
+    const rawRestaurantId = formData.get('restaurant_id');
+    if (!rawRestaurantId) {
       return { error: 'Restaurant ID is required' };
+    }
+    const restaurantId = typeof rawRestaurantId === 'string' ? Number(rawRestaurantId) : NaN;
+    if (
+      typeof rawRestaurantId !== 'string' ||
+      !/^[1-9]\d*$/.test(rawRestaurantId) ||
+      !Number.isSafeInteger(restaurantId)
+    ) {
+      return { error: 'Invalid restaurant ID' };
     }
 
     const restaurant = await db
@@ -681,7 +689,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (user.is_admin || restaurant.created_by === user.id) {
-      await deleteRestaurant(db, parseInt(restaurantId as string));
+      await deleteRestaurant(db, restaurantId);
       return { ok: true };
     }
 
