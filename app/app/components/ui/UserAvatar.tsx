@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 type AvatarSize = "sm" | "lg";
 
 interface UserAvatarProps {
@@ -27,7 +29,7 @@ function getInitials(name: string | null | undefined, email?: string): string {
 }
 
 /**
- * User avatar that falls back to initials when no image is available.
+ * User avatar that shows initials until the page loads or when no image is available.
  * @example <UserAvatar src={user.picture} name={user.name} email={user.email} />
  */
 export function UserAvatar({
@@ -38,12 +40,29 @@ export function UserAvatar({
   className = "",
 }: UserAvatarProps) {
   const sz = sizeClasses[size];
+  const [pageLoaded, setPageLoaded] = useState(false);
 
-  if (src) {
+  // External sync: Safari can keep the document loading for an in-view lazy
+  // image. Show initials until load completes, then request optional photos.
+  useEffect(() => {
+    const onLoad = () => setPageLoaded(true);
+    if (document.readyState === "complete") {
+      onLoad();
+      return;
+    }
+    window.addEventListener("load", onLoad, { once: true });
+    return () => window.removeEventListener("load", onLoad);
+  }, []);
+
+  if (src && pageLoaded) {
     return (
       <img
         src={src}
         alt={name || email || "User"}
+        width={size === "lg" ? 48 : 32}
+        height={size === "lg" ? 48 : 32}
+        loading="lazy"
+        decoding="async"
         className={`${sz} rounded-full object-cover ${className}`}
         referrerPolicy="no-referrer"
       />
