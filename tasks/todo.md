@@ -459,3 +459,13 @@ Working notes: isolated from unrelated original checkout edits at main 57c9e80. 
 Review checkpoint: guard invitation acceptance against concurrent deactivation. Email already in flight cannot be recalled. Inactive accounts remain visible to admins and cannot accept prior invitations; reactivation UI is outside this fix.
 
 Results: removal deactivates membership, clears admin privileges and revokes old sessions while preserving every linked record. Inactive landing/status copy and SMS eligibility are explicit. Queued event mail checks membership; invitation acceptance cannot overwrite concurrent deactivation. Verification on Node 24: 950 tests with coverage, typecheck, lint, secret scan, fresh/upgrade D1 checks and production build passed. Six Chromium/iPhone WebKit member-page checks passed; mobile screenshot reviewed. No new effects, migration, production mutation or deployment. Publish PR after signed commit; no reactivation UI added.
+
+
+## Hide inactive members by default (2026-11-08)
+Acceptance: inactive rows are hidden initially; admins can toggle them visible; active, invited and pending rows remain visible. Counts match visible rows.
+- [x] Inspect member table and existing component tests.
+- [x] Implement derived filtering and accessible checkbox.
+- [x] Verify component regressions, full tests, typecheck, lint and build.
+- [ ] Publish signed PR.
+
+Results: inactive rows hidden by default, with an accessible show-inactive checkbox and matching visible/total counts. Filtering is derived during render, with no new effects. Node 24 verification: 1,029 tests, typecheck, lint, build and mobile browser check passed; screenshot reviewed. No data or schema changes.

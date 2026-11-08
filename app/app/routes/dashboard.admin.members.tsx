@@ -337,6 +337,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function AdminMembersPage({ loaderData, actionData }: Route.ComponentProps) {
   const { members, templates } = loaderData;
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const visibleMembers = members.filter(member => showInactive || member.status !== 'inactive');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editData, setEditData] = useState({
     user_id: 0,
@@ -413,7 +415,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
     <main className="page-main page-main-wide">
       <PageHeader
         title="Member Management"
-        description={`Total members: ${members.length}`}
+        description={`Showing ${visibleMembers.length} of ${members.length} members`}
         actions={
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
@@ -544,6 +546,16 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
         </Card>
       )}
 
+      <label className="mb-4 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={showInactive}
+          onChange={event => setShowInactive(event.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        Show inactive members
+      </label>
+
       {/* Members List */}
       <Card className="overflow-x-auto p-0">
         <table role="table" className="admin-members-table w-full sm:min-w-6xl divide-y divide-border">
@@ -576,7 +588,7 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
             </tr>
           </thead>
           <tbody role="rowgroup" className="bg-card divide-y divide-border">
-            {members.map((member: Member) => (
+            {visibleMembers.map((member: Member) => (
               <tr role="row" key={member.id}>
                 {editingId === member.id ? (
                   <td role="cell" colSpan={7} className="px-6 py-4">

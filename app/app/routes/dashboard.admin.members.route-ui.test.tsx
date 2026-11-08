@@ -278,6 +278,13 @@ describe("dashboard.admin.members loader and UI", () => {
       </MemoryRouter>
     );
 
+    expect(screen.queryByText("inactive@example.com")).not.toBeInTheDocument();
+    expect(screen.getByText("Showing 0 of 1 members")).toBeInTheDocument();
+    const toggle = screen.getByRole("checkbox", { name: "Show inactive members" });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(screen.getByText("inactive@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1 of 1 members")).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: /^Inactive$/ })).toBeInTheDocument();
     expect(screen.queryByText("Invited")).not.toBeInTheDocument();
     expect(screen.getByLabelText("SMS: Inactive. Not eligible.")).toHaveAttribute(
@@ -288,6 +295,8 @@ describe("dashboard.admin.members loader and UI", () => {
     expect(deactivateButton).toBeDisabled();
     fireEvent.click(deactivateButton);
     expect(submitSpy).not.toHaveBeenCalled();
+    fireEvent.click(toggle);
+    expect(screen.queryByText("inactive@example.com")).not.toBeInTheDocument();
   });
 
   it("shows each member's operational SMS eligibility without exposing phone numbers", () => {
