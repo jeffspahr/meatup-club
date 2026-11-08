@@ -477,7 +477,7 @@ Acceptance: slow profile-photo responses must not keep member pages loading; all
 - [x] Reproduce slow-image behavior in Chromium and mobile WebKit.
 - [x] Apply smallest verified fix and regression coverage.
 - [x] Run full tests, lint, typecheck, build and browser checks.
-- [ ] Publish focused signed PR.
+- [x] Publish focused signed PR #381: https://github.com/jeffspahr/meatup-club/pull/381.
 Working notes: live desktop baseline is 131 ms document / 357–490 ms load; user reports one member appears while loading pauses. External avatar fetches are eager. Distinguish page load completion from row availability. Existing tasks/todo.md edits belong to another task and must remain uncommitted by this task.
 
 Diagnosis: stalled eager avatars hold the document load event in both browsers while all rows are already rendered. At 390px, the first row starts around y698 and is 437px tall, so only one fits above the fold. Lazy loading alone passed Chromium but still held load in WebKit with only the avatar request pending. Fix: render initials through SSR/hydration and create optional photos after document load; retain lazy loading, async decode and explicit dimensions. New effect is external sync with window load, removes its listener on unmount, and adds no effect chain.
