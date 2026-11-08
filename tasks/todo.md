@@ -502,7 +502,7 @@ Acceptance: Members renders and its controls work in iPhone WebKit even when ext
 - [x] Add browser regression and demonstrate pre-fix failure.
 - [x] Self-host Inter and remove the external blocking stylesheet.
 - [x] Run browser regression, full tests, typecheck, lint, and build.
-- [ ] Review and publish signed PR.
+- [x] Review and publish signed PR #383: https://github.com/jeffspahr/meatup-club/pull/383.
 Working notes: holding Google Fonts CSS delayed FCP/DCL/load by the full injected delay. This establishes a blocking path, not proof of the user's network conditions. Preserve unrelated working tasks/todo.md content.
 
 Results: pre-fix iPhone WebKit failed the 3-second load assertion with external fonts held indefinitely; after fix all 10 Chromium/WebKit member checks pass, including edit/cancel with external fonts unavailable. Full 1,030 tests, typecheck, lint, and build pass. Font subsets retain Unicode coverage and 48KB Latin download; Vite fingerprints assets. Independent review passed; license also served publicly. Actual phone timing remains unmeasured; no production deployment performed.
