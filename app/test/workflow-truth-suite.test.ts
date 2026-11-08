@@ -388,15 +388,23 @@ describe("workflow truth suite", () => {
     webhookState.payload = {
       type: "email.received",
       data: {
+        email_id: "received-workflow-reply",
         from: "Member <member@example.com>",
         subject: "Accepted: Meatup calendar invite",
-        text: `BEGIN:VCALENDAR\nUID:event-${eventId}@meatup.club\nPARTSTAT:ACCEPTED\nEND:VCALENDAR`,
-        html: "",
       },
     };
 
+    const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(Response.json({
+      from: "member@example.com",
+      subject: "Accepted: Meatup calendar invite",
+      authentication: { dkim: "pass", dmarc: "gray", spf: "pass" },
+      text: `BEGIN:VCALENDAR\nMETHOD:REPLY\nUID:event-${eventId}@meatup.club\nATTENDEE;PARTSTAT=ACCEPTED:mailto:member@example.com\nEND:VCALENDAR`,
+      html: "",
+      attachments: [],
+    }));
     const { context } = createContext(harness, {
       RESEND_WEBHOOK_SECRET: "test-secret",
+      RESEND_API_KEY: "test-receiving-key",
     });
 
     const response = await emailWebhookAction({
@@ -414,6 +422,10 @@ describe("workflow truth suite", () => {
     } as never);
 
     expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.resend.com/emails/receiving/received-workflow-reply",
+      expect.objectContaining({ headers: { Authorization: "Bearer test-receiving-key" } }),
+    );
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
         success: true,
