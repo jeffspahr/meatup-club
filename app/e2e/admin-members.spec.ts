@@ -6,7 +6,10 @@ test.beforeEach(() => {
   executeLocalD1File(cleanup);
   executeLocalD1File(new URL("./fixtures/admin-poll.sql", import.meta.url));
 });
-test.afterEach(() => executeLocalD1File(cleanup));
+test.afterEach(() => {
+  executeLocalD1File(new URL("./fixtures/member-avatars-cleanup.sql", import.meta.url));
+  executeLocalD1File(cleanup);
+});
 
 for (const width of [320, 390, 1280]) {
   test(`member details and editing remain reachable at ${width}px`, async ({ page }, testInfo) => {
@@ -41,3 +44,37 @@ for (const width of [320, 390, 1280]) {
     await expect(row.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
   });
 }
+
+test("slow avatars do not hold page loading or member controls", async ({ page }) => {
+  executeLocalD1File(new URL("./fixtures/member-avatars.sql", import.meta.url));
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  let releaseAvatar!: () => void;
+  const avatarPending = new Promise<void>(resolve => { releaseAvatar = resolve; });
+  let avatarRequested = false;
+  await page.route("https://avatars.example.test/**", async route => {
+    avatarRequested = true;
+    await avatarPending;
+    await route.abort();
+  });
+
+  try {
+    await page.goto("/dashboard/admin/members", { waitUntil: "domcontentloaded" });
+    await expect.poll(() => avatarRequested).toBe(true);
+    // This times out with eager avatars: the request remains stalled until finally.
+    await page.waitForLoadState("load", { timeout: 3_000 });
+    await expect(page.locator("tbody tr")).toHaveCount(3);
+    await expect(page.getByText("slow-one@example.test")).toBeVisible();
+
+    const lowerMember = page.getByRole("row").filter({ hasText: "slow-two@example.test" });
+    await lowerMember.scrollIntoViewIfNeeded();
+    await expect(lowerMember).toBeInViewport();
+    await lowerMember.getByRole("button", { name: "Edit", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Save Changes" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(lowerMember.getByRole("button", { name: "Edit", exact: true })).toBeVisible();
+  } finally {
+    releaseAvatar();
+    await page.unrouteAll({ behavior: "wait" });
+  }
+});

@@ -115,3 +115,6 @@
 
 - 2026-11-07: Failure mode: atomic hard deletion still made member removal unusable for accounts with ordinary login activity. Detection: real-schema removal test demonstrated foreign-key blocking. Prevention: distinguish membership revocation from data erasure; preserve history through inactive status and revoke sessions when removal means ending access.
 - 2026-11-07: Scripted replacement briefly touched unrelated SQL column lists; diff inspection caught it before verification. Scope replacements to the intended function and inspect every match. Keep editing commands at repo root and npm verification explicitly in app/.
+
+- 2026-11-08: A fast desktop load did not reproduce a member page's apparent mobile stall. Detection: user reported one visible member while loading; stalled-avatar tests showed all rows ready but the load event waiting on an eager image, with one row fitting the initial viewport. Prevention: test slow third-party assets and mobile layout independently; distinguish load completion from DOM availability.
+- 2026-11-08: Native lazy loading alone still blocked document load for an in-view image in the tested WebKit browser. Detect with an intercepted, indefinitely pending image request and a load-event assertion; verify both engines and defer optional photo creation until document load when browser behavior differs.

@@ -469,3 +469,17 @@ Acceptance: inactive rows are hidden initially; admins can toggle them visible; 
 - [x] Publish signed PR #380: https://github.com/jeffspahr/meatup-club/pull/380.
 
 Results: inactive rows hidden by default, with an accessible show-inactive checkbox and matching visible/total counts. Filtering is derived during render, with no new effects. Node 24 verification: 1,029 tests, typecheck, lint, build and mobile browser check passed; screenshot reviewed. No data or schema changes.
+
+
+## Member page loading stall (2026-11-08)
+Acceptance: slow profile-photo responses must not keep member pages loading; all rows and actions remain available. Preserve membership data and existing layout.
+- [x] Inspect route, CSS, avatar and live page timing.
+- [x] Reproduce slow-image behavior in Chromium and mobile WebKit.
+- [x] Apply smallest verified fix and regression coverage.
+- [x] Run full tests, lint, typecheck, build and browser checks.
+- [ ] Publish focused signed PR.
+Working notes: live desktop baseline is 131 ms document / 357–490 ms load; user reports one member appears while loading pauses. External avatar fetches are eager. Distinguish page load completion from row availability. Existing tasks/todo.md edits belong to another task and must remain uncommitted by this task.
+
+Diagnosis: stalled eager avatars hold the document load event in both browsers while all rows are already rendered. At 390px, the first row starts around y698 and is 437px tall, so only one fits above the fold. Lazy loading alone passed Chromium but still held load in WebKit with only the avatar request pending. Fix: render initials through SSR/hydration and create optional photos after document load; retain lazy loading, async decode and explicit dimensions. New effect is external sync with window load, removes its listener on unmount, and adds no effect chain.
+
+Results: Node 24 verification passed 1,030 tests, typecheck, lint, production build and all eight Chromium/iPhone WebKit member-page browser checks. Independent review found no actionable issues. No schema or membership changes; no production deployment. UI layout unchanged; optional photos appear after document load.
