@@ -466,6 +466,6 @@ Acceptance: inactive rows are hidden initially; admins can toggle them visible; 
 - [x] Inspect member table and existing component tests.
 - [x] Implement derived filtering and accessible checkbox.
 - [x] Verify component regressions, full tests, typecheck, lint and build.
-- [ ] Publish signed PR.
+- [x] Publish signed PR #380: https://github.com/jeffspahr/meatup-club/pull/380.
 
 Results: inactive rows hidden by default, with an accessible show-inactive checkbox and matching visible/total counts. Filtering is derived during render, with no new effects. Node 24 verification: 1,029 tests, typecheck, lint, build and mobile browser check passed; screenshot reviewed. No data or schema changes.
