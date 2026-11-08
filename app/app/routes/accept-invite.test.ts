@@ -139,7 +139,7 @@ describe("accept-invite route", () => {
     expect((response as Response).headers.get("Location")).toBe("/dashboard");
     expect(db.runCalls).toEqual([
       {
-        sql: "UPDATE users SET status = ? WHERE id = ?",
+        sql: "UPDATE users SET status = ? WHERE id = ? AND status = 'invited'",
         bindArgs: ["active", 123],
       },
     ]);

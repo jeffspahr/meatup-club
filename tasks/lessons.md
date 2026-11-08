@@ -112,3 +112,6 @@
 - 2026-09-16: Failure mode: an edit command used a repository-relative path while running from app/. Detection: FileNotFoundError before any write. Prevention: use absolute paths for scripted edits in isolated worktrees, and set app/ only for verification commands.
 
 - 2026-11-07: Mobile member management was constrained by a desktop minimum-width table. Detect with real-browser width assertions at 320px, including action buttons and editing. Preserve desktop widths only above the mobile breakpoint and verify against current main before diagnosing from a stale checkout. Keep repository-root file edits separate from app-directory npm verification.
+
+- 2026-11-07: Failure mode: atomic hard deletion still made member removal unusable for accounts with ordinary login activity. Detection: real-schema removal test demonstrated foreign-key blocking. Prevention: distinguish membership revocation from data erasure; preserve history through inactive status and revoke sessions when removal means ending access.
+- 2026-11-07: Scripted replacement briefly touched unrelated SQL column lists; diff inspection caught it before verification. Scope replacements to the intended function and inspect every match. Keep editing commands at repo root and npm verification explicitly in app/.

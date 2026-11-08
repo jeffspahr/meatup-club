@@ -443,3 +443,19 @@ Acceptance: all member details and actions fit a 320px phone without horizontal 
 Working notes: current main already has a scroll container around a minimum-width seven-column table. Use one responsive table and existing handlers, without duplicating forms or introducing effects. Original checkout has unrelated edits; isolated worktree starts at origin/main.
 
 Results: scoped phone-only stacked rows retain desktop columns, explicit table semantics, and existing mutation handlers. Lint, typecheck, all 931 tests, production build, and six Playwright checks (320/390/1280px in Chromium and iPhone WebKit) passed. Screenshot visually reviewed. Independent diff review found no actionable issues. Verification ran with host Node 26; CI uses the repository Node 24 version.
+
+
+## Member removal failure (2026-11-07)
+
+Acceptance: admins can remove membership with linked history under the selected retention policy; failures are atomic and authorization remains enforced.
+- [x] Inspect current-main removal and schema dependencies.
+- [x] Confirm retention policy and implement minimal fix.
+- [x] Add real-schema regression tests.
+- [x] Verify tests, typecheck, lint and build.
+- [ ] Publish DCO-signed PR.
+
+Working notes: isolated from unrelated original checkout edits at main 57c9e80. Current deletion safely rolls back but rejects non-cascading references, including login activity. User selected deactivation with preserved history. Set inactive, clear admin privileges and increment session generation in one update; preserve all participation. Show inactive status and block queued event emails. No migration needed.
+
+Review checkpoint: guard invitation acceptance against concurrent deactivation. Email already in flight cannot be recalled. Inactive accounts remain visible to admins and cannot accept prior invitations; reactivation UI is outside this fix.
+
+Results: removal deactivates membership, clears admin privileges and revokes old sessions while preserving every linked record. Inactive landing/status copy and SMS eligibility are explicit. Queued event mail checks membership; invitation acceptance cannot overwrite concurrent deactivation. Verification on Node 24: 950 tests with coverage, typecheck, lint, secret scan, fresh/upgrade D1 checks and production build passed. Six Chromium/iPhone WebKit member-page checks passed; mobile screenshot reviewed. No new effects, migration, production mutation or deployment. Publish PR after signed commit; no reactivation UI added.

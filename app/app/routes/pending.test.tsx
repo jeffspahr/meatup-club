@@ -65,6 +65,32 @@ describe("pending route", () => {
     expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
   });
 
+  it("explains inactive membership without promising approval", () => {
+    render(
+      <MemoryRouter initialEntries={["/pending"]}>
+        <PendingPage
+          {...({
+            loaderData: {
+              user: {
+                id: 12,
+                email: "inactive@example.com",
+                name: "Inactive User",
+                status: "inactive",
+              },
+            },
+          } as Route.ComponentProps)}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("heading", { name: "Account Inactive" })).toBeInTheDocument();
+    expect(screen.getByText("Your club membership has been deactivated.")).toBeInTheDocument();
+    expect(screen.getByText("Contact a club admin if you believe this was a mistake.")).toBeInTheDocument();
+    expect(screen.queryByText(/pending approval/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/activate your account soon/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+  });
+
   it("renders fallback copy when the user has no name", () => {
     render(
       <MemoryRouter initialEntries={["/pending"]}>

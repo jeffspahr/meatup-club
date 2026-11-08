@@ -15,7 +15,7 @@ for (const width of [320, 390, 1280]) {
     const table = page.getByRole("table");
     const row = table.getByRole("row").filter({ hasText: "playwright@localhost" });
     await expect(row).toBeVisible();
-    await expect(row.getByRole("button", { name: "Remove", exact: true })).toBeVisible();
+    await expect(row.getByRole("button", { name: "Deactivate", exact: true })).toBeVisible();
     const assertFits = async () => {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (width < 640) {

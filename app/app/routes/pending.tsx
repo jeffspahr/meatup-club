@@ -9,6 +9,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function Pending({ loaderData }: Route.ComponentProps) {
   const { user } = loaderData;
+  const inactive = user?.status === "inactive";
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -20,15 +21,15 @@ export default function Pending({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
           <h1 className="text-display-md mb-4">
-            Account Pending
+            {inactive ? "Account Inactive" : "Account Pending"}
           </h1>
           <p className="text-muted-foreground mb-6">
-            Thanks for signing in{user?.name ? `, ${user.name}` : ""}! Your account is
-            currently pending approval.
+            {inactive ? "Your club membership has been deactivated." :
+              `Thanks for signing in${user?.name ? `, ${user.name}` : ""}! Your account is currently pending approval.`}
           </p>
           <p className="text-muted-foreground mb-8">
-            An admin will review your request and activate your account soon.
-            You'll receive an email once you're approved.
+            {inactive ? "Contact a club admin if you believe this was a mistake." :
+              "An admin will review your request and activate your account soon. You'll receive an email once you're approved."}
           </p>
           <form method="post" action="/logout">
             <button

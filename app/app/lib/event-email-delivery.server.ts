@@ -58,6 +58,7 @@ interface EventEmailDeliveryRow {
   id: number;
   event_id: number | null;
   user_id: number | null;
+  recipient_status: string | null;
   delivery_type: EventEmailDeliveryType;
   recipient_email: string;
   rsvp_status: "yes" | "no" | "maybe" | null;
@@ -926,6 +927,7 @@ export async function deliverEventEmailById(params: {
           id,
           event_id,
           user_id,
+          (SELECT status FROM users WHERE id = event_email_deliveries.user_id) AS recipient_status,
           delivery_type,
           recipient_email,
           rsvp_status,
@@ -950,16 +952,23 @@ export async function deliverEventEmailById(params: {
     return { outcome: "skip" };
   }
 
+  if (delivery.status !== "failed" && (delivery.provider_message_id || TERMINAL_STATUSES.has(delivery.status))) {
+    return { outcome: "skip" };
+  }
+
+  // Staged mail can outlive membership. Stop retries without sending to a
+  // deactivated account; detached historical recipients retain existing behavior.
+  if (delivery.recipient_status != null && delivery.recipient_status !== "active") {
+    await markDeliveryFailed(params.db, delivery.id, "Recipient is no longer an active member");
+    return { outcome: "skip" };
+  }
+
   if (delivery.status === "failed") {
     // Keep failed delivery messages unacknowledged until Cloudflare exhausts
     // the queue retry budget and moves them to the configured DLQ. The failed
     // status prevents another provider send while preserving the message as an
     // independently observable operational signal.
     return { outcome: "failed" };
-  }
-
-  if (delivery.provider_message_id || TERMINAL_STATUSES.has(delivery.status)) {
-    return { outcome: "skip" };
   }
 
   if (!params.resendApiKey) {
