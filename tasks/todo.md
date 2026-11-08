@@ -506,3 +506,14 @@ Acceptance: Members renders and its controls work in iPhone WebKit even when ext
 Working notes: holding Google Fonts CSS delayed FCP/DCL/load by the full injected delay. This establishes a blocking path, not proof of the user's network conditions. Preserve unrelated working tasks/todo.md content.
 
 Results: pre-fix iPhone WebKit failed the 3-second load assertion with external fonts held indefinitely; after fix all 10 Chromium/WebKit member checks pass, including edit/cancel with external fonts unavailable. Full 1,030 tests, typecheck, lint, and build pass. Font subsets retain Unicode coverage and 48KB Latin download; Vite fingerprints assets. Independent review passed; license also served publicly. Actual phone timing remains unmeasured; no production deployment performed.
+
+## Partial mobile member rendering (2026-11-08)
+Acceptance: every member's full details and actions remain rendered and reachable on mobile through scrolling and delayed photos; preserve desktop layout and edit behavior.
+- [x] Inspect screenshot cutoff, deployed DOM, and synchronous row rendering.
+- [x] Replace mobile table painting path with normal-flow layout without duplicate forms.
+- [x] Add multi-member mobile regression covering every field and action during pending photos.
+- [x] Run full tests, typecheck, lint, build, and browser checks.
+- [ ] Review and publish signed PR.
+Working notes: screenshot stops after SMS before Joined/actions. Current deployed code inserts photo only after document load; live DOM contains all ten rows. Avoid treating this as per-member data fetching. Safari table rendering is a plausible cause, not a proven physical-device diagnosis. Preserve unrelated working task notes.
+
+Results: one accessible table tree uses normal-flow mobile cards and aligned desktop grid columns, without native table painting or mobile nested overflow. Full 1,030 tests, typecheck, lint, build, ten browser checks pass; both desktop browser checks rerun after intrinsic column-width correction. Mobile/desktop screenshots inspected and independent review passed. Regression verifies complete row geometry and all controls while photos remain pending, but does not reproduce physical-iPhone compositor blanking. No production deployment.

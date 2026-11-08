@@ -74,7 +74,7 @@ function MemberSmsStatusCell({ member }: { member: Member }) {
   const smsStatus = getMemberSmsStatus(member);
 
   return (
-    <td role="cell" data-label="SMS" className="px-6 py-4 whitespace-nowrap">
+    <div role="cell" data-label="SMS" className="px-6 py-4 whitespace-nowrap">
       <div
         className="flex flex-col items-start gap-1"
         title={smsStatus.title}
@@ -83,7 +83,7 @@ function MemberSmsStatusCell({ member }: { member: Member }) {
         <Badge variant={smsStatus.variant}>{smsStatus.label}</Badge>
         <span className="text-xs text-muted-foreground">{smsStatus.detail}</span>
       </div>
-    </td>
+    </div>
   );
 }
 
@@ -557,41 +557,41 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
       </label>
 
       {/* Members List */}
-      <Card className="overflow-x-auto p-0">
-        <table role="table" className="admin-members-table w-full sm:min-w-6xl divide-y divide-border">
-          <caption className="sr-only">
+      <Card className="sm:overflow-x-auto p-0">
+        <div role="table" aria-label="Members" aria-describedby="member-table-description" className="admin-members-table w-full sm:min-w-6xl divide-y divide-border">
+          <div id="member-table-description" className="sr-only">
             Member roles, account status, SMS reminder eligibility, join date, and actions
-          </caption>
-          <thead role="rowgroup" className="bg-muted">
-            <tr role="row">
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          </div>
+          <div role="rowgroup" className="member-column-headers bg-muted">
+            <div role="row">
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Member
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Email
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Role
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 SMS
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Joined
-              </th>
-              <th scope="col" role="columnheader" className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              </div>
+              <div role="columnheader" className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup" className="bg-card divide-y divide-border">
+              </div>
+            </div>
+          </div>
+          <div role="rowgroup" className="bg-card divide-y divide-border">
             {visibleMembers.map((member: Member) => (
-              <tr role="row" key={member.id}>
+              <div role="row" key={member.id}>
                 {editingId === member.id ? (
-                  <td role="cell" colSpan={7} className="px-6 py-4">
+                  <div role="cell" aria-colspan={7} className="member-edit-cell px-6 py-4">
                     <Form method="post" className="space-y-4">
                       <input type="hidden" name="_action" value="update" />
                       <input type="hidden" name="user_id" value={editData.user_id} />
@@ -675,10 +675,10 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                         </Button>
                       </div>
                     </Form>
-                  </td>
+                  </div>
                 ) : (
                   <>
-                    <td role="cell" className="px-6 py-4 whitespace-nowrap">
+                    <div role="cell" className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <UserAvatar
                           src={member.picture}
@@ -690,18 +690,18 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                           {member.name || 'No name'}
                         </div>
                       </div>
-                    </td>
-                    <td role="cell" data-label="Email" className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    </div>
+                    <div role="cell" data-label="Email" className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {member.email}
-                    </td>
-                    <td role="cell" data-label="Role" className="px-6 py-4 whitespace-nowrap">
+                    </div>
+                    <div role="cell" data-label="Role" className="px-6 py-4 whitespace-nowrap">
                       {member.is_admin ? (
                         <Badge variant="accent">Admin</Badge>
                       ) : (
                         <Badge variant="muted">Member</Badge>
                       )}
-                    </td>
-                    <td role="cell" data-label="Status" className="px-6 py-4 whitespace-nowrap">
+                    </div>
+                    <div role="cell" data-label="Status" className="px-6 py-4 whitespace-nowrap">
                       {member.status === 'active' ? (
                         <Badge variant="success">Active</Badge>
                       ) : member.status === 'inactive' ? (
@@ -709,12 +709,12 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                       ) : (
                         <Badge variant="warning">{member.status === 'invited' ? 'Invited' : 'Pending'}</Badge>
                       )}
-                    </td>
+                    </div>
                     <MemberSmsStatusCell member={member} />
-                    <td role="cell" data-label="Joined" className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <div role="cell" data-label="Joined" className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateForDisplay(member.created_at)}
-                    </td>
-                    <td role="cell" className="member-actions px-6 py-4 whitespace-nowrap text-right text-sm">
+                    </div>
+                    <div role="cell" className="member-actions px-6 py-4 whitespace-nowrap text-right text-sm">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -740,13 +740,13 @@ export default function AdminMembersPage({ loaderData, actionData }: Route.Compo
                       >
                         Deactivate
                       </Button>
-                    </td>
+                    </div>
                   </>
                 )}
-              </tr>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </Card>
     </main>
     </AdminLayout>

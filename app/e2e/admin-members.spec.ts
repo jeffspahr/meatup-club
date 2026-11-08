@@ -63,7 +63,26 @@ test("slow avatars do not hold page loading or member controls", async ({ page }
     await expect.poll(() => avatarRequested).toBe(true);
     // This times out with eager avatars: the request remains stalled until finally.
     await page.waitForLoadState("load", { timeout: 3_000 });
-    await expect(page.locator("tbody tr")).toHaveCount(3);
+    const rows = page.getByRole("table").getByRole("rowgroup").last().getByRole("row");
+    await expect(rows).toHaveCount(10);
+    // Check the complete first row immediately, before waiting for optional photos.
+    // The reported phone failure stops after SMS, hiding Joined and all actions.
+    const completeRows = await rows.evaluateAll(elements => elements.map(row => {
+      const bounds = row.getBoundingClientRect();
+      const joined = row.querySelector('[data-label="Joined"]')?.getBoundingClientRect();
+      const actions = row.querySelector('.member-actions')?.getBoundingClientRect();
+      return Boolean(joined && actions && joined.height > 0 && actions.height > 0 &&
+        joined.bottom <= bounds.bottom && actions.bottom <= bounds.bottom);
+    }));
+    expect(completeRows).toEqual(Array(10).fill(true));
+    for (const memberRow of await rows.all()) {
+      const actions = memberRow.locator(".member-actions");
+      await actions.scrollIntoViewIfNeeded();
+      await expect(actions).toBeInViewport();
+      for (const label of ["Edit", "Re-login", "Deactivate"]) {
+        await expect(actions.getByRole("button", { name: label, exact: true })).toBeInViewport();
+      }
+    }
     await expect(page.getByText("slow-one@example.test")).toBeVisible();
 
     const lowerMember = page.getByRole("row").filter({ hasText: "slow-two@example.test" });

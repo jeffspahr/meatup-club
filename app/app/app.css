@@ -796,18 +796,37 @@ body {
   color: rgb(var(--foreground));
 }
 
-/* Stack member details on phones while preserving the desktop table. */
+/* One semantic table tree: normal card flow on phones, aligned columns on desktop.
+   Avoid a native table inside an overflow scroller on mobile Safari. */
+@media (width >= 40rem) {
+  .admin-members-table {
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) minmax(max-content, 1.5fr) repeat(5, max-content);
+  }
+
+  .admin-members-table [role="rowgroup"],
+  .admin-members-table [role="row"] {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+  }
+
+  .admin-members-table .member-edit-cell {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (width < 40rem) {
   .admin-members-table,
-  .admin-members-table tbody,
-  .admin-members-table tr,
-  .admin-members-table td {
+  .admin-members-table [role="rowgroup"],
+  .admin-members-table [role="row"],
+  .admin-members-table [role="cell"] {
     display: block;
     width: 100%;
     min-width: 0;
   }
 
-  .admin-members-table thead {
+  .admin-members-table .member-column-headers {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -815,17 +834,17 @@ body {
     clip-path: inset(50%);
   }
 
-  .admin-members-table tr {
+  .admin-members-table [role="row"] {
     padding: 1rem 0;
   }
 
-  .admin-members-table td {
+  .admin-members-table [role="cell"] {
     padding: 0.375rem 1rem;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .admin-members-table td[data-label]::before {
+  .admin-members-table [role="cell"][data-label]::before {
     content: attr(data-label);
     display: block;
     margin-bottom: 0.25rem;
