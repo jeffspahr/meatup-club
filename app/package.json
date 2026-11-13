@@ -28,12 +28,12 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@react-router/cloudflare": "8.5.1",
-    "isbot": "^5.2.2",
+    "isbot": "^5.2.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
     "react-router": "8.5.1",
-    "svix": "^2.9.1"
+    "svix": "^2.10.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.68.0",
