@@ -36,7 +36,7 @@
     "svix": "^2.10.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.68.0",
+    "@cloudflare/vite-plugin": "^1.69.1",
     "@playwright/test": "^1.65.0",
     "@react-router/dev": "8.5.1",
     "@tailwindcss/vite": "^4.3.5",
@@ -55,7 +55,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.72.2",
-    "vite": "^8.3.7",
+    "vite": "^8.3.8",
     "vitest": "^4.0.16",
     "wrangler": "^4.159.0"
   },
